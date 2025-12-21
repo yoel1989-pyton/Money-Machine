@@ -24,10 +24,36 @@ from .omni_orchestrator import (
     SystemState,
     HealthStatus
 )
-from .affiliate import AffiliateManager, AffiliateConfig, ClickBankHunter, Digistore24Hunter
-from .systeme_io import SystemeManager, SystemeConfig
-from .niche_manager import NicheManager, Niche, NICHE_STRATEGIES
-from .auditor import FinancialAuditor, AuditorConfig
+from .affiliate import (
+    MasterAffiliateEngine,
+    AffiliateConfig,
+    ClickBankHunter,
+    Digistore24Hunter,
+    OfferVault,
+    AffiliateOffer
+)
+from .systeme_io import MasterSystemeManager, SystemeConfig
+from .niche_manager import ChannelManager, Niche, NicheConfig, NICHE_STRATEGIES
+from .auditor import MasterFinancialAuditor, AuditorConfig
+from .elite_survivor import (
+    MasterEliteSurvivor,
+    SelfHealingEngine,
+    SelfImprovementEngine,
+    OmniAwarenessEngine
+)
+from .profit_allocator import (
+    MasterProfitAllocator,
+    ProfitAllocator,
+    AllocationConfig,
+    ReinvestmentEngine
+)
+from .ad_reinvestor import (
+    MasterAdReinvestor,
+    AdReinvestor,
+    AdConfig,
+    WinnerSelector,
+    CampaignManager
+)
 
 __all__ = [
     # Core Engines
@@ -46,6 +72,7 @@ __all__ = [
     "AffiliateConfig",
     "SystemeConfig",
     "AuditorConfig",
+    "NicheConfig",
     # Orchestrators
     "MoneyMachine",
     "OmniOrchestrator",
@@ -59,16 +86,34 @@ __all__ = [
     "SystemState",
     "HealthStatus",
     # Affiliate/Marketing
-    "AffiliateManager",
+    "MasterAffiliateEngine",
     "ClickBankHunter",
     "Digistore24Hunter",
-    "SystemeManager",
+    "OfferVault",
+    "AffiliateOffer",
+    "MasterSystemeManager",
     # Niche Management
-    "NicheManager",
+    "ChannelManager",
     "Niche",
     "NICHE_STRATEGIES",
     # Financial
-    "FinancialAuditor"
+    "MasterFinancialAuditor",
+    # Elite Survivor (Self-Healing/Improving/Awareness)
+    "MasterEliteSurvivor",
+    "SelfHealingEngine",
+    "SelfImprovementEngine",
+    "OmniAwarenessEngine",
+    # Profit Allocation
+    "MasterProfitAllocator",
+    "ProfitAllocator",
+    "AllocationConfig",
+    "ReinvestmentEngine",
+    # Ad Reinvestment
+    "MasterAdReinvestor",
+    "AdReinvestor",
+    "AdConfig",
+    "WinnerSelector",
+    "CampaignManager"
 ]
 
 
