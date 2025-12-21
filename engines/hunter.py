@@ -324,27 +324,31 @@ class NewsHunter:
         
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(
-                f"{self.base_url}/everything",
-                params={
-                    "apiKey": self.api_key,
-                    "q": query,
-                    "sortBy": "popularity",
-                    "pageSize": 10
-                }
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                for article in data.get("articles", []):
-                    opportunities.append({
-                        "source": "news",
-                        "title": article.get("title", ""),
-                        "description": article.get("description", ""),
-                        "url": article.get("url", ""),
-                        "opportunity_score": 60,
-                        "content_angle": f"Topic: {query}"
-                    })
+                response = await client.get(
+                    f"{self.base_url}/everything",
+                    params={
+                        "apiKey": self.api_key,
+                        "q": query,
+                        "sortBy": "popularity",
+                        "pageSize": 10
+                    }
+                )
+                
+                if response.status_code == 200:
+                    self.circuit_breaker.record_success()
+                    data = response.json()
+                    for article in data.get("articles", []):
+                        opportunities.append({
+                            "source": "news",
+                            "title": article.get("title", ""),
+                            "description": article.get("description", ""),
+                            "url": article.get("url", ""),
+                            "opportunity_score": 60,
+                            "content_angle": f"Topic: {query}"
+                        })
+        except Exception as e:
+            self.circuit_breaker.record_failure()
+            print(f"[HUNTER] NewsAPI search exception: {e}")
                     
         return opportunities
 
