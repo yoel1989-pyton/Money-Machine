@@ -429,8 +429,10 @@ class LocalSaver:
             day_folder = self.base_dir / today
             day_folder.mkdir(parents=True, exist_ok=True)
             
-            # Clean filename
+            # Clean filename - remove emojis and special chars
             clean_title = "".join(c for c in title[:50] if c.isalnum() or c in " -_").strip()
+            if not clean_title:
+                clean_title = "video"
             timestamp = datetime.now().strftime("%H%M%S")
             filename = f"{niche}_{clean_title}_{timestamp}"
             
@@ -438,7 +440,7 @@ class LocalSaver:
             dest = day_folder / f"{filename}.mp4"
             shutil.copy2(source, dest)
             
-            # Save metadata
+            # Save metadata with UTF-8 encoding
             meta_file = day_folder / f"{filename}_metadata.txt"
             meta_file.write_text(f"""TITLE: {title}
 
@@ -452,10 +454,10 @@ PLATFORMS:
 
 NICHE: {niche}
 CREATED: {datetime.now().isoformat()}
-""")
+""", encoding="utf-8")
             
-            print(f"[LOCAL] ✅ Saved: {dest}")
-            print(f"[LOCAL] 📝 Metadata: {meta_file}")
+            print(f"[LOCAL] Saved: {dest}")
+            print(f"[LOCAL] Metadata: {meta_file}")
             
             return {
                 "success": True,
