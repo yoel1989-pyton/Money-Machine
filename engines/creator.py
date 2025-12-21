@@ -392,13 +392,15 @@ class VideoAssembler:
             "-t", str(duration),
             # Scale and crop to vertical
             "-vf", f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            # Video codec
+            # Video codec (SPEED MODE)
             "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "23",
+            "-preset", "ultrafast",
+            "-crf", "30",
+            "-tune", "zerolatency",
+            "-threads", "0",
             # Audio codec
             "-c:a", "aac",
-            "-b:a", "192k",
+            "-b:a", "128k",
             # Output
             "-shortest",
             output_path
@@ -432,7 +434,10 @@ class VideoAssembler:
             "-t", str(duration),
             "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
+            "-crf", "30",
+            "-tune", "zerolatency",
+            "-threads", "0",
             "-c:a", "aac",
             "-shortest",
             output_path
@@ -465,6 +470,9 @@ class VideoAssembler:
             ]),
             "-af", "atempo=1.01",  # Match audio to video speed
             "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "30",
+            "-threads", "0",
             "-c:a", "aac",
             output_path
         ]
@@ -496,6 +504,9 @@ class VideoAssembler:
             "-i", input_path,
             "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
             "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "30",
+            "-threads", "0",
             "-c:a", "copy",
             output_path
         ]
