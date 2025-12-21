@@ -5,6 +5,7 @@ The Omni-Channel Distribution System
 ============================================================
 Distributes content assets across all platforms.
 Uses OFFICIAL APIs only - compliant and sustainable.
+NOW WITH: Auto-Upload via MasterUploader (POST-HUMAN MODE)
 ============================================================
 """
 
@@ -15,6 +16,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 import httpx
+
+# Import MasterUploader for auto-upload capability
+from .uploaders import MasterUploader, DescriptionTemplates
 
 # ============================================================
 # CONFIGURATION
@@ -574,6 +578,7 @@ class MasterGatherer:
     """
     Master Gatherer that orchestrates all distribution.
     Omni-alignment: One asset → All platforms simultaneously.
+    NOW WITH: Auto-upload via MasterUploader (POST-HUMAN MODE)
     """
     
     def __init__(self):
@@ -582,6 +587,9 @@ class MasterGatherer:
         self.instagram = InstagramGatherer()
         self.pinterest = PinterestGatherer()
         self.email = EmailGatherer()
+        
+        # NEW: Master Uploader for auto-upload
+        self.uploader = MasterUploader()
         
         # Track daily uploads
         self.daily_counts = {
@@ -700,6 +708,59 @@ class MasterGatherer:
                 "platform": "tiktok",
                 **tt_result
             })
+        
+        return results
+    
+    async def auto_upload(
+        self,
+        video_path: str,
+        niche: str,
+        topic: str,
+        cta_url: str = None
+    ) -> dict:
+        """
+        AUTO-UPLOAD: POST-HUMAN MODE
+        Uses MasterUploader to push to all platforms simultaneously.
+        Generates optimized descriptions with CTAs.
+        
+        Args:
+            video_path: Path to the video file
+            niche: One of "wealth", "health", "survival"
+            topic: The topic/title of the video
+            cta_url: Optional call-to-action URL for link in bio
+            
+        Returns:
+            Upload results from all platforms
+        """
+        print(f"\n[AUTO-UPLOAD] Initiating POST-HUMAN MODE distribution...")
+        print(f"[AUTO-UPLOAD] Video: {video_path}")
+        print(f"[AUTO-UPLOAD] Niche: {niche} | Topic: {topic}")
+        
+        # Generate optimized descriptions
+        descriptions = DescriptionTemplates.generate_all(
+            niche=niche,
+            topic=topic,
+            cta_url=cta_url or "Link in bio 🔗"
+        )
+        
+        # Use MasterUploader for simultaneous upload
+        results = await self.uploader.upload_all(
+            video_path=video_path,
+            title=topic,
+            descriptions=descriptions,
+            niche=niche
+        )
+        
+        # Track successful uploads
+        for platform, result in results.get("results", {}).items():
+            if result.get("success"):
+                self.daily_counts[platform] = self.daily_counts.get(platform, 0) + 1
+                print(f"[AUTO-UPLOAD] ✅ {platform.upper()}: Success!")
+            else:
+                error = result.get("error", "Unknown error")
+                print(f"[AUTO-UPLOAD] ❌ {platform.upper()}: {error}")
+        
+        print(f"\n[AUTO-UPLOAD] Distribution complete: {results.get('summary', {})}")
         
         return results
     

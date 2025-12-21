@@ -54,6 +54,13 @@ from .ad_reinvestor import (
     WinnerSelector,
     CampaignManager
 )
+from .uploaders import (
+    MasterUploader,
+    YouTubeUploader,
+    InstagramUploader,
+    TikTokUploader,
+    DescriptionTemplates
+)
 
 __all__ = [
     # Core Engines
@@ -113,7 +120,13 @@ __all__ = [
     "AdReinvestor",
     "AdConfig",
     "WinnerSelector",
-    "CampaignManager"
+    "CampaignManager",
+    # Platform Uploaders (POST-HUMAN MODE)
+    "MasterUploader",
+    "YouTubeUploader",
+    "InstagramUploader",
+    "TikTokUploader",
+    "DescriptionTemplates"
 ]
 
 
@@ -174,15 +187,19 @@ class MoneyMachine:
                 )
                 return results
             
-            # Step 3: Distribute
+            # Step 3: Distribute (AUTO-UPLOAD MODE)
             video_path = create_results["assets"].get("final_video")
             script = create_results.get("script", {})
             
-            distribute_results = await self.gatherer.distribute(
-                video_path,
-                script.get("title", topic),
-                script.get("description", ""),
-                script.get("hashtags", [])
+            # Determine niche from hunt results or default to wealth
+            detected_niche = best_opp.get("niche", niche or "wealth")
+            
+            # Use auto_upload for POST-HUMAN MODE distribution
+            distribute_results = await self.gatherer.auto_upload(
+                video_path=video_path,
+                niche=detected_niche,
+                topic=script.get("title", topic),
+                cta_url=script.get("cta_url")
             )
             results["distribute"] = distribute_results
             
