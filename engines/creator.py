@@ -1,0 +1,726 @@
+"""
+============================================================
+MONEY MACHINE - CREATOR ENGINE
+The Automated Content Factory
+============================================================
+Transforms opportunities into monetizable content assets.
+Uses FREE APIs and tools only.
+============================================================
+"""
+
+import os
+import json
+import asyncio
+import subprocess
+import tempfile
+from pathlib import Path
+from datetime import datetime
+from typing import Optional
+import httpx
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+class CreatorConfig:
+    """Creator Engine Configuration"""
+    
+    # Output directories
+    OUTPUT_DIR = Path("/data/output")
+    TEMP_DIR = Path("/data/temp")
+    ASSETS_DIR = Path("/data/assets")
+    
+    # Video settings
+    VIDEO_WIDTH = 1080
+    VIDEO_HEIGHT = 1920  # Vertical for Shorts/TikTok
+    VIDEO_FPS = 30
+    VIDEO_BITRATE = "4M"
+    
+    # Audio settings
+    AUDIO_BITRATE = "192k"
+    TTS_VOICE = "en-US-ChristopherNeural"  # Edge TTS (free)
+    
+    # Content lengths
+    SHORT_DURATION = 60  # seconds
+    LONG_DURATION = 600  # seconds
+
+
+# ============================================================
+# TEXT-TO-SPEECH ENGINE (FREE - Edge TTS)
+# ============================================================
+
+class TTSEngine:
+    """
+    Text-to-Speech using Microsoft Edge TTS.
+    100% FREE, no API key required, unlimited usage.
+    """
+    
+    VOICES = {
+        "male_us": "en-US-ChristopherNeural",
+        "female_us": "en-US-JennyNeural",
+        "male_uk": "en-GB-RyanNeural",
+        "female_uk": "en-GB-SoniaNeural",
+        "male_au": "en-AU-WilliamNeural",
+        "female_au": "en-AU-NatashaNeural"
+    }
+    
+    async def generate(
+        self,
+        text: str,
+        output_path: str,
+        voice: str = "male_us",
+        rate: str = "+0%",
+        pitch: str = "+0Hz"
+    ) -> bool:
+        """
+        Generate speech from text using Edge TTS.
+        Returns True if successful.
+        """
+        voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
+        
+        try:
+            # Use edge-tts command line (installed in Docker)
+            cmd = [
+                "edge-tts",
+                "--voice", voice_id,
+                "--rate", rate,
+                "--pitch", pitch,
+                "--text", text,
+                "--write-media", output_path
+            ]
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode == 0:
+                print(f"[CREATOR] TTS generated: {output_path}")
+                return True
+            else:
+                print(f"[CREATOR] TTS error: {stderr.decode()}")
+                return False
+                
+        except Exception as e:
+            print(f"[CREATOR] TTS exception: {e}")
+            return False
+    
+    async def generate_with_timestamps(
+        self,
+        text: str,
+        output_audio: str,
+        output_srt: str,
+        voice: str = "male_us"
+    ) -> bool:
+        """Generate TTS with subtitle timestamps"""
+        voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
+        
+        try:
+            cmd = [
+                "edge-tts",
+                "--voice", voice_id,
+                "--text", text,
+                "--write-media", output_audio,
+                "--write-subtitles", output_srt
+            ]
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            await process.communicate()
+            return process.returncode == 0
+            
+        except Exception as e:
+            print(f"[CREATOR] TTS+SRT exception: {e}")
+            return False
+
+
+# ============================================================
+# SCRIPT GENERATOR (OpenAI or Local)
+# ============================================================
+
+class ScriptGenerator:
+    """
+    Generates video scripts from opportunities.
+    Uses OpenAI API (free $5 credit) or local models.
+    """
+    
+    def __init__(self):
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.base_url = "https://api.openai.com/v1"
+        
+    async def generate_short_script(
+        self,
+        topic: str,
+        angle: str = "educational",
+        duration: int = 60
+    ) -> dict:
+        """
+        Generate a YouTube Shorts / TikTok script.
+        Optimized for engagement and retention.
+        """
+        
+        words_target = duration * 2.5  # ~2.5 words per second
+        
+        prompt = f"""Create a viral YouTube Short script about: {topic}
+
+REQUIREMENTS:
+- Target duration: {duration} seconds (~{int(words_target)} words)
+- Content angle: {angle}
+- Structure:
+  1. HOOK (0-3 sec): Pattern interrupt, shocking statement or question
+  2. CONTEXT (3-10 sec): Why this matters, create curiosity gap
+  3. VALUE (10-50 sec): Deliver the main content
+  4. CTA (50-60 sec): Call to action (follow, comment, share)
+
+OUTPUT FORMAT (JSON):
+{{
+    "hook": "The opening line",
+    "script": "Full script with natural pauses marked as [PAUSE]",
+    "cta": "The call to action",
+    "title": "Catchy video title with emoji",
+    "description": "SEO-optimized description",
+    "hashtags": ["relevant", "hashtags", "list"],
+    "estimated_duration": {duration}
+}}
+
+Make it conversational, engaging, and slightly controversial if appropriate.
+"""
+
+        if self.api_key:
+            return await self._call_openai(prompt)
+        else:
+            return self._generate_template(topic, angle, duration)
+    
+    async def generate_long_script(
+        self,
+        topic: str,
+        sources: list = None,
+        duration: int = 600
+    ) -> dict:
+        """
+        Generate a longer video script (5-15 minutes).
+        """
+        words_target = duration * 2.5
+        
+        sources_text = "\n".join(sources) if sources else "General knowledge"
+        
+        prompt = f"""Create a comprehensive YouTube video script about: {topic}
+
+SOURCE MATERIAL:
+{sources_text}
+
+REQUIREMENTS:
+- Target duration: {duration} seconds (~{int(words_target)} words)
+- Structure:
+  1. HOOK (0-15 sec): Attention-grabbing opening
+  2. INTRO (15-60 sec): What they'll learn, why it matters
+  3. MAIN CONTENT (1-8 min): Numbered points with examples
+  4. SUMMARY (8-9 min): Key takeaways
+  5. CTA (9-10 min): Subscribe, comment, related video
+
+OUTPUT FORMAT (JSON):
+{{
+    "hook": "Opening hook",
+    "intro": "Introduction paragraph",
+    "sections": [
+        {{"title": "Section 1", "content": "Content..."}},
+        {{"title": "Section 2", "content": "Content..."}}
+    ],
+    "summary": "Summary paragraph",
+    "cta": "Call to action",
+    "title": "Video title",
+    "description": "Full YouTube description with timestamps",
+    "tags": ["tag1", "tag2"]
+}}
+"""
+        
+        if self.api_key:
+            return await self._call_openai(prompt)
+        else:
+            return self._generate_template(topic, "educational", duration)
+    
+    async def _call_openai(self, prompt: str) -> dict:
+        """Call OpenAI API"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "gpt-4o-mini",  # Cheapest model
+                        "messages": [
+                            {"role": "system", "content": "You are a viral content scriptwriter."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.8,
+                        "response_format": {"type": "json_object"}
+                    },
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+                    return json.loads(content)
+                else:
+                    print(f"[CREATOR] OpenAI error: {response.text}")
+                    return {}
+                    
+        except Exception as e:
+            print(f"[CREATOR] OpenAI exception: {e}")
+            return {}
+    
+    def _generate_template(self, topic: str, angle: str, duration: int) -> dict:
+        """Fallback template when no API key"""
+        return {
+            "hook": f"Did you know this about {topic}?",
+            "script": f"Let's talk about {topic}. This is important because...",
+            "cta": "Follow for more tips!",
+            "title": f"🔥 {topic.title()} - What You Need to Know",
+            "description": f"In this video, we cover everything about {topic}.",
+            "hashtags": ["viral", topic.replace(" ", ""), "trending"],
+            "estimated_duration": duration
+        }
+
+
+# ============================================================
+# STOCK FOOTAGE ENGINE (FREE APIs)
+# ============================================================
+
+class StockEngine:
+    """
+    Fetches stock video/images from free APIs.
+    Pexels: Unlimited free downloads
+    Pixabay: Unlimited free downloads
+    """
+    
+    def __init__(self):
+        self.pexels_key = os.getenv("PEXELS_API_KEY")
+        self.pixabay_key = os.getenv("PIXABAY_API_KEY")
+        
+    async def search_pexels_videos(
+        self,
+        query: str,
+        orientation: str = "portrait",
+        per_page: int = 5
+    ) -> list:
+        """Search Pexels for stock videos"""
+        if not self.pexels_key:
+            return []
+            
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.pexels.com/videos/search",
+                headers={"Authorization": self.pexels_key},
+                params={
+                    "query": query,
+                    "orientation": orientation,
+                    "per_page": per_page
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                videos = []
+                
+                for video in data.get("videos", []):
+                    # Get best quality file
+                    files = video.get("video_files", [])
+                    hd_file = next(
+                        (f for f in files if f.get("quality") == "hd"),
+                        files[0] if files else None
+                    )
+                    
+                    if hd_file:
+                        videos.append({
+                            "id": video["id"],
+                            "url": hd_file["link"],
+                            "width": hd_file.get("width"),
+                            "height": hd_file.get("height"),
+                            "duration": video.get("duration"),
+                            "source": "pexels"
+                        })
+                
+                return videos
+        
+        return []
+    
+    async def download_video(self, url: str, output_path: str) -> bool:
+        """Download a video file"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, follow_redirects=True)
+                
+                if response.status_code == 200:
+                    with open(output_path, "wb") as f:
+                        f.write(response.content)
+                    return True
+                    
+        except Exception as e:
+            print(f"[CREATOR] Download error: {e}")
+            
+        return False
+
+
+# ============================================================
+# VIDEO ASSEMBLY ENGINE (FFmpeg)
+# ============================================================
+
+class VideoAssembler:
+    """
+    Assembles final videos using FFmpeg.
+    Combines TTS audio with stock footage.
+    """
+    
+    async def create_vertical_video(
+        self,
+        audio_path: str,
+        background_path: str,
+        output_path: str,
+        subtitles_path: str = None
+    ) -> bool:
+        """
+        Create a vertical video (9:16) for Shorts/TikTok.
+        """
+        
+        # Get audio duration
+        duration = await self._get_duration(audio_path)
+        
+        # Build FFmpeg command
+        cmd = [
+            "ffmpeg", "-y",
+            # Loop background video
+            "-stream_loop", "-1",
+            "-i", background_path,
+            # Add audio
+            "-i", audio_path,
+            # Trim to audio length
+            "-t", str(duration),
+            # Scale and crop to vertical
+            "-vf", f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+            # Video codec
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            # Audio codec
+            "-c:a", "aac",
+            "-b:a", "192k",
+            # Output
+            "-shortest",
+            output_path
+        ]
+        
+        # Add subtitles if provided
+        if subtitles_path and os.path.exists(subtitles_path):
+            cmd[cmd.index("-vf")] = "-vf"
+            vf_index = cmd.index("-vf") + 1
+            cmd[vf_index] = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles={subtitles_path}"
+        
+        return await self._run_ffmpeg(cmd)
+    
+    async def create_horizontal_video(
+        self,
+        audio_path: str,
+        background_path: str,
+        output_path: str
+    ) -> bool:
+        """Create a horizontal video (16:9) for YouTube"""
+        
+        duration = await self._get_duration(audio_path)
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-stream_loop", "-1",
+            "-i", background_path,
+            "-i", audio_path,
+            "-t", str(duration),
+            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-c:a", "aac",
+            "-shortest",
+            output_path
+        ]
+        
+        return await self._run_ffmpeg(cmd)
+    
+    async def add_unique_fingerprint(
+        self,
+        input_path: str,
+        output_path: str
+    ) -> bool:
+        """
+        Add unique modifications to avoid content ID.
+        - Slight speed change
+        - Color grading
+        - Noise overlay
+        """
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-vf", ",".join([
+                # Slight speed change (1%)
+                "setpts=0.99*PTS",
+                # Color adjustment
+                "eq=brightness=0.02:contrast=1.02:saturation=1.05",
+                # Very subtle noise
+                "noise=alls=3:allf=t"
+            ]),
+            "-af", "atempo=1.01",  # Match audio to video speed
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            output_path
+        ]
+        
+        return await self._run_ffmpeg(cmd)
+    
+    async def resize_for_platform(
+        self,
+        input_path: str,
+        output_path: str,
+        platform: str
+    ) -> bool:
+        """Resize video for different platforms"""
+        
+        sizes = {
+            "youtube_short": "1080:1920",
+            "youtube_long": "1920:1080",
+            "tiktok": "1080:1920",
+            "instagram_reel": "1080:1920",
+            "instagram_feed": "1080:1080",
+            "pinterest": "1000:1500"
+        }
+        
+        size = sizes.get(platform, "1080:1920")
+        width, height = size.split(":")
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
+            "-c:v", "libx264",
+            "-c:a", "copy",
+            output_path
+        ]
+        
+        return await self._run_ffmpeg(cmd)
+    
+    async def _get_duration(self, audio_path: str) -> float:
+        """Get audio duration in seconds"""
+        cmd = [
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "json",
+            audio_path
+        ]
+        
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, _ = await process.communicate()
+        
+        try:
+            data = json.loads(stdout.decode())
+            return float(data["format"]["duration"])
+        except:
+            return 60.0  # Default
+    
+    async def _run_ffmpeg(self, cmd: list) -> bool:
+        """Run FFmpeg command"""
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            _, stderr = await process.communicate()
+            
+            if process.returncode == 0:
+                print(f"[CREATOR] FFmpeg success: {cmd[-1]}")
+                return True
+            else:
+                print(f"[CREATOR] FFmpeg error: {stderr.decode()[-500:]}")
+                return False
+                
+        except Exception as e:
+            print(f"[CREATOR] FFmpeg exception: {e}")
+            return False
+
+
+# ============================================================
+# MASTER CREATOR - ORCHESTRATOR
+# ============================================================
+
+class MasterCreator:
+    """
+    Master Creator that orchestrates all creation engines.
+    Takes an opportunity and produces a ready-to-upload asset.
+    """
+    
+    def __init__(self):
+        self.tts = TTSEngine()
+        self.script = ScriptGenerator()
+        self.stock = StockEngine()
+        self.video = VideoAssembler()
+        
+        # Ensure directories exist
+        for dir_path in [CreatorConfig.OUTPUT_DIR, CreatorConfig.TEMP_DIR]:
+            dir_path.mkdir(parents=True, exist_ok=True)
+    
+    async def create_short(
+        self,
+        topic: str,
+        angle: str = "educational",
+        voice: str = "male_us"
+    ) -> dict:
+        """
+        Create a complete YouTube Short / TikTok video.
+        Returns paths to all generated assets.
+        """
+        
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        job_id = f"short_{timestamp}"
+        
+        result = {
+            "job_id": job_id,
+            "topic": topic,
+            "status": "processing",
+            "assets": {}
+        }
+        
+        try:
+            # Step 1: Generate script
+            print(f"[CREATOR] Generating script for: {topic}")
+            script_data = await self.script.generate_short_script(topic, angle)
+            result["script"] = script_data
+            
+            # Step 2: Generate TTS
+            audio_path = str(CreatorConfig.TEMP_DIR / f"{job_id}_audio.mp3")
+            srt_path = str(CreatorConfig.TEMP_DIR / f"{job_id}.srt")
+            
+            full_script = script_data.get("script", topic)
+            print(f"[CREATOR] Generating TTS...")
+            
+            await self.tts.generate_with_timestamps(
+                full_script, audio_path, srt_path, voice
+            )
+            result["assets"]["audio"] = audio_path
+            result["assets"]["subtitles"] = srt_path
+            
+            # Step 3: Get stock footage
+            print(f"[CREATOR] Fetching stock footage...")
+            videos = await self.stock.search_pexels_videos(topic)
+            
+            if videos:
+                bg_path = str(CreatorConfig.TEMP_DIR / f"{job_id}_bg.mp4")
+                await self.stock.download_video(videos[0]["url"], bg_path)
+                result["assets"]["background"] = bg_path
+            else:
+                # Use a default background
+                bg_path = str(CreatorConfig.ASSETS_DIR / "default_bg.mp4")
+                result["assets"]["background"] = bg_path
+            
+            # Step 4: Assemble video
+            output_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_vertical.mp4")
+            print(f"[CREATOR] Assembling video...")
+            
+            success = await self.video.create_vertical_video(
+                audio_path,
+                result["assets"]["background"],
+                output_path,
+                srt_path
+            )
+            
+            if success:
+                result["assets"]["video"] = output_path
+                result["status"] = "complete"
+                
+                # Step 5: Add fingerprint
+                final_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_final.mp4")
+                await self.video.add_unique_fingerprint(output_path, final_path)
+                result["assets"]["final_video"] = final_path
+            else:
+                result["status"] = "failed"
+                result["error"] = "Video assembly failed"
+                
+        except Exception as e:
+            result["status"] = "error"
+            result["error"] = str(e)
+            print(f"[CREATOR] Error: {e}")
+        
+        return result
+    
+    async def create_multiplatform(
+        self,
+        topic: str,
+        platforms: list = None
+    ) -> dict:
+        """
+        Create content for multiple platforms from one source.
+        Omni-alignment: One asset → All platforms
+        """
+        
+        if platforms is None:
+            platforms = ["youtube_short", "tiktok", "instagram_reel"]
+        
+        # First, create the master asset
+        master = await self.create_short(topic)
+        
+        if master["status"] != "complete":
+            return master
+        
+        # Resize for each platform
+        master_video = master["assets"].get("final_video")
+        
+        for platform in platforms:
+            platform_path = master_video.replace("_final.mp4", f"_{platform}.mp4")
+            await self.video.resize_for_platform(master_video, platform_path, platform)
+            master["assets"][platform] = platform_path
+        
+        master["platforms"] = platforms
+        return master
+
+
+# ============================================================
+# CLI INTERFACE (for n8n Execute Command node)
+# ============================================================
+
+if __name__ == "__main__":
+    import sys
+    
+    async def main():
+        creator = MasterCreator()
+        
+        if len(sys.argv) > 1:
+            command = sys.argv[1]
+            
+            if command == "short" and len(sys.argv) > 2:
+                topic = " ".join(sys.argv[2:])
+                result = await creator.create_short(topic)
+            elif command == "multi" and len(sys.argv) > 2:
+                topic = " ".join(sys.argv[2:])
+                result = await creator.create_multiplatform(topic)
+            else:
+                result = {"error": "Usage: creator.py [short|multi] <topic>"}
+        else:
+            result = {"error": "No command provided"}
+        
+        print(json.dumps(result, indent=2))
+    
+    asyncio.run(main())

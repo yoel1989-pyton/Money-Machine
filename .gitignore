@@ -1,0 +1,55 @@
+# Logs and temporary files
+*.log
+logs/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Output files (generated content)
+output/
+*.mp4
+*.mp3
+*.wav
+*.srt
+
+# Railway
+.railway/
+
+# n8n
+.n8n/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

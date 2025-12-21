@@ -1,0 +1,293 @@
+{
+  "name": "💰 Money Machine - Full Cycle",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.hunter import MasterHunter; h = MasterHunter(); print(asyncio.run(h.hunt()))\""
+      },
+      "id": "hunter-execute",
+      "name": "🎯 Hunter Engine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Hunter results\nconst hunterOutput = JSON.parse($input.first().json.stdout);\n\n// Get top opportunity\nconst topOpportunities = hunterOutput.top_opportunities || [];\n\nif (topOpportunities.length === 0) {\n  return [{ json: { skip: true, reason: 'No opportunities found' } }];\n}\n\nconst best = topOpportunities[0];\n\nreturn [{\n  json: {\n    skip: false,\n    topic: best.title || best.keyword || 'trending topic',\n    source: best.source,\n    score: best.opportunity_score,\n    angle: best.content_angle || 'educational'\n  }\n}];"
+      },
+      "id": "parse-opportunities",
+      "name": "Parse Opportunities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "check-opportunity",
+      "name": "Has Opportunity?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.creator import MasterCreator; c = MasterCreator(); print(asyncio.run(c.create_short('{{ $json.topic }}', '{{ $json.angle }}')))\" 2>&1"
+      },
+      "id": "creator-execute",
+      "name": "🎨 Creator Engine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [980, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Creator results\nconst creatorOutput = JSON.parse($input.first().json.stdout);\n\nif (creatorOutput.status !== 'complete') {\n  return [{ json: { success: false, error: creatorOutput.error || 'Creation failed' } }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    video_path: creatorOutput.assets.final_video,\n    title: creatorOutput.script.title,\n    description: creatorOutput.script.description || '',\n    hashtags: creatorOutput.script.hashtags || [],\n    job_id: creatorOutput.job_id\n  }\n}];"
+      },
+      "id": "parse-creator",
+      "name": "Parse Creator Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-creation",
+      "name": "Created Successfully?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1420, 200]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.gatherer import MasterGatherer; g = MasterGatherer(); print(asyncio.run(g.distribute('{{ $json.video_path }}', '{{ $json.title }}', '{{ $json.description }}')))\" 2>&1"
+      },
+      "id": "gatherer-execute",
+      "name": "📡 Gatherer Engine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1640, 100]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.businessman import MasterBusinessman; b = MasterBusinessman(); print(asyncio.run(b.get_roi_metrics()))\""
+      },
+      "id": "businessman-metrics",
+      "name": "💰 Check Financials",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1860, 100]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); print(asyncio.run(s.run_health_check()))\""
+      },
+      "id": "survivor-health",
+      "name": "🛡️ Health Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2080, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile final report\nconst gatherer = JSON.parse($('📡 Gatherer Engine').first().json.stdout || '{}');\nconst financials = JSON.parse($('💰 Check Financials').first().json.stdout || '{}');\nconst health = JSON.parse($('🛡️ Health Check').first().json.stdout || '{}');\n\nreturn [{\n  json: {\n    cycle_complete: true,\n    timestamp: new Date().toISOString(),\n    distribution: gatherer,\n    roi: financials,\n    system_health: health.status || 'unknown'\n  }\n}];"
+      },
+      "id": "compile-report",
+      "name": "📊 Compile Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 100]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); print(asyncio.run(s.handle_error('creator', '{{ $json.error }}', {})))\""
+      },
+      "id": "handle-error",
+      "name": "🚨 Handle Error",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1640, 300]
+    },
+    {
+      "parameters": {},
+      "id": "no-opportunity",
+      "name": "No Opportunity",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [980, 400]
+    }
+  ],
+  "connections": {
+    "Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "🎯 Hunter Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Hunter Engine": {
+      "main": [
+        [
+          {
+            "node": "Parse Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Has Opportunity?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Opportunity?": {
+      "main": [
+        [
+          {
+            "node": "🎨 Creator Engine",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎨 Creator Engine": {
+      "main": [
+        [
+          {
+            "node": "Parse Creator Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Creator Result": {
+      "main": [
+        [
+          {
+            "node": "Created Successfully?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Created Successfully?": {
+      "main": [
+        [
+          {
+            "node": "📡 Gatherer Engine",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🚨 Handle Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📡 Gatherer Engine": {
+      "main": [
+        [
+          {
+            "node": "💰 Check Financials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💰 Check Financials": {
+      "main": [
+        [
+          {
+            "node": "🛡️ Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛡️ Health Check": {
+      "main": [
+        [
+          {
+            "node": "📊 Compile Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "money-machine-v1"
+  },
+  "tags": [
+    {
+      "name": "money-machine",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

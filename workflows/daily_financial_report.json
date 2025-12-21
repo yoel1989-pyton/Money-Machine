@@ -1,0 +1,100 @@
+{
+  "name": "💰 Daily Financial Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Every Day at 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.businessman import MasterBusinessman; b = MasterBusinessman(); import json; print(json.dumps(asyncio.run(b.execute_daily_routine())))\""
+      },
+      "id": "daily-routine",
+      "name": "💰 Execute Daily Routine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse financial data\nconst data = JSON.parse($input.first().json.stdout);\nconst snapshot = data.snapshot || {};\nconst balances = snapshot.balances || {};\nconst revenue = snapshot.revenue_30d || {};\nconst allocation = snapshot.allocation || {};\n\n// Format report\nconst report = `\n💰 *DAILY MONEY MACHINE REPORT*\n${'─'.repeat(30)}\n\n📊 *BALANCES*\n• Stripe: $${balances.stripe?.available?.toFixed(2) || '0.00'}\n• PayPal: $${balances.paypal?.available?.toFixed(2) || '0.00'}\n• Mercury: $${balances.mercury?.toFixed(2) || '0.00'}\n• *TOTAL: $${balances.total?.toFixed(2) || '0.00'}*\n\n📈 *30-DAY REVENUE*\n• Stripe: $${revenue.stripe?.total?.toFixed(2) || '0.00'}\n• Affiliate: $${revenue.affiliate?.total?.toFixed(2) || '0.00'}\n• *TOTAL: $${revenue.total?.toFixed(2) || '0.00'}*\n\n💸 *ALLOCATION*\n• Tax Reserve (30%): $${allocation.tax_reserve?.toFixed(2) || '0.00'}\n• Reinvestment (40%): $${allocation.reinvestment?.toFixed(2) || '0.00'}\n• Profit (30%): $${allocation.profit?.toFixed(2) || '0.00'}\n\n✅ Status: ${data.status || 'complete'}\n`;\n\nreturn [{ json: { report, data } }];"
+      },
+      "id": "format-report",
+      "name": "📊 Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.report }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-telegram",
+      "name": "📱 Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [760, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Day at 9 AM": {
+      "main": [
+        [
+          {
+            "node": "💰 Execute Daily Routine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💰 Execute Daily Routine": {
+      "main": [
+        [
+          {
+            "node": "📊 Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Format Report": {
+      "main": [
+        [
+          {
+            "node": "📱 Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

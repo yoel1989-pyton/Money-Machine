@@ -1,0 +1,141 @@
+version: "3.8"
+
+# ============================================================
+# MONEY MACHINE - LOCAL DEVELOPMENT STACK
+# ============================================================
+# Use this for local testing before deploying to Railway
+# Run: docker-compose up -d
+# ============================================================
+
+services:
+  # ============================================================
+  # N8N - The Central Nervous System
+  # ============================================================
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5678:5678"
+    environment:
+      # Core
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-development-key-change-me}
+      - WEBHOOK_URL=http://localhost:5678
+      
+      # Database
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+      
+      # Queue Mode
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      
+      # File storage
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      
+      # Hunter Engine
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+      - REDDIT_USER_AGENT=MoneyMachine/1.0
+      
+      # Creator Engine
+      - PEXELS_API_KEY=${PEXELS_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      
+      # Gatherer Engine
+      - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID:-}
+      - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET:-}
+      
+      # Survivor Engine
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./engines:/data/engines:ro
+      - ./workflows:/data/workflows:ro
+      - money_machine_output:/data/output
+      - money_machine_temp:/data/temp
+      - money_machine_logs:/data/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # ============================================================
+  # PostgreSQL - Persistent Storage
+  # ============================================================
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # Redis - Queue Management
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================
+  # N8N Worker - Amplifier Node (Optional)
+  # ============================================================
+  # Uncomment to add worker nodes for scaling
+  # n8n-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   command: n8n worker
+  #   environment:
+  #     - DB_TYPE=postgresdb
+  #     - DB_POSTGRESDB_HOST=postgres
+  #     - DB_POSTGRESDB_PORT=5432
+  #     - DB_POSTGRESDB_DATABASE=n8n
+  #     - DB_POSTGRESDB_USER=n8n
+  #     - DB_POSTGRESDB_PASSWORD=n8n
+  #     - EXECUTIONS_MODE=queue
+  #     - QUEUE_BULL_REDIS_HOST=redis
+  #     - QUEUE_BULL_REDIS_PORT=6379
+  #     - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-development-key-change-me}
+  #   volumes:
+  #     - ./engines:/data/engines:ro
+  #     - money_machine_output:/data/output
+  #     - money_machine_temp:/data/temp
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - n8n
+  #   restart: unless-stopped
+
+volumes:
+  n8n_data:
+  postgres_data:
+  redis_data:
+  money_machine_output:
+  money_machine_temp:
+  money_machine_logs:

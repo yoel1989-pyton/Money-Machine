@@ -1,0 +1,178 @@
+{
+  "name": "🎯 Manual Content Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-content",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 300],
+      "webhookId": "create-content"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract parameters from webhook\nconst body = $input.first().json.body || {};\n\nconst topic = body.topic || 'passive income ideas';\nconst angle = body.angle || 'educational';\nconst voice = body.voice || 'male_us';\nconst platforms = body.platforms || ['youtube', 'tiktok'];\n\nreturn [{\n  json: {\n    topic,\n    angle,\n    voice,\n    platforms\n  }\n}];"
+      },
+      "id": "parse-params",
+      "name": "Parse Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.creator import MasterCreator; c = MasterCreator(); import json; print(json.dumps(asyncio.run(c.create_multiplatform('{{ $json.topic }}'))))\""
+      },
+      "id": "create-content",
+      "name": "🎨 Create Content",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse creation result\nconst result = JSON.parse($input.first().json.stdout);\n\nif (result.status !== 'complete') {\n  return [{\n    json: {\n      success: false,\n      error: result.error || 'Creation failed'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    job_id: result.job_id,\n    assets: result.assets,\n    script: result.script,\n    platforms: result.platforms\n  }\n}];"
+      },
+      "id": "parse-result",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [980, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.gatherer import MasterGatherer; g = MasterGatherer(); import json; print(json.dumps(asyncio.run(g.distribute('{{ $json.assets.final_video }}', '{{ $json.script.title }}', '{{ $json.script.description }}'))))\""
+      },
+      "id": "distribute",
+      "name": "📡 Distribute",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1420, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Parameters": {
+      "main": [
+        [
+          {
+            "node": "🎨 Create Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎨 Create Content": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success?": {
+      "main": [
+        [
+          {
+            "node": "📡 Distribute",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📡 Distribute": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

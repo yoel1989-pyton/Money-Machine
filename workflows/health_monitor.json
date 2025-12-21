@@ -1,0 +1,133 @@
+{
+  "name": "🛡️ Hourly Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "hourly-trigger",
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); import json; print(json.dumps(asyncio.run(s.run_health_check())))\""
+      },
+      "id": "health-check",
+      "name": "🛡️ Run Health Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse health data\nconst data = JSON.parse($input.first().json.stdout);\nconst health = data.health || {};\nconst errors = data.errors || {};\n\nconst isHealthy = health.status === 'healthy';\nconst hasErrors = Object.values(errors).some(e => e.last_1h > 0);\n\n// Count errors\nlet totalErrors1h = 0;\nlet totalErrors24h = 0;\nfor (const comp of Object.values(errors)) {\n  totalErrors1h += comp.last_1h || 0;\n  totalErrors24h += comp.last_24h || 0;\n}\n\nreturn [{\n  json: {\n    isHealthy,\n    hasErrors,\n    status: health.status,\n    services: health.overall_health,\n    totalErrors1h,\n    totalErrors24h,\n    errors,\n    timestamp: data.timestamp\n  }\n}];"
+      },
+      "id": "parse-health",
+      "name": "📊 Parse Health Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isHealthy }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "check-health",
+      "name": "Is Unhealthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); asyncio.run(s.alert_manager.alert('⚠️ System health degraded: {{ $json.services }} services healthy. Errors (1h): {{ $json.totalErrors1h }}', 'warning'))\""
+      },
+      "id": "send-alert",
+      "name": "🚨 Send Alert",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [980, 200]
+    },
+    {
+      "parameters": {},
+      "id": "healthy-noop",
+      "name": "All Healthy ✅",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [980, 400]
+    }
+  ],
+  "connections": {
+    "Every Hour": {
+      "main": [
+        [
+          {
+            "node": "🛡️ Run Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛡️ Run Health Check": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse Health Data": {
+      "main": [
+        [
+          {
+            "node": "Is Unhealthy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Unhealthy?": {
+      "main": [
+        [
+          {
+            "node": "🚨 Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All Healthy ✅",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
