@@ -1,50 +1,103 @@
 # 💰 MONEY MACHINE
-## The Autonomous Omni-Channel Revenue Engine
+## The Elite Self-Healing Autonomous Revenue Engine v2.0
 
-![Money Machine](https://img.shields.io/badge/Status-Production%20Ready-green)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![Money Machine](https://img.shields.io/badge/Status-Elite%20Production-green)
+![Version](https://img.shields.io/badge/Version-2.0.0-blue)
 ![Budget](https://img.shields.io/badge/Budget-%2450%2Fmo-orange)
+![Self-Healing](https://img.shields.io/badge/Self--Healing-Enabled-brightgreen)
 
-A fully autonomous content-to-cash conversion engine that runs 24/7 on Railway, creating and distributing content across all platforms while managing finances and self-healing from errors.
+A fully autonomous, **self-healing, self-fixing, and self-improving** content-to-cash conversion engine that runs 24/7 on Railway. Creates and distributes content across 4 niches (Wealth, Wellness, Survival, Productivity) while automatically managing finances, rotating affiliate offers, and recovering from errors without human intervention.
+
+> **🤖 "Stop Editing. Start Reviewing."** - Your role is System Administrator of a Private Hedge Fund of Attention.
+
+---
+
+## 🚀 What Makes This Elite (v2.0)
+
+| Feature | Description |
+|---------|-------------|
+| 🔧 **Self-Healing** | Automatically detects failures and resets circuit breakers |
+| 🛠️ **Self-Fixing** | Clears temp storage, retries failed uploads, handles rate limits |
+| 📈 **Self-Improving** | Learns from performance to optimize niche weights & posting times |
+| 🔄 **Auto-Rotation** | Swaps underperforming affiliate offers automatically |
+| 🏥 **Health Monitoring** | Circuit breakers prevent cascade failures |
+| 📊 **Daily Reports** | Telegram notifications with ROI, revenue, and recommendations |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    💰 MONEY MACHINE                              │
-│                   Railway + n8n + Python                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │  🎯      │  │  🎨      │  │  📡      │  │  💰      │        │
-│  │  HUNTER  │─▶│  CREATOR │─▶│ GATHERER │─▶│BUSINESS  │        │
-│  │  ENGINE  │  │  ENGINE  │  │  ENGINE  │  │  ENGINE  │        │
-│  └────┬─────┘  └──────────┘  └──────────┘  └────┬─────┘        │
-│       │                                          │              │
-│       └──────────────┐   ┌───────────────────────┘              │
-│                      │   │                                       │
-│                  ┌───▼───▼───┐                                  │
-│                  │   🛡️      │                                  │
-│                  │  SURVIVOR │                                  │
-│                  │   ENGINE  │                                  │
-│                  └───────────┘                                  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    💰 MONEY MACHINE v2.0                             │
+│            Railway + n8n + Python + Elite Self-Management            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│                    ┌───────────────────┐                            │
+│                    │   🧠 OMNI         │                            │
+│                    │ ORCHESTRATOR v2.0 │                            │
+│                    └─────────┬─────────┘                            │
+│                              │                                       │
+│          ┌───────────────────┼───────────────────┐                  │
+│          ▼                   ▼                   ▼                  │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐           │
+│  │ 🔧 Self-Healer│  │ 🛠️ Self-Fixer │  │ 📈 Improver   │           │
+│  │ Circuit Reset │  │ Storage Clean │  │ Niche Weights │           │
+│  │ Error Recovery│  │ Retry Uploads │  │ Timing Opt.   │           │
+│  └───────────────┘  └───────────────┘  └───────────────┘           │
+│                              │                                       │
+│  ┌──────────┐  ┌─────────────▼─┐  ┌──────────┐  ┌──────────┐       │
+│  │  🎯      │  │  🎨          │  │  📡      │  │  💰      │       │
+│  │  HUNTER  │─▶│  CREATOR     │─▶│ GATHERER │─▶│BUSINESS  │       │
+│  │  ENGINE  │  │  ENGINE      │  │  ENGINE  │  │  ENGINE  │       │
+│  └────┬─────┘  └──────────────┘  └──────────┘  └────┬─────┘       │
+│       │                                              │              │
+│  ┌────▼─────┐      ┌──────────┐      ┌──────────────▼──┐           │
+│  │📊Affiliate│      │ 🛡️      │      │ 📧 Systeme.io   │           │
+│  │  Engine   │      │ SURVIVOR │      │  Lead Funnels   │           │
+│  │ ClickBank │      │ Telegram │      │  Email Nurture  │           │
+│  │Digistore24│      │ Discord  │      │  2000 contacts  │           │
+│  └───────────┘      └──────────┘      └─────────────────┘           │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────┐         │
+│  │  4 REVENUE SUBSIDIARIES (Niche Channels)               │         │
+│  │  [Survival] [Wealth] [Wellness] [Productivity]         │         │
+│  └────────────────────────────────────────────────────────┘         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎯 The 5 Engines
+## 🎯 The 7 Engines + Meta-Controllers
 
 | Engine | Purpose | Key Features |
 |--------|---------|--------------|
-| 🎯 **Hunter** | Find opportunities | Reddit trends, Google Trends, YouTube gaps, Affiliate opportunities |
-| 🎨 **Creator** | Produce content | TTS (Edge, FREE), FFmpeg video assembly, Script generation |
-| 📡 **Gatherer** | Distribute everywhere | YouTube, TikTok, Instagram, Pinterest (Official APIs) |
-| 💰 **Businessman** | Manage money | Stripe, PayPal, Mercury, reinvestment logic |
-| 🛡️ **Survivor** | Stay alive | Error handling, health monitoring, self-healing, alerts |
+| 🧠 **Omni Orchestrator** | Supreme controller | Self-healing, self-fixing, self-improving, auto-scaling |
+| 🎯 **Hunter** | Find opportunities | Reddit trends, Google Trends, YouTube gaps |
+| 🎨 **Creator** | Produce content | Edge TTS (FREE), FFmpeg video, OpenAI scripts |
+| 📡 **Gatherer** | Distribute everywhere | YouTube, TikTok, Pinterest (Official APIs) |
+| 💰 **Businessman** | Manage money | Stripe, PayPal, allocation buckets |
+| 🛡️ **Survivor** | Stay alive | Error handling, circuit breakers, alerts |
+| 📊 **Affiliate** | Maximize revenue | ClickBank/Digistore24 offer rotation |
+| 📧 **Systeme.io** | Lead nurturing | Email funnels, tagging, 7-day sequences |
+
+### 🧠 Elite Omni Orchestrator - The Self-Managing Brain
+
+The v2.0 Omni Orchestrator is the "consciousness" of the Money Machine:
+
+```python
+# Three meta-controllers work together
+self.healer = SelfHealer()     # Resets circuits, recovers from errors
+self.fixer = SelfFixer()       # Clears storage, retries uploads, rotates offers
+self.improver = SelfImprover() # Optimizes niches, timing, content types
+```
+
+- **Self-Healing**: Automatically detects and fixes errors (rate limits, auth issues)
+- **Self-Fixing**: Clears temp files, retries failed uploads, handles rate limiting
+- **Self-Improving**: Learns from performance metrics to optimize strategies
+- **Auto-Scaling**: Recommends when to scale up based on ROI thresholds
+- **Emergency Mode**: Can execute full repair cycle on critical failures
 
 ---
 
@@ -140,15 +193,17 @@ Money-Machine/
 ├── railway.json            # Railway deployment config
 ├── .env.template           # Environment variables template
 │
-├── engines/                # The 5 Core Engines
+├── engines/                # The 6 Core Engines
 │   ├── __init__.py         # Central orchestrator
+│   ├── omni_orchestrator.py # 🧠 Self-healing meta-brain
 │   ├── hunter.py           # 🎯 Trend detection
 │   ├── creator.py          # 🎨 Content creation
 │   ├── gatherer.py         # 📡 Distribution
 │   ├── businessman.py      # 💰 Finance management
-│   └── survivor.py         # 🛡️ Self-healing
+│   └── survivor.py         # 🛡️ Error handling
 │
 ├── workflows/              # n8n Workflow Templates
+│   ├── omni_orchestrator.json  # Self-healing autonomous system
 │   ├── full_cycle.json     # Main automated loop
 │   ├── daily_financial_report.json
 │   ├── health_monitor.json
@@ -164,22 +219,35 @@ Money-Machine/
 
 ## 🔄 Automated Workflows
 
-### 1. Full Cycle (Every 4 Hours)
+### 1. 🧠 Omni Orchestrator (Recommended - Self-Healing)
+```
+Every 4 Hours: Hunt → Create → Distribute → Track → Self-Improve
+Hourly: Health Check → Self-Heal if needed
+Daily: Generate Report → Alert on Payout Ready
+```
+
+**Features:**
+- Auto-detects and fixes errors
+- Learns optimal niches and posting times
+- Adjusts strategy based on ROI
+- Alerts only when manual intervention needed
+
+### 2. Full Cycle (Legacy - Every 4 Hours)
 ```
 Hunt → Create → Distribute → Track Financials → Health Check
 ```
 
-### 2. Daily Financial Report (9 AM)
+### 3. Daily Financial Report (8 AM)
 ```
 Calculate Revenue → Allocation → Send Telegram Report
 ```
 
-### 3. Health Monitor (Every Hour)
+### 4. Health Monitor (Every Hour)
 ```
 Check Services → Check Errors → Alert if Degraded
 ```
 
-### 4. Manual Create (Webhook)
+### 5. Manual Create (Webhook)
 ```
 POST /webhook/create-content
 {

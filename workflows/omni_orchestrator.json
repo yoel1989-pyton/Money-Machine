@@ -1,0 +1,484 @@
+{
+  "name": "🧠 Omni Orchestrator - Self-Healing Autonomous System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "main-trigger",
+      "name": "⏰ Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "maintenance-trigger",
+      "name": "⏰ Hourly Maintenance",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-report-trigger",
+      "name": "⏰ Daily Report (8 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 700]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.omni_orchestrator import OmniOrchestrator; o = OmniOrchestrator(); import json; print(json.dumps(asyncio.run(o.execute_autonomous_cycle()), default=str))\" 2>&1"
+      },
+      "id": "execute-cycle",
+      "name": "🔄 Execute Autonomous Cycle",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [340, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.omni_orchestrator import OmniOrchestrator; o = OmniOrchestrator(); import json; print(json.dumps(asyncio.run(o.run_maintenance()), default=str))\" 2>&1"
+      },
+      "id": "run-maintenance",
+      "name": "🔧 Run Maintenance",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [340, 500]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.omni_orchestrator import OmniOrchestrator; o = OmniOrchestrator(); import json; print(json.dumps(asyncio.run(o.generate_daily_report()), default=str))\" 2>&1"
+      },
+      "id": "generate-report",
+      "name": "📊 Generate Daily Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [340, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse cycle result\nlet result;\ntry {\n  result = JSON.parse($input.first().json.stdout);\n} catch (e) {\n  result = { status: 'parse_error', raw: $input.first().json.stdout };\n}\n\nconst isSuccess = result.status === 'complete';\nconst hasIssues = result.phases?.healing?.diagnosis?.issues?.length > 0;\n\nreturn [{\n  json: {\n    success: isSuccess,\n    hasIssues,\n    cycleId: result.cycle_id,\n    status: result.status,\n    phases: result.phases,\n    error: result.error,\n    summary: {\n      opportunities: result.phases?.hunt?.opportunities_found || 0,\n      created: result.phases?.create?.status || 'unknown',\n      distributed: result.phases?.distribute?.success_rate || 'N/A',\n      improvements: result.phases?.improvements?.applied || 0\n    }\n  }\n}];"
+      },
+      "id": "parse-cycle",
+      "name": "📈 Parse Cycle Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Cycle Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [820, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Record success metrics\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    notification: {\n      type: 'success',\n      message: `✅ Cycle ${data.cycleId} completed\\n` +\n               `📝 Created: ${data.summary.created}\\n` +\n               `📡 Distributed: ${data.summary.distributed}\\n` +\n               `🔧 Improvements: ${data.summary.improvements}`\n    },\n    data\n  }\n}];"
+      },
+      "id": "success-handler",
+      "name": "✅ Success Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 200]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.omni_orchestrator import OmniOrchestrator; o = OmniOrchestrator(); result = asyncio.run(o.healer.run_healing_cycle()); import json; print(json.dumps(result, default=str))\" 2>&1"
+      },
+      "id": "emergency-heal",
+      "name": "🚨 Emergency Self-Heal",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1060, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse healing result and decide next action\nlet healingResult;\ntry {\n  healingResult = JSON.parse($input.first().json.stdout);\n} catch (e) {\n  healingResult = { healed: false, error: 'Parse error' };\n}\n\nconst wasHealed = healingResult.healing?.healed || false;\nconst remainingIssues = healingResult.healing?.remaining_issues || 0;\n\nreturn [{\n  json: {\n    wasHealed,\n    remainingIssues,\n    requiresManual: remainingIssues > 0 && !wasHealed,\n    healingResult\n  }\n}];"
+      },
+      "id": "parse-healing",
+      "name": "🔍 Analyze Healing Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.requiresManual }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-manual",
+      "name": "Needs Manual Fix?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1540, 400]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); asyncio.run(s.alert_manager.alert('🚨 CRITICAL: Self-healing failed. Manual intervention required.\\n\\nRemaining issues need attention.', 'critical'))\""
+      },
+      "id": "alert-manual",
+      "name": "🚨 Alert: Manual Needed",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {},
+      "id": "healed-ok",
+      "name": "✅ Self-Healed OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1780, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse maintenance result\nlet result;\ntry {\n  result = JSON.parse($input.first().json.stdout);\n} catch (e) {\n  result = { error: 'Parse error' };\n}\n\nconst tasks = result.tasks || [];\nconst hasIssues = tasks.some(t => t.task === 'self_healing' && t.issues_found > 0);\n\nreturn [{\n  json: {\n    timestamp: result.timestamp,\n    tasksRun: tasks.length,\n    hasIssues,\n    tasks\n  }\n}];"
+      },
+      "id": "parse-maintenance",
+      "name": "📋 Parse Maintenance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hasIssues }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-issues",
+      "name": "Has Issues?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [820, 500]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); asyncio.run(s.alert_manager.alert('⚠️ Maintenance found issues that need attention. Check logs for details.', 'warning'))\""
+      },
+      "id": "alert-issues",
+      "name": "⚠️ Alert: Issues Found",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1060, 460]
+    },
+    {
+      "parameters": {},
+      "id": "maintenance-ok",
+      "name": "✅ Maintenance OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1060, 560]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse daily report\nlet report;\ntry {\n  report = JSON.parse($input.first().json.stdout);\n} catch (e) {\n  report = { error: 'Parse error', raw: $input.first().json.stdout };\n}\n\nreturn [{\n  json: {\n    timestamp: report.timestamp,\n    summary: report.summary,\n    financials: report.financials,\n    health: report.health,\n    scaling: report.scaling,\n    success: !report.error\n  }\n}];"
+      },
+      "id": "parse-report",
+      "name": "📊 Parse Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.financials?.total_balance || 0 }}",
+              "operation": "largerEqual",
+              "value2": 100
+            }
+          ]
+        }
+      },
+      "id": "check-payout",
+      "name": "Payout Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [820, 700]
+    },
+    {
+      "parameters": {
+        "command": "cd /data && python3 -c \"import asyncio; from engines.survivor import MasterSurvivor; s = MasterSurvivor(); asyncio.run(s.alert_manager.alert('💰 PAYOUT READY: Balance exceeds $100. Consider withdrawing profits.', 'success'))\""
+      },
+      "id": "payout-alert",
+      "name": "💰 Payout Alert",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1060, 640]
+    },
+    {
+      "parameters": {},
+      "id": "report-done",
+      "name": "Report Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1060, 760]
+    }
+  ],
+  "connections": {
+    "⏰ Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "🔄 Execute Autonomous Cycle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Hourly Maintenance": {
+      "main": [
+        [
+          {
+            "node": "🔧 Run Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Daily Report (8 AM)": {
+      "main": [
+        [
+          {
+            "node": "📊 Generate Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Execute Autonomous Cycle": {
+      "main": [
+        [
+          {
+            "node": "📈 Parse Cycle Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Run Maintenance": {
+      "main": [
+        [
+          {
+            "node": "📋 Parse Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Generate Daily Report": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📈 Parse Cycle Result": {
+      "main": [
+        [
+          {
+            "node": "Cycle Successful?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cycle Successful?": {
+      "main": [
+        [
+          {
+            "node": "✅ Success Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🚨 Emergency Self-Heal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Emergency Self-Heal": {
+      "main": [
+        [
+          {
+            "node": "🔍 Analyze Healing Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Analyze Healing Result": {
+      "main": [
+        [
+          {
+            "node": "Needs Manual Fix?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Manual Fix?": {
+      "main": [
+        [
+          {
+            "node": "🚨 Alert: Manual Needed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "✅ Self-Healed OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Parse Maintenance": {
+      "main": [
+        [
+          {
+            "node": "Has Issues?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Issues?": {
+      "main": [
+        [
+          {
+            "node": "⚠️ Alert: Issues Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "✅ Maintenance OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Payout Threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payout Threshold?": {
+      "main": [
+        [
+          {
+            "node": "💰 Payout Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "instanceId": "money-machine-omni-v1"
+  },
+  "tags": [
+    {
+      "name": "money-machine",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "self-healing",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

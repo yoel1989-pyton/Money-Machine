@@ -4,6 +4,7 @@ MONEY MACHINE - ENGINE ORCHESTRATOR
 The Central Nervous System
 ============================================================
 Coordinates all engines for seamless operation.
+Includes self-healing, self-improving, self-fixing Omni Orchestrator.
 ============================================================
 """
 
@@ -12,19 +13,62 @@ from .creator import MasterCreator, CreatorConfig
 from .gatherer import MasterGatherer, GathererConfig
 from .businessman import MasterBusinessman, BusinessmanConfig
 from .survivor import MasterSurvivor, SurvivorConfig
+from .omni_orchestrator import (
+    OmniOrchestrator,
+    OmniConfig,
+    PerformanceTracker,
+    SelfHealer,
+    SelfFixer,
+    SelfImprover,
+    ResourceScaler,
+    SystemState,
+    HealthStatus
+)
+from .affiliate import AffiliateManager, AffiliateConfig, ClickBankHunter, Digistore24Hunter
+from .systeme_io import SystemeManager, SystemeConfig
+from .niche_manager import NicheManager, Niche, NICHE_STRATEGIES
+from .auditor import FinancialAuditor, AuditorConfig
 
 __all__ = [
+    # Core Engines
     "MasterHunter",
     "MasterCreator", 
     "MasterGatherer",
     "MasterBusinessman",
     "MasterSurvivor",
+    # Configurations
     "HunterConfig",
     "CreatorConfig",
     "GathererConfig",
     "BusinessmanConfig",
     "SurvivorConfig",
-    "MoneyMachine"
+    "OmniConfig",
+    "AffiliateConfig",
+    "SystemeConfig",
+    "AuditorConfig",
+    # Orchestrators
+    "MoneyMachine",
+    "OmniOrchestrator",
+    # Self-Management Components
+    "PerformanceTracker",
+    "SelfHealer",
+    "SelfFixer",
+    "SelfImprover",
+    "ResourceScaler",
+    # States
+    "SystemState",
+    "HealthStatus",
+    # Affiliate/Marketing
+    "AffiliateManager",
+    "ClickBankHunter",
+    "Digistore24Hunter",
+    "SystemeManager",
+    # Niche Management
+    "NicheManager",
+    "Niche",
+    "NICHE_STRATEGIES",
+    # Financial
+    "FinancialAuditor"
 ]
 
 

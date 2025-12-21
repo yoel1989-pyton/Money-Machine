@@ -1,0 +1,618 @@
+{
+  "name": "Lead Gen Orchestrator - Niche Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "video-ready-trigger",
+        "options": {}
+      },
+      "id": "webhook-creator-signal",
+      "name": "Webhook: Creator Engine Signal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract video metadata and keywords\nconst body = $input.first().json.body || $input.first().json;\n\nconst videoPath = body.video_path || '/data/output/latest.mp4';\nconst title = body.title || 'Untitled Video';\nconst keywords = body.keywords || [];\nconst niche = body.niche || 'survival';\nconst topic = body.topic || '';\n\n// Determine if this should route to own product\nconst ownProductKeywords = ['wound', 'healing', 'infection', 'first aid', 'burns', 'cuts', 'skin', 'natural', 'remedy'];\nconst useOwnProduct = keywords.some(kw => \n  ownProductKeywords.some(pk => kw.toLowerCase().includes(pk))\n);\n\n// Build funnel URLs based on niche\nconst funnelUrls = {\n  'survival': 'https://your-subdomain.systeme.io/survival-checklist',\n  'wealth': 'https://your-subdomain.systeme.io/wealth-blueprint',\n  'wellness': 'https://your-subdomain.systeme.io/wellness-reset',\n  'productivity': 'https://your-subdomain.systeme.io/productivity-system'\n};\n\nconst leadMagnetHooks = {\n  'survival': '🚨 DOWNLOAD: The 72-Hour Survival Checklist (Free) 👇',\n  'wealth': '💰 SECURE: The 2025 Financial Freedom Blueprint (Free) 👇',\n  'wellness': '🧬 RESTORE: 7-Day Energy Reset Guide (Free) 👇',\n  'productivity': '⚡ UNLOCK: Productivity System Blueprint (Free) 👇'\n};\n\nconst ctaTexts = {\n  'survival': 'Get your FREE survival checklist that could save your life:',\n  'wealth': 'Get your FREE wealth blueprint to achieve financial freedom:',\n  'wellness': 'Get your FREE wellness guide to unlock unlimited energy:',\n  'productivity': 'Get your FREE productivity system to 10x your output:'\n};\n\nreturn {\n  video_path: videoPath,\n  title: title,\n  keywords: keywords,\n  niche: niche,\n  topic: topic,\n  use_own_product: useOwnProduct,\n  own_product_url: useOwnProduct ? 'https://solidarityointments.com' : null,\n  funnel_url: funnelUrls[niche] || funnelUrls['survival'],\n  lead_magnet_hook: leadMagnetHooks[niche] || leadMagnetHooks['survival'],\n  cta_text: ctaTexts[niche] || ctaTexts['survival'],\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "code-extract-metadata",
+      "name": "Code: Extract & Enrich Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "={{ $json.niche }}",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "survival",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputIndex": 0
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "={{ $json.niche }}",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "wealth",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputIndex": 1
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "={{ $json.niche }}",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "wellness",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputIndex": 2
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "={{ $json.niche }}",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "productivity",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputIndex": 3
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "switch-niche-router",
+      "name": "Switch: Niche Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel_id",
+              "name": "channel_id",
+              "value": "={{ $env.YOUTUBE_CHANNEL_SURVIVAL }}",
+              "type": "string"
+            },
+            {
+              "id": "channel_name",
+              "name": "channel_name",
+              "value": "Elite Survival Secrets",
+              "type": "string"
+            },
+            {
+              "id": "niche_tag",
+              "name": "niche_tag",
+              "value": "SURV_01",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-survival-config",
+      "name": "Set: Survival Channel Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 100]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel_id",
+              "name": "channel_id",
+              "value": "={{ $env.YOUTUBE_CHANNEL_WEALTH }}",
+              "type": "string"
+            },
+            {
+              "id": "channel_name",
+              "name": "channel_name",
+              "value": "Elite Wealth Accelerator",
+              "type": "string"
+            },
+            {
+              "id": "niche_tag",
+              "name": "niche_tag",
+              "value": "WLT_01",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-wealth-config",
+      "name": "Set: Wealth Channel Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 260]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel_id",
+              "name": "channel_id",
+              "value": "={{ $env.YOUTUBE_CHANNEL_WELLNESS }}",
+              "type": "string"
+            },
+            {
+              "id": "channel_name",
+              "name": "channel_name",
+              "value": "Elite Wellness Protocol",
+              "type": "string"
+            },
+            {
+              "id": "niche_tag",
+              "name": "niche_tag",
+              "value": "WELL_01",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-wellness-config",
+      "name": "Set: Wellness Channel Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 420]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel_id",
+              "name": "channel_id",
+              "value": "={{ $env.YOUTUBE_CHANNEL_PRODUCTIVITY }}",
+              "type": "string"
+            },
+            {
+              "id": "channel_name",
+              "name": "channel_name",
+              "value": "Elite Productivity Engine",
+              "type": "string"
+            },
+            {
+              "id": "niche_tag",
+              "name": "niche_tag",
+              "value": "PROD_01",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-productivity-config",
+      "name": "Set: Productivity Channel Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [760, 580]
+    },
+    {
+      "parameters": {},
+      "id": "merge-channels",
+      "name": "Merge: Unified Pipeline",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [980, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build YouTube-optimized description\nconst data = $input.first().json;\n\n// Priority: Own Product URL > Affiliate Link > Funnel URL\nlet primaryLink = data.funnel_url;\nlet linkType = 'funnel';\n\nif (data.use_own_product && data.own_product_url) {\n  primaryLink = data.own_product_url;\n  linkType = 'own_product';\n}\n\n// Build the elite description\nconst description = `${data.lead_magnet_hook}\n${primaryLink}\n\n---\n\n${data.cta_text}\n\n🔔 Subscribe for more ${data.niche} secrets!\n👍 Like this video if it helped you.\n💬 Comment your biggest ${data.niche} challenge below.\n\n---\n\n#${data.niche} #${data.niche}tips #elite${data.niche}\n`;\n\n// Build tags\nconst baseTags = data.keywords || [];\nconst nicheTags = {\n  'survival': ['survival', 'prepping', 'emergency', 'shtf', 'bugout'],\n  'wealth': ['passiveincome', 'makemoney', 'sidehustle', 'investing', 'financialfreedom'],\n  'wellness': ['health', 'fitness', 'weightloss', 'supplements', 'biohacking'],\n  'productivity': ['productivity', 'timemanagement', 'aitools', 'automation', 'efficiency']\n};\n\nconst allTags = [...new Set([...baseTags, ...(nicheTags[data.niche] || [])])].slice(0, 30);\n\nreturn {\n  ...data,\n  youtube_description: description,\n  youtube_tags: allTags.join(','),\n  primary_link: primaryLink,\n  link_type: linkType,\n  privacy_status: 'private', // Upload as private first for review\n  category_id: '22', // People & Blogs\n  made_for_kids: false\n};"
+      },
+      "id": "code-build-description",
+      "name": "Code: Build YouTube Description",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $json.title }}",
+        "categoryId": "={{ $json.category_id }}",
+        "options": {
+          "description": "={{ $json.youtube_description }}",
+          "privacyStatus": "={{ $json.privacy_status }}",
+          "tags": "={{ $json.youtube_tags }}"
+        }
+      },
+      "id": "youtube-upload",
+      "name": "YouTube: Upload Video",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [1420, 300],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "YOUR_YOUTUBE_CREDENTIAL_ID",
+          "name": "YouTube OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-upload-success",
+      "name": "IF: Upload Successful",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SYSTEME_IO_API_URL }}/contacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $env.SYSTEME_IO_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tag",
+              "value": "={{ $json.niche_tag }}"
+            },
+            {
+              "name": "source",
+              "value": "youtube_upload"
+            },
+            {
+              "name": "video_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "http-log-to-systeme",
+      "name": "HTTP: Log to Systeme.io",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1860, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🚀 **Money Machine Report**\n\n✅ **Video Uploaded Successfully**\n\n📹 Title: {{ $json.title }}\n🎯 Niche: {{ $json.niche }}\n📺 Channel: {{ $json.channel_name }}\n🔗 Link Type: {{ $json.link_type }}\n🏷️ Lead Tag: {{ $json.niche_tag }}\n\n🔗 Funnel Active:\n{{ $json.primary_link }}\n\n📊 Video ID: {{ $json.id }}\n\n⏰ {{ $now.format('YYYY-MM-DD HH:mm') }} UTC",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-success-report",
+      "name": "Telegram: Success Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2080, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🚨 **Money Machine Alert**\n\n❌ **Video Upload Failed**\n\n📹 Title: {{ $json.title }}\n🎯 Niche: {{ $json.niche }}\n\n🔴 Error: Upload returned empty ID\n\n⚠️ Action Required: Check YouTube credentials and quota\n\n⏰ {{ $now.format('YYYY-MM-DD HH:mm') }} UTC",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-failure-report",
+      "name": "Telegram: Failure Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1860, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, video_id: $json.id, niche: $json.niche, channel: $json.channel_name, funnel_url: $json.primary_link }) }}"
+      },
+      "id": "respond-webhook-success",
+      "name": "Respond: Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2300, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'Upload failed', niche: $json.niche }) }}"
+      },
+      "id": "respond-webhook-failure",
+      "name": "Respond: Failure",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2080, 400]
+    }
+  ],
+  "connections": {
+    "Webhook: Creator Engine Signal": {
+      "main": [
+        [
+          {
+            "node": "Code: Extract & Enrich Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Extract & Enrich Metadata": {
+      "main": [
+        [
+          {
+            "node": "Switch: Niche Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Niche Router": {
+      "main": [
+        [
+          {
+            "node": "Set: Survival Channel Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: Wealth Channel Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: Wellness Channel Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set: Productivity Channel Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Survival Channel Config": {
+      "main": [
+        [
+          {
+            "node": "Merge: Unified Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Wealth Channel Config": {
+      "main": [
+        [
+          {
+            "node": "Merge: Unified Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Wellness Channel Config": {
+      "main": [
+        [
+          {
+            "node": "Merge: Unified Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set: Productivity Channel Config": {
+      "main": [
+        [
+          {
+            "node": "Merge: Unified Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: Unified Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Code: Build YouTube Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build YouTube Description": {
+      "main": [
+        [
+          {
+            "node": "YouTube: Upload Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube: Upload Video": {
+      "main": [
+        [
+          {
+            "node": "IF: Upload Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Upload Successful": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Log to Systeme.io",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Failure Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Log to Systeme.io": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Success Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Success Report": {
+      "main": [
+        [
+          {
+            "node": "Respond: Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Failure Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond: Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Lead Gen",
+      "id": "1"
+    },
+    {
+      "name": "YouTube",
+      "id": "2"
+    },
+    {
+      "name": "Money Machine",
+      "id": "3"
+    }
+  ],
+  "triggerCount": 1,
+  "pinData": {},
+  "versionId": "1"
+}

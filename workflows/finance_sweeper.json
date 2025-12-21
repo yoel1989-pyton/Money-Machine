@@ -1,0 +1,626 @@
+{
+  "name": "💰 Finance Sweeper & Auditor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Run Every 12 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finance-sweep-manual",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-manual",
+      "name": "Manual Sweep Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-triggers",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [200, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.paypal.com/v1/reporting/balances",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "id": "paypal-check-balance",
+      "name": "PayPal Get Balance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PayPal Balance Check Logic\nconst balanceResponse = $input.first().json;\n\n// Configuration\nconst SWEEP_THRESHOLD = 100; // $100 minimum to sweep\nconst RESERVE_AMOUNT = 50;   // Keep $50 buffer in PayPal\n\nlet totalBalance = 0;\nlet availableBalance = 0;\nlet currency = 'USD';\n\nif (balanceResponse && balanceResponse.balances) {\n  for (const balance of balanceResponse.balances) {\n    if (balance.currency === 'USD') {\n      totalBalance = parseFloat(balance.total_balance?.value || 0);\n      availableBalance = parseFloat(balance.available_balance?.value || 0);\n      currency = balance.currency;\n      break;\n    }\n  }\n}\n\nconst sweepAmount = Math.max(0, availableBalance - RESERVE_AMOUNT);\nconst shouldSweep = sweepAmount >= SWEEP_THRESHOLD;\n\nreturn [{\n  json: {\n    platform: 'PayPal',\n    totalBalance: totalBalance.toFixed(2),\n    availableBalance: availableBalance.toFixed(2),\n    currency: currency,\n    sweepAmount: sweepAmount.toFixed(2),\n    shouldSweep: shouldSweep,\n    threshold: SWEEP_THRESHOLD,\n    reserve: RESERVE_AMOUNT,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "paypal-analyze",
+      "name": "Analyze PayPal Balance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "sweep-check",
+              "leftValue": "={{ $json.shouldSweep }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-sweep-needed",
+      "name": "Sweep Needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.paypal.com/v1/payments/payouts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sender_batch_header\": {\n    \"sender_batch_id\": \"sweep_{{ $now.format('yyyyMMdd_HHmmss') }}\",\n    \"email_subject\": \"Money Machine Sweep\",\n    \"email_message\": \"Automated sweep from PayPal\"\n  },\n  \"items\": [\n    {\n      \"recipient_type\": \"EMAIL\",\n      \"amount\": {\n        \"value\": \"{{ $json.sweepAmount }}\",\n        \"currency\": \"USD\"\n      },\n      \"receiver\": \"{{ $env.SWEEP_DESTINATION_EMAIL }}\",\n      \"note\": \"Auto-sweep: PayPal balance exceeded threshold\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "paypal-execute-sweep",
+      "name": "Execute PayPal Sweep",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/balance",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "stripe-check-balance",
+      "name": "Stripe Get Balance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stripe Balance Analysis\nconst balanceResponse = $input.first().json;\n\nlet availableBalance = 0;\nlet pendingBalance = 0;\nlet currency = 'usd';\n\nif (balanceResponse && balanceResponse.available) {\n  for (const bal of balanceResponse.available) {\n    if (bal.currency === 'usd') {\n      availableBalance = bal.amount / 100; // Convert from cents\n      currency = bal.currency.toUpperCase();\n    }\n  }\n}\n\nif (balanceResponse && balanceResponse.pending) {\n  for (const bal of balanceResponse.pending) {\n    if (bal.currency === 'usd') {\n      pendingBalance = bal.amount / 100;\n    }\n  }\n}\n\nreturn [{\n  json: {\n    platform: 'Stripe',\n    availableBalance: availableBalance.toFixed(2),\n    pendingBalance: pendingBalance.toFixed(2),\n    totalBalance: (availableBalance + pendingBalance).toFixed(2),\n    currency: currency,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "stripe-analyze",
+      "name": "Analyze Stripe Balance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.clickbank.com/rest/1.3/quickstats",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "clickbank-stats",
+      "name": "ClickBank Get Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ClickBank Stats Analysis\nconst statsResponse = $input.first().json;\n\nlet totalEarnings = 0;\nlet sales = 0;\nlet refunds = 0;\n\nif (statsResponse) {\n  totalEarnings = parseFloat(statsResponse.quickStats?.totalEarnings || 0);\n  sales = parseInt(statsResponse.quickStats?.totalSales || 0);\n  refunds = parseInt(statsResponse.quickStats?.totalRefunds || 0);\n}\n\nconst refundRate = sales > 0 ? (refunds / sales * 100) : 0;\n\nreturn [{\n  json: {\n    platform: 'ClickBank',\n    totalEarnings: totalEarnings.toFixed(2),\n    sales: sales,\n    refunds: refunds,\n    refundRate: refundRate.toFixed(1) + '%',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "clickbank-analyze",
+      "name": "Analyze ClickBank",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 500]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/channels?part=statistics&mine=true&key={{ $env.YOUTUBE_API_KEY }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "id": "youtube-stats",
+      "name": "YouTube Get Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// YouTube Stats Analysis\nconst response = $input.first().json;\n\nconst channels = response.items || [];\nlet totalViews = 0;\nlet totalSubs = 0;\nlet totalVideos = 0;\n\nfor (const channel of channels) {\n  const stats = channel.statistics || {};\n  totalViews += parseInt(stats.viewCount || 0);\n  totalSubs += parseInt(stats.subscriberCount || 0);\n  totalVideos += parseInt(stats.videoCount || 0);\n}\n\nreturn [{\n  json: {\n    platform: 'YouTube',\n    totalViews: totalViews,\n    totalSubscribers: totalSubs,\n    totalVideos: totalVideos,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "youtube-analyze",
+      "name": "Analyze YouTube",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 700]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-all-stats",
+      "name": "Merge All Stats",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile Full Financial Report\nconst items = $input.all();\n\nlet paypal = null;\nlet stripe = null;\nlet clickbank = null;\nlet youtube = null;\nlet sweepExecuted = false;\n\nfor (const item of items) {\n  const data = item.json;\n  if (data.platform === 'PayPal') paypal = data;\n  if (data.platform === 'Stripe') stripe = data;\n  if (data.platform === 'ClickBank') clickbank = data;\n  if (data.platform === 'YouTube') youtube = data;\n  if (data.sweepExecuted) sweepExecuted = true;\n}\n\n// Calculate totals\nconst totalCash = \n  parseFloat(paypal?.availableBalance || 0) +\n  parseFloat(stripe?.availableBalance || 0);\n\nconst pendingCash = parseFloat(stripe?.pendingBalance || 0);\n\n// Profit-First Allocation (on available cash)\n// 30% Tax Reserve | 40% Reinvest | 30% Profit\nconst taxReserve = totalCash * 0.30;\nconst reinvest = totalCash * 0.40;\nconst profit = totalCash * 0.30;\n\n// Build Report\nconst report = {\n  reportDate: new Date().toISOString().split('T')[0],\n  reportTime: new Date().toLocaleTimeString(),\n  \n  // Balances\n  balances: {\n    paypal: paypal?.availableBalance || '0.00',\n    stripe: stripe?.availableBalance || '0.00',\n    stripePending: stripe?.pendingBalance || '0.00',\n    totalAvailable: totalCash.toFixed(2),\n    totalPending: pendingCash.toFixed(2)\n  },\n  \n  // Allocation\n  allocation: {\n    taxReserve: taxReserve.toFixed(2),\n    reinvest: reinvest.toFixed(2),\n    profit: profit.toFixed(2)\n  },\n  \n  // Affiliate Performance\n  affiliate: {\n    clickbankEarnings: clickbank?.totalEarnings || '0.00',\n    clickbankSales: clickbank?.sales || 0,\n    clickbankRefunds: clickbank?.refunds || 0,\n    refundRate: clickbank?.refundRate || '0%'\n  },\n  \n  // YouTube Performance\n  youtube: {\n    totalViews: youtube?.totalViews || 0,\n    subscribers: youtube?.totalSubscribers || 0,\n    videos: youtube?.totalVideos || 0\n  },\n  \n  // Sweep Status\n  sweep: {\n    executed: sweepExecuted,\n    amount: paypal?.sweepAmount || '0.00'\n  },\n  \n  // Health Score (0-100)\n  healthScore: calculateHealthScore(paypal, stripe, clickbank, youtube)\n};\n\nfunction calculateHealthScore(paypal, stripe, clickbank, youtube) {\n  let score = 50; // Base\n  \n  // +10 if PayPal has balance\n  if (parseFloat(paypal?.availableBalance || 0) > 0) score += 10;\n  \n  // +10 if Stripe has balance\n  if (parseFloat(stripe?.availableBalance || 0) > 0) score += 10;\n  \n  // +10 if refund rate < 10%\n  const refundRate = parseFloat(clickbank?.refundRate || 0);\n  if (refundRate < 10) score += 10;\n  \n  // +10 if subs > 100\n  if ((youtube?.totalSubscribers || 0) > 100) score += 10;\n  \n  // +10 if videos > 10\n  if ((youtube?.totalVideos || 0) > 10) score += 10;\n  \n  return Math.min(100, score);\n}\n\nreturn [{ json: report }];"
+      },
+      "id": "compile-report",
+      "name": "Compile Financial Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Telegram Message\nconst report = $input.first().json;\n\nconst emoji = report.healthScore >= 80 ? '🟢' : \n              report.healthScore >= 50 ? '🟡' : '🔴';\n\nconst sweepStatus = report.sweep.executed ? \n  `✅ Swept $${report.sweep.amount} to secure account` : \n  '⏸️ No sweep needed';\n\nconst message = `\n💰 *MONEY MACHINE FINANCIAL REPORT*\n${emoji} Health Score: ${report.healthScore}/100\n\n📊 *BALANCES*\n• PayPal: $${report.balances.paypal}\n• Stripe: $${report.balances.stripe}\n• Stripe (Pending): $${report.balances.stripePending}\n• *TOTAL AVAILABLE: $${report.balances.totalAvailable}*\n\n📈 *PROFIT-FIRST ALLOCATION*\n• 🏛️ Tax Reserve (30%): $${report.allocation.taxReserve}\n• 🔄 Reinvest (40%): $${report.allocation.reinvest}\n• 💵 Profit (30%): $${report.allocation.profit}\n\n🛒 *AFFILIATE PERFORMANCE*\n• ClickBank Earnings: $${report.affiliate.clickbankEarnings}\n• Sales: ${report.affiliate.clickbankSales}\n• Refunds: ${report.affiliate.clickbankRefunds}\n• Refund Rate: ${report.affiliate.refundRate}\n\n📺 *YOUTUBE STATS*\n• Total Views: ${report.youtube.totalViews.toLocaleString()}\n• Subscribers: ${report.youtube.subscribers.toLocaleString()}\n• Videos: ${report.youtube.videos}\n\n🧹 *SWEEP STATUS*\n${sweepStatus}\n\n⏰ ${report.reportDate} ${report.reportTime}\n`;\n\nreturn [{ json: { message } }];"
+      },
+      "id": "format-telegram",
+      "name": "Format Telegram Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-send",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1500, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot",
+          "name": "Money Machine Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Weekly Profit-First Processing\n// Run every Sunday\nconst report = $input.first().json;\nconst now = new Date();\n\nif (now.getDay() !== 0) {\n  // Not Sunday - skip weekly processing\n  return [{ json: { skip: true, reason: 'Not Sunday' } }];\n}\n\nconst totalCash = parseFloat(report.balances.totalAvailable);\n\nconst allocations = {\n  isWeeklyRun: true,\n  weekEnding: report.reportDate,\n  \n  // Profit-First Buckets\n  taxReserve: {\n    percentage: 30,\n    amount: (totalCash * 0.30).toFixed(2),\n    destination: 'Tax Savings Account',\n    status: 'pending_transfer'\n  },\n  \n  reinvest: {\n    percentage: 40,\n    amount: (totalCash * 0.40).toFixed(2),\n    allocations: {\n      ads: ((totalCash * 0.40) * 0.50).toFixed(2),      // 50% of reinvest\n      tools: ((totalCash * 0.40) * 0.30).toFixed(2),    // 30% of reinvest\n      content: ((totalCash * 0.40) * 0.20).toFixed(2)   // 20% of reinvest\n    },\n    status: 'pending_allocation'\n  },\n  \n  profit: {\n    percentage: 30,\n    amount: (totalCash * 0.30).toFixed(2),\n    destination: 'Personal Account',\n    status: 'pending_transfer'\n  }\n};\n\nreturn [{ json: allocations }];"
+      },
+      "id": "weekly-allocation",
+      "name": "Weekly Allocation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "weekly-check",
+              "leftValue": "={{ $json.isWeeklyRun }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-weekly",
+      "name": "Is Weekly Run?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1500, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Weekly Allocation Report\nconst alloc = $input.first().json;\n\nconst message = `\n📅 *WEEKLY PROFIT-FIRST ALLOCATION*\n\nWeek Ending: ${alloc.weekEnding}\n\n💰 *ALLOCATIONS*\n\n🏛️ *TAX RESERVE (30%)*\nAmount: $${alloc.taxReserve.amount}\nDestination: ${alloc.taxReserve.destination}\n\n🔄 *REINVEST (40%)*\nTotal: $${alloc.reinvest.amount}\n  • Ads Budget: $${alloc.reinvest.allocations.ads}\n  • Tools/APIs: $${alloc.reinvest.allocations.tools}\n  • Content: $${alloc.reinvest.allocations.content}\n\n💵 *PROFIT (30%)*\nAmount: $${alloc.profit.amount}\nDestination: ${alloc.profit.destination}\n\n⚡ Allocations pending manual transfer\n`;\n\nreturn [{ json: { message, ...alloc } }];"
+      },
+      "id": "format-weekly",
+      "name": "Format Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 550]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-weekly",
+      "name": "Send Weekly to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1900, 550],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-bot",
+          "name": "Money Machine Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log sweep execution\nconst sweepResponse = $input.first().json;\n\nreturn [{\n  json: {\n    sweepExecuted: true,\n    batchId: sweepResponse.batch_header?.payout_batch_id || 'unknown',\n    status: sweepResponse.batch_header?.batch_status || 'unknown',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "log-sweep",
+      "name": "Log Sweep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// No sweep needed - pass through\nreturn [{\n  json: {\n    sweepExecuted: false,\n    reason: 'Balance below threshold',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "no-sweep-log",
+      "name": "No Sweep Needed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 200]
+    }
+  ],
+  "connections": {
+    "Run Every 12 Hours": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Sweep Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "PayPal Get Balance",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Stripe Get Balance",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ClickBank Get Stats",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "YouTube Get Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PayPal Get Balance": {
+      "main": [
+        [
+          {
+            "node": "Analyze PayPal Balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze PayPal Balance": {
+      "main": [
+        [
+          {
+            "node": "Sweep Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sweep Needed?": {
+      "main": [
+        [
+          {
+            "node": "Execute PayPal Sweep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Sweep Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute PayPal Sweep": {
+      "main": [
+        [
+          {
+            "node": "Log Sweep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Sweep": {
+      "main": [
+        [
+          {
+            "node": "Merge All Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Sweep Needed": {
+      "main": [
+        [
+          {
+            "node": "Merge All Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe Get Balance": {
+      "main": [
+        [
+          {
+            "node": "Analyze Stripe Balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Stripe Balance": {
+      "main": [
+        [
+          {
+            "node": "Merge All Stats",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ClickBank Get Stats": {
+      "main": [
+        [
+          {
+            "node": "Analyze ClickBank",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze ClickBank": {
+      "main": [
+        [
+          {
+            "node": "Merge All Stats",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "YouTube Get Stats": {
+      "main": [
+        [
+          {
+            "node": "Analyze YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze YouTube": {
+      "main": [
+        [
+          {
+            "node": "Merge All Stats",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Stats": {
+      "main": [
+        [
+          {
+            "node": "Compile Financial Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Financial Report": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Weekly Allocation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Report": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Allocation": {
+      "main": [
+        [
+          {
+            "node": "Is Weekly Run?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Weekly Run?": {
+      "main": [
+        [
+          {
+            "node": "Format Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Format Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "finance"
+    },
+    {
+      "name": "money-machine"
+    },
+    {
+      "name": "automation"
+    }
+  ]
+}

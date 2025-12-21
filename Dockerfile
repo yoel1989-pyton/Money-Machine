@@ -64,7 +64,22 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     # Scheduling
     schedule \
     # Environment
-    python-dotenv
+    python-dotenv \
+    # Affiliate APIs
+    stripe \
+    paypalrestsdk \
+    # Image/Video Processing
+    opencv-python-headless \
+    # Data Persistence
+    aiosqlite \
+    # Machine Learning (lightweight)
+    scikit-learn \
+    # Retry Logic
+    tenacity \
+    # YAML Config
+    pyyaml \
+    # Async job queue
+    aiofiles
 
 # ============================================================
 # N8N COMMUNITY NODES - "THE AMPLIFIERS"
@@ -73,7 +88,8 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 RUN cd /usr/local/lib/node_modules/n8n && \
     npm install \
     n8n-nodes-text-manipulation \
-    @n8n/n8n-nodes-langchain
+    @n8n/n8n-nodes-langchain \
+    n8n-nodes-base-python
 
 # ============================================================
 # CREATE WORKING DIRECTORIES
