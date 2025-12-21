@@ -19,6 +19,10 @@ from typing import Optional, Dict, Any
 import httpx
 import shutil
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
 # ============================================================
 # YOUTUBE UPLOADER (PRIMARY - FULL AUTOMATION)
 # ============================================================
