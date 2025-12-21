@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
 ============================================================
-MONEY MACHINE - SYSTEM LAUNCHER
-The Master Switch
+ELITE MONEY MACHINE v2.0 - AUTONOMOUS LAUNCHER
+POST-HUMAN MODE: Data decides. Machine improves. You collect.
 ============================================================
 Usage:
-    python run.py                    # Full cycle
+    python run.py                    # Single cycle (interactive)
+    python run.py --continuous       # 24/7 autonomous mode
     python run.py --dry-run          # Test without posting
     python run.py --health           # Health check only
     python run.py --status           # System status
-    python run.py --test-telegram    # Test Telegram connection
 ============================================================
 """
 
@@ -18,15 +18,93 @@ import argparse
 import json
 import os
 import sys
+import random
 from datetime import datetime
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+PROJECT_ROOT = Path(__file__).parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+
+# ============================================================
+# CONFIGURATION (LOCKED)
+# ============================================================
+
+class MachineConfig:
+    """Hardened configuration - DO NOT CHANGE"""
+    
+    # Cycle timing (continuous mode)
+    CYCLE_INTERVAL_MINUTES = 60  # 1 cycle per hour
+    CYCLE_JITTER_MINUTES = 15    # Random jitter to avoid patterns
+    MAX_CYCLES_PER_DAY = 20      # Safety limit
+    
+    # Locked niches (fastest money)
+    NICHES = [
+        "wealth",      # AI income, side hustle, money
+        "health",      # Bio-optimization, energy, sleep
+        "survival"     # Self-reliance, preparedness
+    ]
+    
+    # Circuit breaker settings
+    MAX_FAILURES_BEFORE_PAUSE = 3
+    PAUSE_DURATION_MINUTES = 30
+    
+    # Required directories
+    REQUIRED_DIRS = [
+        PROJECT_ROOT / "data" / "assets",
+        PROJECT_ROOT / "data" / "temp",
+        PROJECT_ROOT / "data" / "output",
+        PROJECT_ROOT / "data" / "logs",
+        PROJECT_ROOT / "data" / "metrics",
+    ]
+
+
+# ============================================================
+# AUTO-PROVISIONING (NEVER FAIL ON MISSING FILES)
+# ============================================================
+
+async def auto_provision():
+    """Ensure all required resources exist"""
+    print("🔧 Auto-provisioning resources...")
+    
+    # Create required directories
+    for dir_path in MachineConfig.REQUIRED_DIRS:
+        dir_path.mkdir(parents=True, exist_ok=True)
+    
+    # Check/create default background video
+    default_bg = PROJECT_ROOT / "data" / "assets" / "default_bg.mp4"
+    if not default_bg.exists():
+        print("   📹 Generating default background video...")
+        await generate_default_background(str(default_bg))
+    
+    print("   ✅ All resources provisioned")
+    return True
+
+
+async def generate_default_background(output_path: str):
+    """Generate a default background video using FFmpeg"""
+    import subprocess
+    
+    cmd = [
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", "color=c=black:s=1920x1080:d=120",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-crf", "30",
+        "-pix_fmt", "yuv420p",
+        output_path
+    ]
+    
+    try:
+        subprocess.run(cmd, capture_output=True, check=True)
+        print("   ✅ Default background created")
+    except Exception as e:
+        print(f"   ⚠️ Could not create background: {e}")
 
 
 def print_banner():
@@ -36,7 +114,7 @@ def print_banner():
     ║                                                          ║
     ║     💰 ELITE MONEY MACHINE v2.0 💰                       ║
     ║                                                          ║
-    ║     Self-Healing • Self-Improving • Autonomous           ║
+    ║     POST-HUMAN MODE • AUTONOMOUS • CAPITALIZING          ║
     ║                                                          ║
     ╚══════════════════════════════════════════════════════════╝
     """
@@ -357,7 +435,18 @@ async def show_status():
 async def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="Elite Money Machine v2.0 - System Launcher"
+        description="Elite Money Machine v2.0 - Autonomous Launcher"
+    )
+    parser.add_argument(
+        "--continuous",
+        action="store_true",
+        help="Run in continuous 24/7 autonomous mode"
+    )
+    parser.add_argument(
+        "--cycles",
+        type=int,
+        default=0,
+        help="Number of cycles to run (0 = unlimited in continuous mode)"
     )
     parser.add_argument(
         "--dry-run",
@@ -379,11 +468,19 @@ async def main():
         action="store_true",
         help="Test Telegram connection"
     )
+    parser.add_argument(
+        "--no-confirm",
+        action="store_true",
+        help="Skip confirmation prompt"
+    )
     
     args = parser.parse_args()
     
     print_banner()
     print(f"⏰ Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Auto-provision resources first
+    await auto_provision()
     
     if args.status:
         await show_status()
@@ -393,14 +490,107 @@ async def main():
         await test_telegram()
     elif args.dry_run:
         await run_dry_cycle()
+    elif args.continuous:
+        # 24/7 AUTONOMOUS MODE
+        await run_continuous_mode(max_cycles=args.cycles)
     else:
-        # Full cycle
-        confirm = input("\n⚠️  Run FULL cycle? This will create and post content. (y/N): ")
-        if confirm.lower() == 'y':
+        # Single cycle
+        if args.no_confirm:
             await run_full_cycle()
         else:
-            print("Aborted.")
+            confirm = input("\n⚠️  Run FULL cycle? This will create and post content. (y/N): ")
+            if confirm.lower() == 'y':
+                await run_full_cycle()
+            else:
+                print("Aborted.")
+
+
+async def run_continuous_mode(max_cycles: int = 0):
+    """
+    Run the machine continuously in 24/7 autonomous mode.
+    This is POST-HUMAN MODE - the machine decides everything.
+    """
+    print("\n" + "=" * 60)
+    print("🤖 ENTERING POST-HUMAN MODE - 24/7 AUTONOMOUS OPERATION")
+    print("=" * 60)
+    print(f"   Cycle interval: {MachineConfig.CYCLE_INTERVAL_MINUTES} minutes")
+    print(f"   Jitter: ±{MachineConfig.CYCLE_JITTER_MINUTES} minutes")
+    print(f"   Max cycles: {'unlimited' if max_cycles == 0 else max_cycles}")
+    print(f"   Locked niches: {', '.join(MachineConfig.NICHES)}")
+    print("=" * 60)
+    print("\n💡 Press Ctrl+C to stop\n")
+    
+    cycle_count = 0
+    consecutive_failures = 0
+    
+    while True:
+        cycle_count += 1
+        
+        # Check cycle limit
+        if max_cycles > 0 and cycle_count > max_cycles:
+            print(f"\n🏁 Reached max cycles ({max_cycles}). Stopping.")
+            break
+        
+        # Check daily limit
+        if cycle_count > MachineConfig.MAX_CYCLES_PER_DAY:
+            print(f"\n⚠️ Daily cycle limit reached. Pausing until tomorrow.")
+            await asyncio.sleep(3600)  # Wait 1 hour
+            cycle_count = 0
+            continue
+        
+        print(f"\n{'='*60}")
+        print(f"🔄 CYCLE {cycle_count} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'='*60}")
+        
+        try:
+            # Run the full cycle
+            results = await run_full_cycle()
+            
+            if results and not results.get("error"):
+                consecutive_failures = 0
+                print(f"   ✅ Cycle {cycle_count} complete")
+            else:
+                consecutive_failures += 1
+                print(f"   ⚠️ Cycle {cycle_count} had issues")
+        
+        except Exception as e:
+            consecutive_failures += 1
+            print(f"   ❌ Cycle {cycle_count} failed: {e}")
+        
+        # Circuit breaker
+        if consecutive_failures >= MachineConfig.MAX_FAILURES_BEFORE_PAUSE:
+            print(f"\n🛑 Circuit breaker triggered ({consecutive_failures} failures)")
+            print(f"   Pausing for {MachineConfig.PAUSE_DURATION_MINUTES} minutes...")
+            await asyncio.sleep(MachineConfig.PAUSE_DURATION_MINUTES * 60)
+            consecutive_failures = 0
+            continue
+        
+        # Calculate next cycle time with jitter
+        base_wait = MachineConfig.CYCLE_INTERVAL_MINUTES * 60
+        jitter = random.randint(
+            -MachineConfig.CYCLE_JITTER_MINUTES * 60,
+            MachineConfig.CYCLE_JITTER_MINUTES * 60
+        )
+        wait_seconds = max(300, base_wait + jitter)  # Minimum 5 minutes
+        
+        next_cycle = datetime.now().timestamp() + wait_seconds
+        next_cycle_str = datetime.fromtimestamp(next_cycle).strftime('%H:%M:%S')
+        
+        print(f"\n⏳ Next cycle at {next_cycle_str} ({wait_seconds//60} minutes)")
+        print("   💤 Machine sleeping... (Ctrl+C to stop)")
+        
+        try:
+            await asyncio.sleep(wait_seconds)
+        except KeyboardInterrupt:
+            print("\n\n🛑 Interrupted by user. Shutting down gracefully...")
+            break
+    
+    print("\n🏁 AUTONOMOUS MODE ENDED")
+    print(f"   Total cycles completed: {cycle_count}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n\n👋 Money Machine stopped. See you next time!")

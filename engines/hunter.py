@@ -20,19 +20,31 @@ import httpx
 # ============================================================
 
 class HunterConfig:
-    """Hunter Engine Configuration"""
+    """Hunter Engine Configuration - LOCKED FOR MAXIMUM MONEY"""
     
-    # Niches to monitor (customize based on your channels)
+    # LOCKED NICHES (Fastest money - DO NOT CHANGE)
     NICHES = [
-        "personal finance",
-        "side hustle",
-        "passive income",
-        "wellness",
-        "productivity",
-        "self improvement",
-        "technology",
-        "ai tools"
+        # WEALTH (Highest EPC)
+        "ai income",
+        "side hustle money",
+        "passive income online",
+        "make money ai",
+        # HEALTH (High demand, emotional urgency)
+        "energy boost natural",
+        "sleep optimization",
+        "gut health",
+        # SURVIVAL (High emotion + preparedness)
+        "emergency preparedness",
+        "self reliance skills",
+        "survival tips"
     ]
+    
+    # Niche categories for rotation
+    NICHE_CATEGORIES = {
+        "wealth": ["ai income", "side hustle money", "passive income online", "make money ai"],
+        "health": ["energy boost natural", "sleep optimization", "gut health"],
+        "survival": ["emergency preparedness", "self reliance skills", "survival tips"]
+    }
     
     # Minimum engagement threshold
     MIN_ENGAGEMENT_SCORE = 50
@@ -42,6 +54,57 @@ class HunterConfig:
     
     # Sentiment filter (positive content performs better)
     SENTIMENT_BIAS = "positive"
+    
+    # Circuit breaker settings
+    MAX_API_FAILURES = 3
+    BACKOFF_MINUTES = 30
+
+
+# ============================================================
+# CIRCUIT BREAKER (Prevents cascading failures)
+# ============================================================
+
+class CircuitBreaker:
+    """Circuit breaker for API calls"""
+    
+    def __init__(self, name: str, max_failures: int = 3, reset_minutes: int = 30):
+        self.name = name
+        self.max_failures = max_failures
+        self.reset_seconds = reset_minutes * 60
+        self.failures = 0
+        self.last_failure = None
+        self.is_open = False
+    
+    def record_failure(self):
+        """Record a failure"""
+        from datetime import datetime
+        self.failures += 1
+        self.last_failure = datetime.now()
+        if self.failures >= self.max_failures:
+            self.is_open = True
+            print(f"[CIRCUIT BREAKER] {self.name} OPEN - too many failures")
+    
+    def record_success(self):
+        """Record a success - reset counter"""
+        self.failures = 0
+        self.is_open = False
+    
+    def can_execute(self) -> bool:
+        """Check if we can execute"""
+        if not self.is_open:
+            return True
+        
+        # Check if enough time has passed to reset
+        from datetime import datetime
+        if self.last_failure:
+            elapsed = (datetime.now() - self.last_failure).total_seconds()
+            if elapsed >= self.reset_seconds:
+                self.is_open = False
+                self.failures = 0
+                print(f"[CIRCUIT BREAKER] {self.name} RESET - ready to retry")
+                return True
+        
+        return False
 
 
 # ============================================================
@@ -181,40 +244,49 @@ class NewsHunter:
     """
     Hunts trending news for content opportunities.
     Uses NewsAPI.org - FREE: 100 requests/day.
+    Circuit breaker enabled.
     """
     
     def __init__(self):
         self.api_key = os.getenv("NEWSAPI_KEY")
         self.base_url = "https://newsapi.org/v2"
+        self.circuit_breaker = CircuitBreaker("NewsAPI", max_failures=3, reset_minutes=60)
         
     async def get_top_headlines(self, category: str = "business", country: str = "us") -> list:
         """Get top headlines for opportunity identification"""
         if not self.api_key:
             print("[HUNTER] NewsAPI key not configured")
             return []
+        
+        # Check circuit breaker
+        if not self.circuit_breaker.can_execute():
+            print("[HUNTER] NewsAPI circuit breaker OPEN - skipping")
+            return []
             
         opportunities = []
         
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/top-headlines",
-                params={
-                    "apiKey": self.api_key,
-                    "category": category,
-                    "country": country,
-                    "pageSize": 20
-                }
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                for article in data.get("articles", []):
-                    # Calculate opportunity score based on engagement signals
-                    score = 50  # Base score
-                    title = article.get("title", "")
-                    
-                    # Boost for money-related keywords
-                    money_keywords = ["money", "income", "wealth", "invest", "save", "earn", "profit"]
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/top-headlines",
+                    params={
+                        "apiKey": self.api_key,
+                        "category": category,
+                        "country": country,
+                        "pageSize": 20
+                    }
+                )
+                
+                if response.status_code == 200:
+                    self.circuit_breaker.record_success()
+                    data = response.json()
+                    for article in data.get("articles", []):
+                        # Calculate opportunity score based on engagement signals
+                        score = 50  # Base score
+                        title = article.get("title", "")
+                        
+                        # Boost for money-related keywords
+                        money_keywords = ["money", "income", "wealth", "invest", "save", "earn", "profit"]
                     if any(kw in title.lower() for kw in money_keywords):
                         score += 20
                     
@@ -233,19 +305,25 @@ class NewsHunter:
                         "opportunity_score": score,
                         "content_angle": f"News: {title[:50]}..."
                     })
-            else:
-                print(f"[HUNTER] NewsAPI error: {response.status_code}")
+                else:
+                    self.circuit_breaker.record_failure()
+                    print(f"[HUNTER] NewsAPI error: {response.status_code}")
+        
+        except Exception as e:
+            self.circuit_breaker.record_failure()
+            print(f"[HUNTER] NewsAPI exception: {e}")
                 
         return sorted(opportunities, key=lambda x: x["opportunity_score"], reverse=True)[:10]
     
     async def search_topic(self, query: str) -> list:
         """Search for news on a specific topic"""
-        if not self.api_key:
+        if not self.api_key or not self.circuit_breaker.can_execute():
             return []
             
         opportunities = []
         
-        async with httpx.AsyncClient() as client:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{self.base_url}/everything",
                 params={
