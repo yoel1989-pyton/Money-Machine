@@ -31,6 +31,10 @@ class SurvivorConfig:
     # Health check intervals
     HEALTH_CHECK_INTERVAL = 300  # 5 minutes
     
+    # Platform pause thresholds (FINAL HARDENING)
+    API_FAILURE_THRESHOLD = 3  # Consecutive failures before pause
+    PLATFORM_PAUSE_HOURS = 6   # How long to pause after threshold
+    
     # Account health thresholds
     SHADOWBAN_THRESHOLD = {
         "youtube": {"views": 10, "hours": 48},
@@ -38,8 +42,16 @@ class SurvivorConfig:
         "instagram": {"engagement": 0.01, "hours": 48}
     }
     
-    # Logging
-    LOG_DIR = Path("/data/logs")
+    # FFmpeg fallback settings
+    FFMPEG_RETRY_ATTEMPTS = 2
+    FFMPEG_FALLBACK_ENABLED = True
+    
+    # Trend source switching
+    TREND_SOURCE_FAILURE_THRESHOLD = 3
+    TREND_SOURCES = ["newsapi", "reddit", "google_trends"]
+    
+    # Logging - use relative paths for portability
+    LOG_DIR = Path(__file__).parent.parent / "data" / "logs"
 
 
 # ============================================================
@@ -574,6 +586,7 @@ class MasterSurvivor:
     """
     Master Survivor that orchestrates all resilience operations.
     The immune system of the Money Machine.
+    FINAL HARDENING: Integrated with Guardrails for health downgrade.
     """
     
     def __init__(self):
@@ -584,12 +597,32 @@ class MasterSurvivor:
         self.account_monitor = AccountHealthMonitor()
         self.healer = SelfHealingEngine(self.error_tracker, self.alert_manager)
         
+        # Lazy load guardrails to avoid circular imports
+        self._guardrails = None
+    
+    @property
+    def guardrails(self):
+        """Lazy load guardrails"""
+        if self._guardrails is None:
+            try:
+                from .guardrails import Guardrails
+                self._guardrails = Guardrails()
+            except Exception:
+                pass
+        return self._guardrails
+        
     async def handle_error(self, component: str, error: str, context: dict = None) -> dict:
         """
         Central error handling for all engines.
+        FINAL HARDENING: Integrates with health downgrade manager.
         """
         # Record the error
         record_result = self.error_tracker.record_error(component, error, context)
+        
+        # Record in guardrails health system
+        if self.guardrails:
+            self.guardrails.health.record_api_failure(component, error)
+            self.guardrails.log("errors", f"{component}: {error}", "ERROR", context)
         
         # Attempt self-healing
         healing_result = await self.healer.diagnose_and_heal(component, error)
@@ -607,6 +640,29 @@ class MasterSurvivor:
             "error_recorded": record_result,
             "healing": healing_result
         }
+    
+    async def handle_api_success(self, component: str):
+        """Record successful API call - resets failure counters"""
+        if self.guardrails:
+            self.guardrails.health.record_api_success(component)
+    
+    def is_platform_available(self, platform: str) -> bool:
+        """Check if a platform is available (not paused due to failures)"""
+        if self.guardrails:
+            return self.guardrails.health.is_api_available(platform)
+        return True
+    
+    def get_next_trend_source(self, failed_source: str) -> str:
+        """Get next available trend source after failure"""
+        if self.guardrails:
+            return self.guardrails.health.record_source_failure(failed_source)
+        # Fallback rotation
+        sources = SurvivorConfig.TREND_SOURCES
+        try:
+            idx = sources.index(failed_source)
+            return sources[(idx + 1) % len(sources)]
+        except ValueError:
+            return sources[0]
     
     async def run_health_check(self) -> dict:
         """Run comprehensive health check"""
@@ -628,14 +684,20 @@ class MasterSurvivor:
         }
     
     async def get_system_status(self) -> dict:
-        """Get complete system status"""
-        return {
+        """Get complete system status including guardrails"""
+        status = {
             "timestamp": datetime.utcnow().isoformat(),
             "health": await self.health_monitor.check_all_services(),
             "errors": self.error_tracker.get_error_summary(),
             "circuit_breakers": self.error_tracker.circuit_breakers,
             "healing_actions": self.healer.healing_actions[-10:]  # Last 10 actions
         }
+        
+        # Add guardrails status
+        if self.guardrails:
+            status["guardrails"] = self.guardrails.get_status()
+        
+        return status
     
     async def daily_report(self) -> dict:
         """Generate daily status report"""

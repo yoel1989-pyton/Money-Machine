@@ -61,6 +61,13 @@ from .uploaders import (
     TikTokUploader,
     DescriptionTemplates
 )
+from .guardrails import (
+    Guardrails,
+    UploadRateLimiter,
+    LogRotator,
+    HealthDowngradeManager,
+    PLATFORM_LIMITS
+)
 
 __all__ = [
     # Core Engines
@@ -126,7 +133,13 @@ __all__ = [
     "YouTubeUploader",
     "InstagramUploader",
     "TikTokUploader",
-    "DescriptionTemplates"
+    "DescriptionTemplates",
+    # Guardrails (FINAL HARDENING)
+    "Guardrails",
+    "UploadRateLimiter",
+    "LogRotator",
+    "HealthDowngradeManager",
+    "PLATFORM_LIMITS"
 ]
 
 

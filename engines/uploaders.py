@@ -23,6 +23,15 @@ import shutil
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
+# Import guardrails (lazy to avoid circular imports)
+_guardrails = None
+def get_guardrails():
+    global _guardrails
+    if _guardrails is None:
+        from .guardrails import Guardrails
+        _guardrails = Guardrails()
+    return _guardrails
+
 # ============================================================
 # YOUTUBE UPLOADER (PRIMARY - FULL AUTOMATION)
 # ============================================================
@@ -550,25 +559,52 @@ class MasterUploader:
         # Upload to configured platforms
         results["mode"] = "API"
         uploaded = 0
+        guardrails = get_guardrails()
         
-        # YouTube (PRIMARY)
+        # YouTube (PRIMARY) - with rate limiting
         if status["youtube"]:
-            description = descriptions.get("youtube", descriptions.get("default", title))
-            yt_result = await self.youtube.upload_short(video_path, title, description, tags)
-            results["results"]["youtube"] = yt_result
-            if yt_result.get("success"):
-                uploaded += 1
+            can_upload = guardrails.can_upload("youtube")
+            if can_upload["allowed"]:
+                description = descriptions.get("youtube", descriptions.get("default", title))
+                yt_result = await self.youtube.upload_short(video_path, title, description, tags)
+                results["results"]["youtube"] = yt_result
+                if yt_result.get("success"):
+                    uploaded += 1
+                    guardrails.record_upload("youtube", yt_result.get("video_id"))
+                else:
+                    guardrails.record_failure("youtube", yt_result.get("error", "Unknown"))
+            else:
+                results["results"]["youtube"] = {
+                    "success": False,
+                    "error": f"Rate limited: {can_upload.get('reason')}",
+                    "wait_seconds": can_upload.get("wait_seconds")
+                }
+                print(f"[YOUTUBE] ⏳ Rate limited: {can_upload.get('reason')}")
         
         # Instagram (if configured and has public URL)
         if status["instagram"]:
-            results["results"]["instagram"] = {"success": False, "error": "Requires public video URL"}
+            can_upload = guardrails.can_upload("instagram")
+            if can_upload["allowed"]:
+                results["results"]["instagram"] = {"success": False, "error": "Requires public video URL"}
+            else:
+                results["results"]["instagram"] = {"success": False, "error": f"Rate limited: {can_upload.get('reason')}"}
         
-        # TikTok (drafts)
+        # TikTok (drafts) - with rate limiting
         if status["tiktok"]:
-            tt_result = await self.tiktok.upload_to_drafts(video_path, title)
-            results["results"]["tiktok"] = tt_result
-            if tt_result.get("success"):
-                uploaded += 1
+            can_upload = guardrails.can_upload("tiktok")
+            if can_upload["allowed"]:
+                tt_result = await self.tiktok.upload_to_drafts(video_path, title)
+                results["results"]["tiktok"] = tt_result
+                if tt_result.get("success"):
+                    uploaded += 1
+                    guardrails.record_upload("tiktok", tt_result.get("video_id"))
+                else:
+                    guardrails.record_failure("tiktok", tt_result.get("error", "Unknown"))
+            else:
+                results["results"]["tiktok"] = {
+                    "success": False,
+                    "error": f"Rate limited: {can_upload.get('reason')}"
+                }
         
         # Also save locally as backup
         description = descriptions.get("youtube", title)
