@@ -174,6 +174,104 @@ class RedditHunter:
 
 
 # ============================================================
+# NEWS API HUNTER - FREE TIER (100 requests/day)
+# ============================================================
+
+class NewsHunter:
+    """
+    Hunts trending news for content opportunities.
+    Uses NewsAPI.org - FREE: 100 requests/day.
+    """
+    
+    def __init__(self):
+        self.api_key = os.getenv("NEWSAPI_KEY")
+        self.base_url = "https://newsapi.org/v2"
+        
+    async def get_top_headlines(self, category: str = "business", country: str = "us") -> list:
+        """Get top headlines for opportunity identification"""
+        if not self.api_key:
+            print("[HUNTER] NewsAPI key not configured")
+            return []
+            
+        opportunities = []
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/top-headlines",
+                params={
+                    "apiKey": self.api_key,
+                    "category": category,
+                    "country": country,
+                    "pageSize": 20
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                for article in data.get("articles", []):
+                    # Calculate opportunity score based on engagement signals
+                    score = 50  # Base score
+                    title = article.get("title", "")
+                    
+                    # Boost for money-related keywords
+                    money_keywords = ["money", "income", "wealth", "invest", "save", "earn", "profit"]
+                    if any(kw in title.lower() for kw in money_keywords):
+                        score += 20
+                    
+                    # Boost for trending topics
+                    trend_keywords = ["ai", "crypto", "tech", "breakthrough", "new", "2025"]
+                    if any(kw in title.lower() for kw in trend_keywords):
+                        score += 15
+                        
+                    opportunities.append({
+                        "source": "news",
+                        "title": title,
+                        "description": article.get("description", ""),
+                        "url": article.get("url", ""),
+                        "published": article.get("publishedAt", ""),
+                        "source_name": article.get("source", {}).get("name", ""),
+                        "opportunity_score": score,
+                        "content_angle": f"News: {title[:50]}..."
+                    })
+            else:
+                print(f"[HUNTER] NewsAPI error: {response.status_code}")
+                
+        return sorted(opportunities, key=lambda x: x["opportunity_score"], reverse=True)[:10]
+    
+    async def search_topic(self, query: str) -> list:
+        """Search for news on a specific topic"""
+        if not self.api_key:
+            return []
+            
+        opportunities = []
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/everything",
+                params={
+                    "apiKey": self.api_key,
+                    "q": query,
+                    "sortBy": "popularity",
+                    "pageSize": 10
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                for article in data.get("articles", []):
+                    opportunities.append({
+                        "source": "news",
+                        "title": article.get("title", ""),
+                        "description": article.get("description", ""),
+                        "url": article.get("url", ""),
+                        "opportunity_score": 60,
+                        "content_angle": f"Topic: {query}"
+                    })
+                    
+        return opportunities
+
+
+# ============================================================
 # GOOGLE TRENDS HUNTER - FREE (NO API KEY)
 # ============================================================
 
@@ -394,6 +492,7 @@ class MasterHunter:
         self.google = GoogleTrendsHunter()
         self.youtube = YouTubeHunter()
         self.affiliate = AffiliateHunter()
+        self.news = NewsHunter()
         
     async def hunt(self, niches: list = None) -> dict:
         """
@@ -409,6 +508,7 @@ class MasterHunter:
             "google_trends": [],
             "youtube": [],
             "affiliate": [],
+            "news": [],
             "top_opportunities": []
         }
         
@@ -422,7 +522,13 @@ class MasterHunter:
         # Hunt Google Trends
         results["google_trends"] = await self.google.get_trending_searches()
         
-        # Hunt YouTube
+        # Hunt News (NewsAPI)
+        news_categories = ["business", "technology"]
+        for category in news_categories:
+            news_results = await self.news.get_top_headlines(category)
+            results["news"].extend(news_results)
+        
+        # Hunt YouTube (if API key configured)
         for niche in niches[:3]:  # Limit to conserve API quota
             yt_results = await self.youtube.search_niche(niche)
             results["youtube"].extend(yt_results)
@@ -434,7 +540,7 @@ class MasterHunter:
         
         # Compile top opportunities
         all_opps = []
-        for source in ["reddit", "youtube"]:
+        for source in ["reddit", "youtube", "news"]:
             for opp in results[source][:5]:
                 all_opps.append(opp)
         

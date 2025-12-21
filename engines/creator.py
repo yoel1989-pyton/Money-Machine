@@ -25,10 +25,13 @@ import httpx
 class CreatorConfig:
     """Creator Engine Configuration"""
     
-    # Output directories
-    OUTPUT_DIR = Path("/data/output")
-    TEMP_DIR = Path("/data/temp")
-    ASSETS_DIR = Path("/data/assets")
+    # Base directory (project root)
+    BASE_DIR = Path(__file__).parent.parent
+    
+    # Output directories (relative to project root)
+    OUTPUT_DIR = BASE_DIR / "data" / "output"
+    TEMP_DIR = BASE_DIR / "data" / "temp"
+    ASSETS_DIR = BASE_DIR / "data" / "assets"
     
     # Video settings
     VIDEO_WIDTH = 1080
@@ -76,34 +79,15 @@ class TTSEngine:
         Generate speech from text using Edge TTS.
         Returns True if successful.
         """
+        import edge_tts
+        
         voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
         
         try:
-            # Use edge-tts command line (installed in Docker)
-            cmd = [
-                "edge-tts",
-                "--voice", voice_id,
-                "--rate", rate,
-                "--pitch", pitch,
-                "--text", text,
-                "--write-media", output_path
-            ]
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await process.communicate()
-            
-            if process.returncode == 0:
-                print(f"[CREATOR] TTS generated: {output_path}")
-                return True
-            else:
-                print(f"[CREATOR] TTS error: {stderr.decode()}")
-                return False
-                
+            communicate = edge_tts.Communicate(text, voice_id, rate=rate, pitch=pitch)
+            await communicate.save(output_path)
+            print(f"[CREATOR] TTS generated: {output_path}")
+            return True
         except Exception as e:
             print(f"[CREATOR] TTS exception: {e}")
             return False
@@ -116,25 +100,25 @@ class TTSEngine:
         voice: str = "male_us"
     ) -> bool:
         """Generate TTS with subtitle timestamps"""
+        import edge_tts
+        
         voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
         
         try:
-            cmd = [
-                "edge-tts",
-                "--voice", voice_id,
-                "--text", text,
-                "--write-media", output_audio,
-                "--write-subtitles", output_srt
-            ]
+            communicate = edge_tts.Communicate(text, voice_id)
+            submaker = edge_tts.SubMaker()
             
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
+            with open(output_audio, "wb") as audio_file:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        audio_file.write(chunk["data"])
+                    elif chunk["type"] == "WordBoundary":
+                        submaker.feed(chunk)
             
-            await process.communicate()
-            return process.returncode == 0
+            with open(output_srt, "w", encoding="utf-8") as srt_file:
+                srt_file.write(submaker.get_srt())
+            
+            return True
             
         except Exception as e:
             print(f"[CREATOR] TTS+SRT exception: {e}")
@@ -420,11 +404,13 @@ class VideoAssembler:
             output_path
         ]
         
-        # Add subtitles if provided
-        if subtitles_path and os.path.exists(subtitles_path):
+        # Add subtitles if provided and non-empty
+        if subtitles_path and os.path.exists(subtitles_path) and os.path.getsize(subtitles_path) > 0:
+            # FFmpeg subtitles filter requires escaped paths (colons and backslashes)
+            escaped_srt = subtitles_path.replace("\\", "/").replace(":", "\\:")
             cmd[cmd.index("-vf")] = "-vf"
             vf_index = cmd.index("-vf") + 1
-            cmd[vf_index] = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles={subtitles_path}"
+            cmd[vf_index] = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles='{escaped_srt}'"
         
         return await self._run_ffmpeg(cmd)
     
