@@ -6,6 +6,7 @@ Compliant, Official API Automation
 YouTube: Full automation via Data API v3
 Instagram: Reels via Meta Graph API
 TikTok: Draft push via Content Posting API
+LOCAL MODE: Saves videos when APIs not configured
 ============================================================
 """
 
@@ -16,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 import httpx
+import shutil
 
 # ============================================================
 # YOUTUBE UPLOADER (PRIMARY - FULL AUTOMATION)
@@ -26,30 +28,35 @@ class YouTubeUploader:
     Upload Shorts to YouTube using official Data API v3.
     Fully compliant. Unlimited uploads within quota.
     
-    Required env vars:
-    - YT_CLIENT_ID
-    - YT_CLIENT_SECRET
-    - YT_REFRESH_TOKEN
+    Required env vars (either naming convention works):
+    - YOUTUBE_CLIENT_ID or YT_CLIENT_ID
+    - YOUTUBE_CLIENT_SECRET or YT_CLIENT_SECRET
+    - YOUTUBE_REFRESH_TOKEN or YT_REFRESH_TOKEN
     """
     
     UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos"
     TOKEN_URL = "https://oauth2.googleapis.com/token"
     
     def __init__(self):
-        self.client_id = os.getenv("YT_CLIENT_ID")
-        self.client_secret = os.getenv("YT_CLIENT_SECRET")
-        self.refresh_token = os.getenv("YT_REFRESH_TOKEN")
+        self.client_id = os.getenv("YOUTUBE_CLIENT_ID") or os.getenv("YT_CLIENT_ID")
+        self.client_secret = os.getenv("YOUTUBE_CLIENT_SECRET") or os.getenv("YT_CLIENT_SECRET")
+        self.refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN") or os.getenv("YT_REFRESH_TOKEN")
         self.access_token = None
         self.channel_id = os.getenv("YT_CHANNEL_ID", "UCZppwcvPrWlAG0vb78elPJA")
     
     def is_configured(self) -> bool:
-        """Check if YouTube API is configured"""
-        return all([self.client_id, self.client_secret, self.refresh_token])
+        """Check if YouTube API is configured with REAL credentials"""
+        if not all([self.client_id, self.client_secret, self.refresh_token]):
+            return False
+        # Check they're not placeholder values
+        if "your-" in self.client_id.lower() or self.client_id == "":
+            return False
+        return True
     
     async def refresh_access_token(self) -> bool:
         """Refresh the OAuth access token"""
         if not self.is_configured():
-            print("[YOUTUBE] Not configured - skipping")
+            print("[YOUTUBE] Not configured - LOCAL MODE")
             return False
         
         try:
@@ -191,8 +198,13 @@ class InstagramUploader:
         self.user_id = os.getenv("IG_USER_ID")
     
     def is_configured(self) -> bool:
-        """Check if Instagram API is configured"""
-        return all([self.access_token, self.user_id])
+        """Check if Instagram API is configured with REAL credentials"""
+        if not all([self.access_token, self.user_id]):
+            return False
+        # Check they're not placeholder values
+        if "your-" in str(self.access_token).lower() or self.access_token == "":
+            return False
+        return True
     
     async def upload_reel(
         self,
@@ -300,8 +312,13 @@ class TikTokUploader:
         self.open_id = os.getenv("TIKTOK_OPEN_ID")
     
     def is_configured(self) -> bool:
-        """Check if TikTok API is configured"""
-        return all([self.access_token, self.open_id])
+        """Check if TikTok API is configured with REAL credentials"""
+        if not all([self.access_token, self.open_id]):
+            return False
+        # Check they're not placeholder values
+        if "your-" in str(self.access_token).lower() or self.access_token == "":
+            return False
+        return True
     
     async def upload_to_drafts(
         self,
@@ -378,6 +395,81 @@ class TikTokUploader:
 
 
 # ============================================================
+# LOCAL SAVER (WHEN NO APIS CONFIGURED)
+# ============================================================
+
+class LocalSaver:
+    """
+    Saves videos locally when platform APIs aren't configured.
+    Organizes by date and niche for easy manual upload.
+    """
+    
+    def __init__(self):
+        self.base_dir = Path(__file__).parent.parent / "output"
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+    
+    def save_for_upload(
+        self,
+        video_path: str,
+        niche: str,
+        title: str,
+        description: str
+    ) -> Dict[str, Any]:
+        """
+        Save video to output folder for manual upload.
+        Creates metadata file alongside video.
+        """
+        try:
+            source = Path(video_path)
+            if not source.exists():
+                return {"success": False, "error": "Video not found"}
+            
+            # Create dated folder
+            today = datetime.now().strftime("%Y-%m-%d")
+            day_folder = self.base_dir / today
+            day_folder.mkdir(parents=True, exist_ok=True)
+            
+            # Clean filename
+            clean_title = "".join(c for c in title[:50] if c.isalnum() or c in " -_").strip()
+            timestamp = datetime.now().strftime("%H%M%S")
+            filename = f"{niche}_{clean_title}_{timestamp}"
+            
+            # Copy video
+            dest = day_folder / f"{filename}.mp4"
+            shutil.copy2(source, dest)
+            
+            # Save metadata
+            meta_file = day_folder / f"{filename}_metadata.txt"
+            meta_file.write_text(f"""TITLE: {title}
+
+DESCRIPTION:
+{description}
+
+PLATFORMS:
+- YouTube Shorts: https://studio.youtube.com/channel/UCZppwcvPrWlAG0vb78elPJA/videos/upload
+- TikTok: https://www.tiktok.com/creator-center/upload
+- Instagram: Use mobile app
+
+NICHE: {niche}
+CREATED: {datetime.now().isoformat()}
+""")
+            
+            print(f"[LOCAL] ✅ Saved: {dest}")
+            print(f"[LOCAL] 📝 Metadata: {meta_file}")
+            
+            return {
+                "success": True,
+                "path": str(dest),
+                "metadata": str(meta_file),
+                "mode": "local"
+            }
+            
+        except Exception as e:
+            print(f"[LOCAL] Save error: {e}")
+            return {"success": False, "error": str(e)}
+
+
+# ============================================================
 # MASTER UPLOADER (ORCHESTRATES ALL PLATFORMS)
 # ============================================================
 
@@ -385,20 +477,99 @@ class MasterUploader:
     """
     Orchestrates uploads across all platforms.
     Uses each platform's official API compliantly.
+    Falls back to LOCAL MODE when no APIs are configured.
     """
     
     def __init__(self):
         self.youtube = YouTubeUploader()
         self.instagram = InstagramUploader()
         self.tiktok = TikTokUploader()
+        self.local = LocalSaver()
     
     def get_status(self) -> Dict[str, bool]:
         """Get configuration status for all platforms"""
-        return {
+        status = {
             "youtube": self.youtube.is_configured(),
             "instagram": self.instagram.is_configured(),
             "tiktok": self.tiktok.is_configured()
         }
+        status["any_configured"] = any(status.values())
+        status["mode"] = "API" if status["any_configured"] else "LOCAL"
+        return status
+    
+    async def upload_all(
+        self,
+        video_path: str,
+        title: str,
+        descriptions: Dict[str, str],
+        niche: str,
+        tags: list = None
+    ) -> Dict[str, Any]:
+        """
+        Upload to all configured platforms, or save locally.
+        
+        Args:
+            video_path: Path to the video file
+            title: Video title
+            descriptions: Dict with platform-specific descriptions
+            niche: Content niche (wealth/health/survival)
+            tags: Optional list of tags
+        
+        Returns:
+            Dict with results for each platform
+        """
+        results = {
+            "timestamp": datetime.now().isoformat(),
+            "mode": "LOCAL",
+            "results": {},
+            "summary": {}
+        }
+        
+        status = self.get_status()
+        
+        # If no APIs configured, save locally
+        if not status["any_configured"]:
+            print("\n[UPLOADER] ⚠️ No platform APIs configured - using LOCAL MODE")
+            print("[UPLOADER] Videos will be saved for manual upload")
+            print("[UPLOADER] Run 'python upload_videos.py' to upload later\n")
+            
+            description = descriptions.get("youtube", descriptions.get("default", title))
+            local_result = self.local.save_for_upload(video_path, niche, title, description)
+            
+            results["mode"] = "LOCAL"
+            results["results"]["local"] = local_result
+            results["summary"] = {"saved": 1, "uploaded": 0}
+            return results
+        
+        # Upload to configured platforms
+        results["mode"] = "API"
+        uploaded = 0
+        
+        # YouTube (PRIMARY)
+        if status["youtube"]:
+            description = descriptions.get("youtube", descriptions.get("default", title))
+            yt_result = await self.youtube.upload_short(video_path, title, description, tags)
+            results["results"]["youtube"] = yt_result
+            if yt_result.get("success"):
+                uploaded += 1
+        
+        # Instagram (if configured and has public URL)
+        if status["instagram"]:
+            results["results"]["instagram"] = {"success": False, "error": "Requires public video URL"}
+        
+        # TikTok (drafts)
+        if status["tiktok"]:
+            tt_result = await self.tiktok.upload_to_drafts(video_path, title)
+            results["results"]["tiktok"] = tt_result
+            if tt_result.get("success"):
+                uploaded += 1
+        
+        # Also save locally as backup
+        description = descriptions.get("youtube", title)
+        self.local.save_for_upload(video_path, niche, title, description)
+        
+        results["summary"] = {"uploaded": uploaded, "saved": 1}
+        return results
     
     async def upload_to_all(
         self,
@@ -408,7 +579,7 @@ class MasterUploader:
         tags: list = None
     ) -> Dict[str, Any]:
         """
-        Upload to all configured platforms.
+        Legacy method - Upload to all configured platforms.
         
         Args:
             video_paths: Dict with platform-specific video paths
@@ -483,6 +654,75 @@ class DescriptionTemplates:
     """
     
     @staticmethod
+    def generate_all(niche: str, topic: str, cta_url: str = "Link in bio 🔗") -> Dict[str, str]:
+        """
+        Generate descriptions for all platforms based on niche.
+        
+        Args:
+            niche: One of "wealth", "health", "survival"
+            topic: The video topic/title
+            cta_url: Call-to-action URL
+        
+        Returns:
+            Dict with descriptions for each platform
+        """
+        niche = niche.lower() if niche else "wealth"
+        
+        if niche == "wealth" or "money" in niche or "finance" in niche:
+            return {
+                "youtube": f"""{topic}
+
+💰 Want to learn how the wealthy think? Follow for daily money tips!
+
+👉 {cta_url}
+
+#shorts #money #wealth #finance #investing #rich #millionaire #entrepreneur #sidehustle #passiveincome""",
+                "instagram": f"""{topic}
+
+💰 Follow for daily wealth wisdom!
+👉 {cta_url}
+
+#money #wealth #finance #investing #rich #millionaire #entrepreneur""",
+                "tiktok": f"""{topic} 💰 Follow for more! {cta_url} #money #wealth #investing #rich"""
+            }
+        
+        elif niche == "health" or "fitness" in niche or "wellness" in niche:
+            return {
+                "youtube": f"""{topic}
+
+💪 Your health is your wealth. Follow for daily tips!
+
+👉 {cta_url}
+
+#shorts #health #fitness #wellness #nutrition #workout #motivation #healthy #lifestyle #biohacking""",
+                "instagram": f"""{topic}
+
+💪 Follow for daily health tips!
+👉 {cta_url}
+
+#health #fitness #wellness #nutrition #workout #motivation #healthy""",
+                "tiktok": f"""{topic} 💪 Follow for more! {cta_url} #health #fitness #wellness #workout"""
+            }
+        
+        else:  # survival
+            return {
+                "youtube": f"""{topic}
+
+🏕️ Be prepared for anything. Follow for survival tips!
+
+👉 {cta_url}
+
+#shorts #survival #prepper #outdoors #camping #emergency #bushcraft #tactical #prepared #selfreliance""",
+                "instagram": f"""{topic}
+
+🏕️ Follow for survival tips!
+👉 {cta_url}
+
+#survival #prepper #outdoors #camping #emergency #bushcraft #tactical""",
+                "tiktok": f"""{topic} 🏕️ Follow for more! {cta_url} #survival #prepper #camping #prepared"""
+            }
+    
+    @staticmethod
     def wealth_short(title: str, lead_magnet_url: str, affiliate_url: str = None) -> str:
         """Description for wealth/money niche Shorts"""
         desc = f"""{title}
@@ -537,5 +777,6 @@ __all__ = [
     "InstagramUploader",
     "TikTokUploader",
     "MasterUploader",
+    "LocalSaver",
     "DescriptionTemplates"
 ]
