@@ -43,6 +43,9 @@ def get_quality_gate():
         _quality_gate = QualityGate()
     return _quality_gate
 
+# Import ELITE video validator
+from engines.video_builder import validate_video
+
 # ============================================================
 # YOUTUBE UPLOADER (PRIMARY - FULL AUTOMATION)
 # ============================================================
@@ -117,6 +120,7 @@ class YouTubeUploader:
     ) -> Dict[str, Any]:
         """
         Upload a Short to YouTube.
+        ELITE: Validates video before upload to block audio-only files.
         
         Args:
             video_path: Path to the video file
@@ -128,6 +132,12 @@ class YouTubeUploader:
         Returns:
             Dict with video_id and status
         """
+        # ELITE: Hard block audio-only uploads
+        if not validate_video(video_path):
+            error_msg = "Upload blocked: invalid video (audio-only or corrupted)"
+            print(f"[YOUTUBE] ❌ {error_msg}")
+            return {"success": False, "error": error_msg, "blocked": True}
+        
         if not self.is_configured():
             return {"success": False, "error": "YouTube not configured"}
         
@@ -352,6 +362,7 @@ class TikTokUploader:
         """
         Upload video to TikTok drafts.
         User must open TikTok app and tap Post.
+        ELITE: Validates video before upload to block audio-only files.
         
         Args:
             video_path: Path to the video file
@@ -360,6 +371,12 @@ class TikTokUploader:
         Returns:
             Dict with publish_id and status
         """
+        # ELITE: Hard block audio-only uploads
+        if not validate_video(video_path):
+            error_msg = "Upload blocked: invalid video (audio-only or corrupted)"
+            print(f"[TIKTOK] ❌ {error_msg}")
+            return {"success": False, "error": error_msg, "blocked": True}
+        
         if not self.is_configured():
             return {"success": False, "error": "TikTok not configured"}
         
@@ -564,6 +581,17 @@ class MasterUploader:
             "summary": {},
             "quality_check": {}
         }
+        
+        # ELITE: Hard block - validate video stream exists FIRST
+        if not validate_video(video_path):
+            print("[UPLOADER] ❌ HARD BLOCK: Video validation failed - no video stream or corrupted")
+            results["mode"] = "BLOCKED"
+            results["quality_check"] = {
+                "passed": False,
+                "errors": ["No video stream detected (audio-only or corrupted file)"]
+            }
+            results["summary"] = {"uploaded": 0, "blocked": 1, "reason": "no_video_stream"}
+            return results
         
         # ELITE: Quality gate validation (MANDATORY unless skipped)
         if not skip_validation:

@@ -29,6 +29,9 @@ from engines.quality_gates import (
     QualityConfig
 )
 
+# Import ELITE video builder (single source of truth)
+from engines.video_builder import build_video
+
 # ============================================================
 # CONFIGURATION
 # ============================================================
@@ -410,7 +413,34 @@ class VideoAssembler:
     """
     Assembles final videos using FFmpeg.
     Combines TTS audio with stock footage.
+    ELITE MODE: Now uses global video_builder for guaranteed visuals.
     """
+    
+    async def create_video_elite(
+        self,
+        audio_path: str,
+        background_path: str,
+        output_dir: str
+    ) -> str:
+        """
+        Create a video using the ELITE video builder.
+        This is the NEW MANDATORY path that guarantees visual streams.
+        
+        Returns:
+            Path to the final validated video
+        
+        Raises:
+            AssertionError: If video validation fails
+        """
+        # Use the global build_video function - runs in executor for async
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            build_video,
+            background_path,
+            audio_path,
+            output_dir
+        )
     
     async def create_vertical_video(
         self,
@@ -711,23 +741,18 @@ class MasterCreator:
             
             result["assets"]["background"] = bg_path
             
-            # Step 4: Assemble video
-            output_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_vertical.mp4")
-            print(f"[CREATOR] 🎥 Assembling video...")
+            # Step 4: Assemble video using ELITE video builder
+            print(f"[CREATOR] 🎥 Assembling video with ELITE builder...")
             
-            success = await self.video.create_vertical_video(
-                audio_path,
-                result["assets"]["background"],
-                output_path,
-                srt_path
-            )
-            
-            if success:
-                result["assets"]["video"] = output_path
+            try:
+                # Use the new ELITE video builder - guarantees visual stream
+                final_path = await self.video.create_video_elite(
+                    audio_path,
+                    result["assets"]["background"],
+                    str(CreatorConfig.OUTPUT_DIR)
+                )
                 
-                # Step 5: Add fingerprint
-                final_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_final.mp4")
-                await self.video.add_unique_fingerprint(output_path, final_path)
+                result["assets"]["video"] = final_path
                 result["assets"]["final_video"] = final_path
                 
                 # ELITE: Quality gate validation
@@ -751,9 +776,11 @@ class MasterCreator:
                 else:
                     result["status"] = "complete"
                     result["quality_passed"] = True
-            else:
+                    
+            except Exception as e:
                 result["status"] = "failed"
-                result["error"] = "Video assembly failed"
+                result["error"] = f"Video assembly failed: {e}"
+                print(f"[CREATOR] ❌ Video assembly error: {e}")
                 
         except Exception as e:
             result["status"] = "error"
