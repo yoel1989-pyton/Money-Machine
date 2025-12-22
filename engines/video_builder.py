@@ -40,7 +40,15 @@ FALLBACK_TEXT = ''.join(c for c in _raw_fallback_text if c.isalnum() or c in ' -
 
 def run(cmd: list):
     """Execute command as list and check for errors."""
-    subprocess.run(cmd, check=True, capture_output=True)
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True)
+        return result
+    except subprocess.CalledProcessError as e:
+        # Log error details for debugging
+        error_msg = e.stderr.decode() if e.stderr else "No error details"
+        print(f"[VIDEO_BUILDER] Command failed: {' '.join(cmd[:3])}...")
+        print(f"[VIDEO_BUILDER] Error: {error_msg[:200]}")
+        raise
 
 
 def validate_video(path: str) -> bool:
@@ -68,7 +76,8 @@ def validate_video(path: str) -> bool:
     ]
     
     try:
-        result = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        # Use stderr=DEVNULL to avoid mixing error output with JSON
+        result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL)
         data = json.loads(result)
         
         streams = data.get("streams", [])
@@ -122,10 +131,14 @@ def generate_fallback(bg_out: str, duration: int = SAFE_DURATION):
     """
     print(f"[VIDEO_BUILDER] 🎨 Generating fallback background...")
     
+    # Escape text for FFmpeg filter - escape single quotes, colons, backslashes
+    # by replacing them with safe alternatives
+    safe_text = FALLBACK_TEXT.replace("'", "").replace(":", "").replace("\\", "")
+    
     cmd = [
         "ffmpeg", "-y", "-f", "lavfi",
         "-i", f"color=c=black:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:d={duration}",
-        "-vf", f"drawtext=text='{FALLBACK_TEXT}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-vf", f"drawtext=text='{safe_text}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
         "-pix_fmt", "yuv420p", bg_out
     ]
     
