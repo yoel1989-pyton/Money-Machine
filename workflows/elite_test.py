@@ -308,20 +308,34 @@ Structure:
         except:
             duration = 45.0
         
-        # Assemble video with FFmpeg
+        # Assemble video with FFmpeg (ELITE FIX: Forces video frames)
         cmd = [
             "ffmpeg", "-y",
+            # Loop background video infinitely
             "-stream_loop", "-1",
             "-i", bg_path,
+            # Add audio
             "-i", audio_path,
+            # FORCE stream mapping (prevents audio-only)
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            # Force duration
             "-t", str(duration),
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0005,1.05)':d=1:s=1080x1920",
+            # Video filter with motion guarantee and format
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920",
+            # Video codec with YouTube Shorts compliance
             "-c:v", "libx264",
+            "-profile:v", "high",
+            "-level", "4.2",
             "-preset", "ultrafast",
             "-crf", "28",
+            "-pix_fmt", "yuv420p",
+            # Audio codec
             "-c:a", "aac",
             "-b:a", "128k",
-            "-shortest",
+            # Fast start for streaming
+            "-movflags", "+faststart",
+            # Output
             output_path
         ]
         
