@@ -391,7 +391,7 @@ class VideoValidator:
     @staticmethod
     async def validate(video_path: str) -> Tuple[bool, List[str]]:
         """
-        Full video validation.
+        Full video validation - ENHANCED to catch audio-only files.
         Returns (passed, list_of_errors)
         """
         errors = []
@@ -407,13 +407,29 @@ class VideoValidator:
         video_streams = video_info.get("streams", [])
         if not video_streams:
             errors.append("NO VIDEO STREAM - Audio only file")
+            return False, errors  # FAIL IMMEDIATELY for audio-only
         
-        # Check 2: Audio stream exists
+        # Check 2: Video dimensions are valid (NON-ZERO)
+        video_stream = video_streams[0]
+        width = int(video_stream.get("width", 0))
+        height = int(video_stream.get("height", 0))
+        
+        if width == 0 or height == 0:
+            errors.append(f"INVALID VIDEO DIMENSIONS - width={width}, height={height}")
+            return False, errors  # FAIL IMMEDIATELY
+        
+        # Check 3: Frame count is sufficient (HARD REQUIREMENT)
+        frame_count = int(video_stream.get("nb_read_packets", 0))
+        if frame_count < QualityConfig.MIN_FRAME_COUNT:
+            errors.append(f"INSUFFICIENT FRAMES - {frame_count} frames < {QualityConfig.MIN_FRAME_COUNT} required (likely audio-only)")
+            return False, errors  # FAIL IMMEDIATELY
+        
+        # Check 4: Audio stream exists
         audio_streams = audio_info.get("streams", [])
         if not audio_streams:
             errors.append("NO AUDIO STREAM - Silent video")
         
-        # Check 3: Duration in range
+        # Check 5: Duration in range
         format_info = video_info.get("format", {})
         duration = float(format_info.get("duration", 0))
         
@@ -422,13 +438,7 @@ class VideoValidator:
         if duration > QualityConfig.MAX_DURATION:
             errors.append(f"Duration too long: {duration:.1f}s > {QualityConfig.MAX_DURATION}s")
         
-        # Check 4: Frame count
-        if video_streams:
-            frame_count = int(video_streams[0].get("nb_read_packets", 0))
-            if frame_count < QualityConfig.MIN_FRAME_COUNT:
-                errors.append(f"Frame count too low: {frame_count} < {QualityConfig.MIN_FRAME_COUNT}")
-        
-        # Check 5: Black frames
+        # Check 6: Black frames
         # SMART LOGIC: Only fail on INTERMITTENT black frames (5-95%)
         # 0% or 100% = consistent visuals = ACCEPTABLE
         # This allows solid color backgrounds (purple, blue) to pass
@@ -436,7 +446,7 @@ class VideoValidator:
         if 0.05 < black_ratio < 0.95:  # Intermittent = broken
             errors.append(f"Intermittent black frames: {black_ratio*100:.1f}% (broken video)")
         
-        # Check 6: Silence
+        # Check 7: Silence
         # TTS naturally has 15-25% silence between sentences - this is NORMAL
         silence_ratio = await VideoValidator.check_silence(video_path)
         if silence_ratio > QualityConfig.MAX_SILENCE_RATIO:

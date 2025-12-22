@@ -421,44 +421,52 @@ class VideoAssembler:
     ) -> bool:
         """
         Create a vertical video (9:16) for Shorts/TikTok.
+        ELITE FIX: Forces video frames, prevents audio-only output.
         """
         
-        # Get audio duration
+        # Get audio duration (cap at 58 seconds for Shorts)
         duration = await self._get_duration(audio_path)
+        duration = min(duration, 58.0)
         
-        # Build FFmpeg command
-        cmd = [
-            "ffmpeg", "-y",
-            # Loop background video
-            "-stream_loop", "-1",
-            "-i", background_path,
-            # Add audio
-            "-i", audio_path,
-            # Trim to audio length
-            "-t", str(duration),
-            # Scale and crop to vertical
-            "-vf", f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            # Video codec (SPEED MODE)
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "30",
-            "-tune", "zerolatency",
-            "-threads", "0",
-            # Audio codec
-            "-c:a", "aac",
-            "-b:a", "128k",
-            # Output
-            "-shortest",
-            output_path
-        ]
+        # Build base video filter with guaranteed motion and format
+        base_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1"
         
         # Add subtitles if provided and non-empty
         if subtitles_path and os.path.exists(subtitles_path) and os.path.getsize(subtitles_path) > 0:
             # FFmpeg subtitles filter requires escaped paths (colons and backslashes)
             escaped_srt = subtitles_path.replace("\\", "/").replace(":", "\\:")
-            cmd[cmd.index("-vf")] = "-vf"
-            vf_index = cmd.index("-vf") + 1
-            cmd[vf_index] = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles='{escaped_srt}'"
+            base_vf = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1,subtitles='{escaped_srt}'"
+        
+        # Build FFmpeg command with FORCED VIDEO FRAMES
+        cmd = [
+            "ffmpeg", "-y",
+            # Loop background video infinitely
+            "-stream_loop", "-1",
+            "-i", background_path,
+            # Add audio
+            "-i", audio_path,
+            # FORCE stream mapping (prevents audio-only)
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            # Force duration
+            "-t", str(duration),
+            # Video filter with motion guarantee
+            "-vf", base_vf,
+            # Video codec with YouTube Shorts compliance
+            "-c:v", "libx264",
+            "-profile:v", "high",
+            "-level", "4.2",
+            "-preset", "ultrafast",
+            "-crf", "28",
+            "-pix_fmt", "yuv420p",
+            # Audio codec
+            "-c:a", "aac",
+            "-b:a", "128k",
+            # Fast start for streaming
+            "-movflags", "+faststart",
+            # Output
+            output_path
+        ]
         
         return await self._run_ffmpeg(cmd)
     
@@ -468,24 +476,40 @@ class VideoAssembler:
         background_path: str,
         output_path: str
     ) -> bool:
-        """Create a horizontal video (16:9) for YouTube"""
+        """
+        Create a horizontal video (16:9) for YouTube.
+        ELITE FIX: Forces video frames, prevents audio-only output.
+        """
         
         duration = await self._get_duration(audio_path)
         
         cmd = [
             "ffmpeg", "-y",
+            # Loop background video infinitely
             "-stream_loop", "-1",
             "-i", background_path,
+            # Add audio
             "-i", audio_path,
+            # FORCE stream mapping (prevents audio-only)
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            # Force duration
             "-t", str(duration),
-            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
+            # Video filter with motion guarantee and format
+            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1",
+            # Video codec
             "-c:v", "libx264",
+            "-profile:v", "high",
+            "-level", "4.2",
             "-preset", "ultrafast",
-            "-crf", "30",
-            "-tune", "zerolatency",
-            "-threads", "0",
+            "-crf", "28",
+            "-pix_fmt", "yuv420p",
+            # Audio codec
             "-c:a", "aac",
-            "-shortest",
+            "-b:a", "128k",
+            # Fast start for streaming
+            "-movflags", "+faststart",
+            # Output
             output_path
         ]
         
@@ -704,10 +728,25 @@ class MasterCreator:
                 if not download_success:
                     videos = []  # Trigger fallback
             
-            # ELITE: Visual fallback - NEVER allow blank video
-            if not videos or not os.path.exists(bg_path):
-                print(f"[CREATOR] ⚠️ Stock footage failed, using fallback...")
+            # ELITE: Visual fallback - NEVER allow blank/missing/corrupt video
+            # Check: file exists, has size, and is valid
+            bg_is_valid = False
+            if videos and os.path.exists(bg_path):
+                # Check file size (must be > 1KB)
+                if os.path.getsize(bg_path) > 1024:
+                    bg_is_valid = True
+                else:
+                    print(f"[CREATOR] ⚠️ Background file too small (likely corrupt): {os.path.getsize(bg_path)} bytes")
+            
+            if not bg_is_valid:
+                print(f"[CREATOR] ⚠️ Stock footage failed or invalid, using fallback...")
                 bg_path = await VisualFallback.get_fallback_background(duration=60)
+                
+                # Verify fallback was created successfully
+                if not os.path.exists(bg_path) or os.path.getsize(bg_path) < 1024:
+                    result["status"] = "failed"
+                    result["error"] = "Failed to create fallback background - system error"
+                    return result
             
             result["assets"]["background"] = bg_path
             
