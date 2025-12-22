@@ -4,6 +4,7 @@ MONEY MACHINE - QUALITY GATES ENGINE
 Elite Pre-Upload Validation & Channel Protection
 ============================================================
 NEVER upload broken content. Quarantine instead.
+Uses ELITE video_builder for validation.
 ============================================================
 """
 
@@ -16,6 +17,9 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple, List
 import unicodedata
+
+# Import ELITE video validator
+from engines.video_builder import validate_video as validate_video_stream
 
 # ============================================================
 # CONFIGURATION
@@ -392,6 +396,7 @@ class VideoValidator:
     async def validate(video_path: str) -> Tuple[bool, List[str]]:
         """
         Full video validation.
+        ELITE: Uses video_builder validation as primary check.
         Returns (passed, list_of_errors)
         """
         errors = []
@@ -399,21 +404,22 @@ class VideoValidator:
         if not os.path.exists(video_path):
             return False, ["Video file does not exist"]
         
-        # Get video info
+        # ELITE: Primary validation using video_builder
+        # This catches audio-only files immediately
+        if not validate_video_stream(video_path):
+            errors.append("NO VIDEO STREAM - Audio only file or corrupted")
+            return False, errors
+        
+        # Get video info for additional checks
         video_info = await VideoValidator.get_video_info(video_path)
         audio_info = await VideoValidator.get_audio_info(video_path)
         
-        # Check 1: Video stream exists
-        video_streams = video_info.get("streams", [])
-        if not video_streams:
-            errors.append("NO VIDEO STREAM - Audio only file")
-        
-        # Check 2: Audio stream exists
+        # Check 1: Audio stream exists
         audio_streams = audio_info.get("streams", [])
         if not audio_streams:
             errors.append("NO AUDIO STREAM - Silent video")
         
-        # Check 3: Duration in range
+        # Check 2: Duration in range
         format_info = video_info.get("format", {})
         duration = float(format_info.get("duration", 0))
         
@@ -422,13 +428,7 @@ class VideoValidator:
         if duration > QualityConfig.MAX_DURATION:
             errors.append(f"Duration too long: {duration:.1f}s > {QualityConfig.MAX_DURATION}s")
         
-        # Check 4: Frame count
-        if video_streams:
-            frame_count = int(video_streams[0].get("nb_read_packets", 0))
-            if frame_count < QualityConfig.MIN_FRAME_COUNT:
-                errors.append(f"Frame count too low: {frame_count} < {QualityConfig.MIN_FRAME_COUNT}")
-        
-        # Check 5: Black frames
+        # Check 3: Black frames
         # SMART LOGIC: Only fail on INTERMITTENT black frames (5-95%)
         # 0% or 100% = consistent visuals = ACCEPTABLE
         # This allows solid color backgrounds (purple, blue) to pass
@@ -436,7 +436,7 @@ class VideoValidator:
         if 0.05 < black_ratio < 0.95:  # Intermittent = broken
             errors.append(f"Intermittent black frames: {black_ratio*100:.1f}% (broken video)")
         
-        # Check 6: Silence
+        # Check 4: Silence
         # TTS naturally has 15-25% silence between sentences - this is NORMAL
         silence_ratio = await VideoValidator.check_silence(video_path)
         if silence_ratio > QualityConfig.MAX_SILENCE_RATIO:
@@ -692,6 +692,29 @@ class VisualFallback:
 
 
 # ============================================================
+# ASSERT VISUAL - FINAL QUALITY GATE
+# ============================================================
+
+def assert_visual(video_path: str):
+    """
+    ELITE: Final quality gate that blocks any upload without visual stream.
+    Call this before:
+    - Upload
+    - Replication
+    - Monetization tracking
+    
+    Raises:
+        Exception: If visual stream is missing or invalid
+    """
+    if not validate_video_stream(video_path):
+        raise Exception(
+            f"QUALITY GATE FAILED: visual stream missing or invalid in {video_path}. "
+            f"This video cannot be uploaded."
+        )
+    print(f"[QUALITY_GATE] ✅ Visual stream validated: {video_path}")
+
+
+# ============================================================
 # EXPORT ALL
 # ============================================================
 
@@ -701,5 +724,6 @@ __all__ = [
     "TTSProsody",
     "VideoValidator",
     "QualityGate",
-    "VisualFallback"
+    "VisualFallback",
+    "assert_visual"
 ]
