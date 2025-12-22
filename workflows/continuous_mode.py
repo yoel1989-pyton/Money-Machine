@@ -39,28 +39,8 @@ from engines.creator import CreatorConfig
 # TOPIC ROTATION
 # ============================================================
 
-WEALTH_TOPICS = [
-    "Why the Federal Reserve controls payment systems",
-    "How compound interest builds generational wealth",
-    "The hidden tax on your savings account",
-    "Why rich people use debt differently",
-    "How credit card companies make billions from you",
-    "The psychology behind impulse spending",
-    "Why your 401k might not be enough for retirement",
-    "How inflation silently destroys your purchasing power",
-    "The truth about passive income streams",
-    "Why timing the market is almost impossible",
-    "How banks create money from nothing",
-    "The power of automated savings",
-    "Why most lottery winners go broke",
-    "How to escape the paycheck to paycheck cycle",
-    "The real cost of lifestyle inflation",
-    "Why emergency funds are non-negotiable",
-    "How the wealthy minimize their tax burden legally",
-    "The psychology of scarcity vs abundance mindset",
-    "Why your network determines your net worth",
-    "How to build multiple income streams",
-]
+# Import topic pool for self-rotating topics
+from engines.topic_pool import TopicPool
 
 
 class ContinuousMode:
@@ -70,6 +50,9 @@ class ContinuousMode:
         self.channel_id = os.getenv("YOUTUBE_CHANNEL_ID", "UCZppwcvPrWlAG0vb78elPJA")
         self.quality_gate = QualityGate()
         self.safe_mode = self.quality_gate.is_safe_mode_channel(self.channel_id)
+        self.topic_pool = TopicPool()  # Self-rotating topic selection
+        self.current_topic = None
+        self.current_pool = None
         self.stats = {
             "created": 0,
             "uploaded": 0,
@@ -78,8 +61,9 @@ class ContinuousMode:
         }
     
     def get_next_topic(self) -> str:
-        """Get next topic from rotation."""
-        return random.choice(WEALTH_TOPICS)
+        """Get next topic from self-rotating pool."""
+        self.current_topic, self.current_pool = self.topic_pool.get_next_topic()
+        return self.current_topic
     
     async def generate_script(self, topic: str) -> str:
         """Generate script using OpenAI."""
@@ -263,9 +247,17 @@ Output as JSON:
         print("="*60)
         
         try:
-            # 1. Get topic
+            # 1. Get topic from self-rotating pool
             topic = self.get_next_topic()
+            pool_indicator = {
+                "core": "📦",
+                "high_performing": "🔥",
+                "experimental": "🧪",
+                "cooldown": "❄️",
+                "fallback": "⚠️"
+            }.get(self.current_pool, "📦")
             print(f"📝 Topic: {topic}")
+            print(f"   {pool_indicator} Pool: {self.current_pool}")
             
             # 2. Generate script
             print("🖊️ Generating script...")

@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-12-22T13:32:16.755036+00:00",
+  "niche": "wealth",
+  "pools": {
+    "core": [
+      "Why the Federal Reserve controls payment systems",
+      "How compound interest builds generational wealth",
+      "The hidden tax on your savings account",
+      "Why rich people use debt differently",
+      "How credit card companies make billions from you",
+      "The psychology behind impulse spending",
+      "Why your 401k might not be enough for retirement",
+      "How inflation silently destroys your purchasing power",
+      "The truth about passive income streams",
+      "Why timing the market is almost impossible",
+      "How banks create money from nothing",
+      "The power of automated savings",
+      "Why most lottery winners go broke",
+      "How to escape the paycheck to paycheck cycle",
+      "The real cost of lifestyle inflation",
+      "Why emergency funds are non-negotiable",
+      "How the wealthy minimize their tax burden legally",
+      "The psychology of scarcity vs abundance mindset",
+      "Why your network determines your net worth",
+      "How to build multiple income streams"
+    ],
+    "high_performing": [],
+    "experimental": [
+      "Why rich people avoid motivation content",
+      "Why hard work alone doesn't equal wealth",
+      "The truth about dropshipping in 2025",
+      "Why most side hustles fail in 90 days",
+      "How algorithms decide who gets rich",
+      "The hidden cost of free financial advice"
+    ],
+    "cooldown": []
+  },
+  "settings": {
+    "cooldown_hours": 72,
+    "experimental_injection_rate": 0.15,
+    "promotion_threshold_views_1hr": 500,
+    "demotion_threshold_views_1hr": 50,
+    "max_repeats_before_cooldown": 3
+  },
+  "usage_history": [
+    {
+      "topic": "Why your network determines your net worth",
+      "pool": "core",
+      "used_at": "2025-12-22T13:32:09.924340+00:00"
+    },
+    {
+      "topic": "How credit card companies make billions from you",
+      "pool": "core",
+      "used_at": "2025-12-22T13:32:16.518777+00:00"
+    },
+    {
+      "topic": "The real cost of lifestyle inflation",
+      "pool": "core",
+      "used_at": "2025-12-22T13:32:16.624513+00:00"
+    },
+    {
+      "topic": "The hidden tax on your savings account",
+      "pool": "core",
+      "used_at": "2025-12-22T13:32:16.755028+00:00"
+    }
+  ],
+  "performance_log": []
+}
