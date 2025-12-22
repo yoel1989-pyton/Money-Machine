@@ -433,7 +433,7 @@ class VideoAssembler:
             AssertionError: If video validation fails
         """
         # Use the global build_video function - runs in executor for async
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
             build_video,

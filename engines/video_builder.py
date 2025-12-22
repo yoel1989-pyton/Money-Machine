@@ -25,6 +25,11 @@ MIN_FRAMES = 900    # Minimum frames to ensure video stream exists
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 
+# Visual enhancement settings
+ZOOM_INCREMENT = 0.0005  # Subtle zoom rate for engagement
+ZOOM_MAX = 1.08          # Maximum zoom level
+FALLBACK_TEXT = os.getenv("VIDEO_FALLBACK_TEXT", "Money Machine AI")  # Configurable branding
+
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
@@ -112,7 +117,7 @@ def generate_fallback(bg_out: str, duration: int = SAFE_DURATION):
     cmd = [
         "ffmpeg", "-y", "-f", "lavfi",
         "-i", f"color=c=black:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:d={duration}",
-        "-vf", "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-vf", f"drawtext=text='{FALLBACK_TEXT}':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
         "-pix_fmt", "yuv420p", bg_out
     ]
     
@@ -144,7 +149,7 @@ def assemble(bg: str, audio: str, out: str, duration: int = SAFE_DURATION):
         "ffmpeg", "-y", "-stream_loop", "-1", "-i", bg, "-i", audio,
         "-map", "0:v:0", "-map", "1:a:0",
         "-t", str(duration),
-        "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},format=yuv420p,zoompan=z='min(zoom+0.0005,1.08)':d=1",
+        "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},format=yuv420p,zoompan=z='min(zoom+{ZOOM_INCREMENT},{ZOOM_MAX})':d=1",
         "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
         "-preset", "ultrafast", "-crf", "28",
         "-c:a", "aac", "-b:a", "128k",
