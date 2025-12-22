@@ -25,6 +25,9 @@ import shutil
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
+# Import video validation
+from engines.video_builder import validate_video
+
 # Import guardrails (lazy to avoid circular imports)
 _guardrails = None
 def get_guardrails():
@@ -117,6 +120,7 @@ class YouTubeUploader:
     ) -> Dict[str, Any]:
         """
         Upload a Short to YouTube.
+        ELITE: Validates video before upload to block audio-only content.
         
         Args:
             video_path: Path to the video file
@@ -128,6 +132,10 @@ class YouTubeUploader:
         Returns:
             Dict with video_id and status
         """
+        # ELITE: Hard block audio-only videos
+        if not validate_video(video_path):
+            raise RuntimeError("UPLOAD BLOCKED: invalid video (audio-only or corrupted)")
+        
         if not self.is_configured():
             return {"success": False, "error": "YouTube not configured"}
         
@@ -238,6 +246,7 @@ class InstagramUploader:
     ) -> Dict[str, Any]:
         """
         Upload a Reel to Instagram.
+        ELITE: For local files, validates before upload.
         
         Note: Video must be hosted at a public URL.
         For local files, upload to cloud storage first.
@@ -250,6 +259,11 @@ class InstagramUploader:
         Returns:
             Dict with media_id and status
         """
+        # ELITE: If this is a local file path (not a URL), validate it
+        if not video_url.startswith(('http://', 'https://')) and os.path.exists(video_url):
+            if not validate_video(video_url):
+                raise RuntimeError("UPLOAD BLOCKED: invalid video (audio-only or corrupted)")
+        
         if not self.is_configured():
             return {"success": False, "error": "Instagram not configured"}
         
@@ -351,6 +365,7 @@ class TikTokUploader:
     ) -> Dict[str, Any]:
         """
         Upload video to TikTok drafts.
+        ELITE: Validates video before upload to block audio-only content.
         User must open TikTok app and tap Post.
         
         Args:
@@ -360,6 +375,10 @@ class TikTokUploader:
         Returns:
             Dict with publish_id and status
         """
+        # ELITE: Hard block audio-only videos
+        if not validate_video(video_path):
+            raise RuntimeError("UPLOAD BLOCKED: invalid video (audio-only or corrupted)")
+        
         if not self.is_configured():
             return {"success": False, "error": "TikTok not configured"}
         
@@ -564,6 +583,14 @@ class MasterUploader:
             "summary": {},
             "quality_check": {}
         }
+        
+        # ELITE: Hard block audio-only videos (PRIMARY CHECK)
+        if not validate_video(video_path):
+            print("[UPLOADER] ❌ HARD BLOCK: Video validation failed - audio-only or corrupted")
+            results["mode"] = "BLOCKED"
+            results["summary"] = {"uploaded": 0, "blocked": 1, "reason": "video_validation_failed"}
+            results["quality_check"] = {"passed": False, "errors": ["NO VIDEO STREAM - Audio only or corrupted file"]}
+            return results
         
         # ELITE: Quality gate validation (MANDATORY unless skipped)
         if not skip_validation:

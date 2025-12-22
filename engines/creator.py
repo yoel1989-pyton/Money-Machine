@@ -15,9 +15,11 @@ import json
 import asyncio
 import subprocess
 import tempfile
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+
 import httpx
 
 # Import quality gates
@@ -28,6 +30,9 @@ from engines.quality_gates import (
     VisualFallback,
     QualityConfig
 )
+
+# Import global video builder
+from engines.video_builder import build_video, validate_video
 
 # ============================================================
 # CONFIGURATION
@@ -421,46 +426,37 @@ class VideoAssembler:
     ) -> bool:
         """
         Create a vertical video (9:16) for Shorts/TikTok.
+        ELITE: Uses global video_builder to guarantee visual content.
+        
+        Note: subtitles_path parameter is maintained for API compatibility
+        but subtitles are currently handled separately. To add subtitles,
+        use FFmpeg post-processing after video creation.
         """
         
-        # Get audio duration
-        duration = await self._get_duration(audio_path)
-        
-        # Build FFmpeg command
-        cmd = [
-            "ffmpeg", "-y",
-            # Loop background video
-            "-stream_loop", "-1",
-            "-i", background_path,
-            # Add audio
-            "-i", audio_path,
-            # Trim to audio length
-            "-t", str(duration),
-            # Scale and crop to vertical
-            "-vf", f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            # Video codec (SPEED MODE)
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "30",
-            "-tune", "zerolatency",
-            "-threads", "0",
-            # Audio codec
-            "-c:a", "aac",
-            "-b:a", "128k",
-            # Output
-            "-shortest",
-            output_path
-        ]
-        
-        # Add subtitles if provided and non-empty
-        if subtitles_path and os.path.exists(subtitles_path) and os.path.getsize(subtitles_path) > 0:
-            # FFmpeg subtitles filter requires escaped paths (colons and backslashes)
-            escaped_srt = subtitles_path.replace("\\", "/").replace(":", "\\:")
-            cmd[cmd.index("-vf")] = "-vf"
-            vf_index = cmd.index("-vf") + 1
-            cmd[vf_index] = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,subtitles='{escaped_srt}'"
-        
-        return await self._run_ffmpeg(cmd)
+        try:
+            # Use global video builder for guaranteed visuals
+            out_dir = os.path.dirname(output_path)
+            final_video = build_video(
+                bg=background_path,
+                audio=audio_path,
+                out_dir=out_dir
+            )
+            
+            # If output_path is different from generated path, move it
+            if final_video != output_path:
+                shutil.move(final_video, output_path)
+            
+            # Validate the final output
+            if not validate_video(output_path):
+                print(f"[CREATOR] ❌ Video validation failed: {output_path}")
+                return False
+            
+            print(f"[CREATOR] ✅ Video created and validated: {output_path}")
+            return True
+            
+        except Exception as e:
+            print(f"[CREATOR] ❌ Video creation error: {e}")
+            return False
     
     async def create_horizontal_video(
         self,
