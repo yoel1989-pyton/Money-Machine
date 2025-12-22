@@ -304,13 +304,16 @@ class VideoValidator:
     @staticmethod
     async def check_black_frames(video_path: str) -> float:
         """
-        Check ratio of black frames in video.
+        Check ratio of TRUE black frames in video.
+        Only catches actual black (0x000000), not dark colors.
         Returns ratio from 0.0 to 1.0
         """
         cmd = [
             "ffmpeg",
             "-i", video_path,
-            "-vf", "blackdetect=d=0.1:pix_th=0.1",
+            # pix_th=0.02 = only catch frames that are 98%+ black
+            # This allows dark backgrounds like purple/blue
+            "-vf", "blackdetect=d=0.1:pix_th=0.02",
             "-an",
             "-f", "null",
             "-"
@@ -543,11 +546,18 @@ class VisualFallback:
     async def create_gradient_background(output_path: str, duration: float = 60) -> bool:
         """
         Create an animated gradient background as fallback.
+        Uses a purple-blue gradient (wealth/money aesthetic).
         """
+        # Use color source with gradient filter that actually works
         cmd = [
             "ffmpeg", "-y",
             "-f", "lavfi",
-            "-i", f"gradients=s=1080x1920:c0=darkblue:c1=darkred:speed=0.1:type=linear:duration={duration}",
+            "-i", f"color=c=0x4a0080:s=1080x1920:d={duration}",  # Purple base
+            "-vf", 
+            "geq=r='clip(r(X,Y)*1.2+Y*0.05,0,255)':"
+            "g='clip(g(X,Y)*0.5+Y*0.02,0,255)':"
+            "b='clip(b(X,Y)*1.0+X*0.03,0,255)',"
+            "zoompan=z='1.0+0.05*sin(on/30)':d=1:s=1080x1920",
             "-c:v", "libx264",
             "-preset", "ultrafast",
             "-crf", "23",
@@ -561,8 +571,31 @@ class VisualFallback:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            await process.communicate()
-            return process.returncode == 0
+            _, stderr = await process.communicate()
+            
+            # If geq fails, use simple solid color with zoom
+            if process.returncode != 0:
+                # Fallback: Simple bright purple with zoom effect
+                cmd_simple = [
+                    "ffmpeg", "-y",
+                    "-f", "lavfi",
+                    "-i", f"color=c=0x6b21a8:s=1080x1920:d={duration}",  # Bright purple
+                    "-vf", "zoompan=z='1.0+0.02*sin(on/30)':d=1:s=1080x1920",
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-crf", "23",
+                    "-t", str(duration),
+                    output_path
+                ]
+                process2 = await asyncio.create_subprocess_exec(
+                    *cmd_simple,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await process2.communicate()
+                return process2.returncode == 0
+            
+            return True
         except:
             return False
     
@@ -628,12 +661,12 @@ class VisualFallback:
         if await VisualFallback.create_kinetic_text_background(kinetic_path, "💰", duration):
             return kinetic_path
         
-        # Last resort - create a simple color background
+        # Last resort - create a simple bright color background (NOT DARK)
         color_path = str(VisualFallback.ASSETS_DIR / "fallback_color.mp4")
         cmd = [
             "ffmpeg", "-y",
             "-f", "lavfi",
-            "-i", f"color=c=0x1a1a2e:s=1080x1920:d={duration}",
+            "-i", f"color=c=0x6b21a8:s=1080x1920:d={duration}",  # Bright purple
             "-c:v", "libx264",
             "-preset", "ultrafast",
             color_path

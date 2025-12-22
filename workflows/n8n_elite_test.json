@@ -1,0 +1,326 @@
+{
+  "name": "MMAI_TEST__Elite_Short_Validation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "topic",
+              "value": "Why the Federal Reserve controls payment systems"
+            },
+            {
+              "name": "platform",
+              "value": "youtube_shorts"
+            },
+            {
+              "name": "niche",
+              "value": "wealth"
+            }
+          ],
+          "number": [
+            {
+              "name": "max_duration",
+              "value": 58
+            }
+          ]
+        }
+      },
+      "id": "node-2",
+      "name": "Test Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Write a YouTube Short script.\n\nRules:\n- One single paragraph\n- Spoken naturally\n- No line breaks\n- No pauses\n- No emojis\n- No stage directions\n- No capitalization gimmicks\n\nLength:\n90-120 words\n\nStructure:\n1. Pattern interrupt in first 10 words\n2. Open loop\n3. Clear explanation\n4. One takeaway"
+            },
+            {
+              "role": "user",
+              "content": "Topic: {{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.6,
+          "maxTokens": 180
+        }
+      },
+      "id": "node-3",
+      "name": "Script Generator",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.1,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// SCRIPT QUALITY GATE - CRITICAL\nconst text = $input.first().json.message.content;\n\nconst wordCount = text.split(' ').filter(w => w.length > 0).length;\nconst hasNewlines = /\\n/.test(text);\nconst badPauses = /(\\.\\.\\.|\u2014|\\[|\\]|\u2026)/g.test(text);\nconst hasEmoji = /[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}]/u.test(text);\n\nconst errors = [];\n\nif (wordCount < 60) errors.push(`Too short: ${wordCount} words`);\nif (wordCount > 150) errors.push(`Too long: ${wordCount} words`);\nif (hasNewlines) errors.push('Contains line breaks');\nif (badPauses) errors.push('Contains pause tokens');\nif (hasEmoji) errors.push('Contains emojis');\n\nif (errors.length > 0) {\n  throw new Error('SCRIPT_FAILED_QUALITY_GATE: ' + errors.join(', '));\n}\n\n// Sanitize for TTS\nlet cleanScript = text\n  .replace(/[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}]/gu, '')\n  .replace(/^[\\s]*[-\u2022\u25cf\u25cb\u25c6\u25aa\u25b8\u25ba\\*\\d+\\.]+\\s*/gm, '')\n  .replace(/\\n+/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .replace(/\\[.*?\\]/g, '')\n  .replace(/#\\w+/g, '')\n  .trim();\n\nreturn {\n  script: cleanScript,\n  wordCount,\n  qualityGate: 'PASSED'\n};"
+      },
+      "id": "node-4",
+      "name": "Script Quality Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "command": "edge-tts --voice en-US-ChristopherNeural --rate +6% --pitch +1Hz --text \"{{ $json.script }}\" --write-media /tmp/voice_{{ $now.format('yyyyMMdd_HHmmss') }}.mp3 && echo \"/tmp/voice_{{ $now.format('yyyyMMdd_HHmmss') }}.mp3\""
+      },
+      "id": "node-5",
+      "name": "Voice Generation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffmpeg -i {{ $json.stdout.trim() }} -af silencedetect=n=-30dB:d=0.3 -f null - 2>&1 | grep -c 'silence_start' || echo '0'"
+      },
+      "id": "node-6",
+      "name": "Audio Silence Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const silenceCount = parseInt($input.first().json.stdout.trim()) || 0;\n\nif (silenceCount > 3) {\n  throw new Error('AUDIO_HAS_LONG_SILENCE: ' + silenceCount + ' silences detected');\n}\n\nreturn {\n  audioPath: $('Voice Generation').first().json.stdout.trim(),\n  silenceCount,\n  audioGate: 'PASSED'\n};"
+      },
+      "id": "node-6b",
+      "name": "Audio Quality Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffmpeg -y -f lavfi -i \"color=c=0x1a1a2e:s=1080x1920:d=60\" -i {{ $json.audioPath }} -shortest -vf \"zoompan=z='min(zoom+0.0005,1.05)':d=1:s=1080x1920\" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 128k /tmp/video_{{ $now.format('yyyyMMdd_HHmmss') }}.mp4 && echo \"/tmp/video_{{ $now.format('yyyyMMdd_HHmmss') }}.mp4\""
+      },
+      "id": "node-7",
+      "name": "Video Assembly",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 {{ $json.stdout.trim() }}"
+      },
+      "id": "node-8",
+      "name": "Video Stream Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const videoPath = $('Video Assembly').first().json.stdout.trim();\nconst streamCheck = $input.first().json.stdout.trim();\n\nif (!streamCheck.includes('video')) {\n  throw new Error('NO_VIDEO_STREAM_DETECTED');\n}\n\nreturn {\n  videoPath,\n  hasVideoStream: true,\n  videoGate: 'PASSED'\n};"
+      },
+      "id": "node-8b",
+      "name": "Video Existence Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 300]
+    },
+    {
+      "parameters": {
+        "command": "ffmpeg -i {{ $json.videoPath }} -vf blackdetect=d=0.2:pix_th=0.10 -f null - 2>&1 | grep -c 'black_start' || echo '0'"
+      },
+      "id": "node-9",
+      "name": "Black Frame Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const blackFrames = parseInt($input.first().json.stdout.trim()) || 0;\nconst videoPath = $('Video Existence Gate').first().json.videoPath;\n\n// Assuming 30fps and 45s video = 1350 frames\n// 2% threshold = 27 black segments max\nif (blackFrames > 27) {\n  throw new Error('TOO_MANY_BLACK_FRAMES: ' + blackFrames);\n}\n\nreturn {\n  videoPath,\n  blackFrames,\n  blackFrameGate: 'PASSED',\n  allGates: 'PASSED'\n};"
+      },
+      "id": "node-9b",
+      "name": "Black Frame Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "Create YouTube Shorts metadata.\n\nTopic: {{ $('Test Topic').first().json.topic }}\n\nRules:\n- Title: 50-70 characters, no emojis, no clickbait spam\n- Description: 100-200 characters, readable, one CTA\n- Tags: 5-6 relevant tags\n\nOutput as JSON:\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"]}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "node-10",
+      "name": "Metadata Generator",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.1,
+      "position": [2650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const metadata = JSON.parse($input.first().json.message.content);\nconst videoPath = $('Black Frame Gate').first().json.videoPath;\n\nreturn {\n  videoPath,\n  title: metadata.title,\n  description: metadata.description,\n  tags: metadata.tags,\n  privacy: 'private',  // ALWAYS PRIVATE IN TEST MODE\n  readyForUpload: true\n};"
+      },
+      "id": "node-10b",
+      "name": "Prepare Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2850, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "video",
+        "title": "={{ $json.title }}",
+        "categoryId": "22",
+        "options": {
+          "description": "={{ $json.description }}",
+          "tags": "={{ $json.tags.join(',') }}",
+          "privacyStatus": "private",
+          "notifySubscribers": false
+        }
+      },
+      "id": "node-11",
+      "name": "YouTube Upload (PRIVATE)",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [3050, 300],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "youtube",
+          "name": "YouTube"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// FINAL HEALTH CHECK\nconst results = {\n  workflow: 'MMAI_TEST__Elite_Short_Validation',\n  timestamp: new Date().toISOString(),\n  status: 'PASSED',\n  gates: {\n    script: $('Script Quality Gate').first().json.qualityGate,\n    audio: $('Audio Quality Gate').first().json.audioGate,\n    video: $('Video Existence Gate').first().json.videoGate,\n    blackFrame: $('Black Frame Gate').first().json.blackFrameGate\n  },\n  output: {\n    videoPath: $('Black Frame Gate').first().json.videoPath,\n    title: $json.title,\n    description: $json.description\n  },\n  nextSteps: [\n    'Verify video plays correctly',\n    'Check audio is smooth (no pauses)',\n    'If upload enabled, check YouTube Studio in 60 minutes',\n    'Reply PASSED to enable continuous mode'\n  ]\n};\n\nreturn results;"
+      },
+      "id": "node-12",
+      "name": "Health Check & Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3250, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{"node": "Test Topic", "type": "main", "index": 0}]
+      ]
+    },
+    "Test Topic": {
+      "main": [
+        [{"node": "Script Generator", "type": "main", "index": 0}]
+      ]
+    },
+    "Script Generator": {
+      "main": [
+        [{"node": "Script Quality Gate", "type": "main", "index": 0}]
+      ]
+    },
+    "Script Quality Gate": {
+      "main": [
+        [{"node": "Voice Generation", "type": "main", "index": 0}]
+      ]
+    },
+    "Voice Generation": {
+      "main": [
+        [{"node": "Audio Silence Check", "type": "main", "index": 0}]
+      ]
+    },
+    "Audio Silence Check": {
+      "main": [
+        [{"node": "Audio Quality Gate", "type": "main", "index": 0}]
+      ]
+    },
+    "Audio Quality Gate": {
+      "main": [
+        [{"node": "Video Assembly", "type": "main", "index": 0}]
+      ]
+    },
+    "Video Assembly": {
+      "main": [
+        [{"node": "Video Stream Check", "type": "main", "index": 0}]
+      ]
+    },
+    "Video Stream Check": {
+      "main": [
+        [{"node": "Video Existence Gate", "type": "main", "index": 0}]
+      ]
+    },
+    "Video Existence Gate": {
+      "main": [
+        [{"node": "Black Frame Check", "type": "main", "index": 0}]
+      ]
+    },
+    "Black Frame Check": {
+      "main": [
+        [{"node": "Black Frame Gate", "type": "main", "index": 0}]
+      ]
+    },
+    "Black Frame Gate": {
+      "main": [
+        [{"node": "Metadata Generator", "type": "main", "index": 0}]
+      ]
+    },
+    "Metadata Generator": {
+      "main": [
+        [{"node": "Prepare Upload", "type": "main", "index": 0}]
+      ]
+    },
+    "Prepare Upload": {
+      "main": [
+        [{"node": "Health Check & Report", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "elite"},
+    {"name": "test"},
+    {"name": "quality-gates"}
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-12-21T00:00:00.000Z",
+  "versionId": "1"
+}
