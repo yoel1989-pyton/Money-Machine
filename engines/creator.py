@@ -429,13 +429,13 @@ class VideoAssembler:
         duration = min(duration, 58.0)
         
         # Build base video filter with guaranteed motion and format
-        base_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1"
+        base_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920"
         
         # Add subtitles if provided and non-empty
         if subtitles_path and os.path.exists(subtitles_path) and os.path.getsize(subtitles_path) > 0:
             # FFmpeg subtitles filter requires escaped paths (colons and backslashes)
             escaped_srt = subtitles_path.replace("\\", "/").replace(":", "\\:")
-            base_vf = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1,subtitles='{escaped_srt}'"
+            base_vf = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920,subtitles='{escaped_srt}'"
         
         # Build FFmpeg command with FORCED VIDEO FRAMES
         cmd = [
@@ -496,7 +496,7 @@ class VideoAssembler:
             # Force duration
             "-t", str(duration),
             # Video filter with motion guarantee and format
-            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1",
+            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1920x1080",
             # Video codec
             "-c:v", "libx264",
             "-profile:v", "high",

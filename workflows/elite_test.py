@@ -322,7 +322,7 @@ Structure:
             # Force duration
             "-t", str(duration),
             # Video filter with motion guarantee and format
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0005,1.05)':d=1:s=1080x1920",
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920",
             # Video codec with YouTube Shorts compliance
             "-c:v", "libx264",
             "-profile:v", "high",

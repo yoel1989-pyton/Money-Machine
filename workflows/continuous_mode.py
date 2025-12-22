@@ -161,7 +161,7 @@ Structure:
             # Force duration (cap at 58 seconds for Shorts)
             "-t", str(min(duration, 58.0)),
             # Video filter with motion guarantee and format
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1",
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920",
             # Video codec with YouTube Shorts compliance
             "-c:v", "libx264",
             "-profile:v", "high",
