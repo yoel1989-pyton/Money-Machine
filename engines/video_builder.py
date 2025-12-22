@@ -28,7 +28,11 @@ VIDEO_HEIGHT = 1920
 # Visual enhancement settings
 ZOOM_INCREMENT = 0.0005  # Subtle zoom rate for engagement
 ZOOM_MAX = 1.08          # Maximum zoom level
-FALLBACK_TEXT = os.getenv("VIDEO_FALLBACK_TEXT", "Money Machine AI")  # Configurable branding
+
+# Configurable branding - sanitize to prevent injection
+_raw_fallback_text = os.getenv("VIDEO_FALLBACK_TEXT", "Money Machine AI")
+# Remove potentially dangerous characters for FFmpeg filter
+FALLBACK_TEXT = ''.join(c for c in _raw_fallback_text if c.isalnum() or c in ' -_.')[:50]
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -74,24 +78,28 @@ def validate_video(path: str) -> bool:
         
         s = streams[0]
         # Handle nb_frames safely - may not be present or could be invalid
+        # If unavailable, we'll skip the frame count check and rely on other validations
         try:
             nb_frames = int(s.get("nb_frames", 0))
+            if nb_frames > 0 and nb_frames < MIN_FRAMES:
+                print(f"[VIDEO_BUILDER] ❌ Frame count too low: {nb_frames} < {MIN_FRAMES}")
+                return False
         except (ValueError, TypeError):
-            # If nb_frames not available, estimate from duration and fps
+            # If nb_frames not available, skip this check
+            # We still have stream existence and dimension checks
             nb_frames = 0
         
         width = int(s.get("width", 0))
         height = int(s.get("height", 0))
         
-        if nb_frames < MIN_FRAMES:
-            print(f"[VIDEO_BUILDER] ❌ Frame count too low: {nb_frames} < {MIN_FRAMES}")
-            return False
-        
         if width <= 0 or height <= 0:
             print(f"[VIDEO_BUILDER] ❌ Invalid dimensions: {width}x{height}")
             return False
         
-        print(f"[VIDEO_BUILDER] ✅ Valid video: {nb_frames} frames, {width}x{height}")
+        if nb_frames > 0:
+            print(f"[VIDEO_BUILDER] ✅ Valid video: {nb_frames} frames, {width}x{height}")
+        else:
+            print(f"[VIDEO_BUILDER] ✅ Valid video: {width}x{height}")
         return True
         
     except subprocess.CalledProcessError as e:
