@@ -27,7 +27,12 @@ from typing import Optional
 # ============================================================
 
 SAFE_DURATION = 58  # Maximum duration for Shorts
-MIN_FRAMES = 900    # Minimum frames to guarantee visual content (~30 seconds at 30fps)
+
+# MIN_FRAMES set higher than quality_gates.MIN_FRAME_COUNT (300) to ensure
+# robust validation at video creation time. Quality gates use 300 as a minimum
+# threshold, but video_builder enforces 900 frames (~30 seconds at 30fps) to
+# guarantee substantial visual content and prevent edge cases.
+MIN_FRAMES = 900
 
 # ============================================================
 # COMMAND EXECUTION
@@ -35,7 +40,12 @@ MIN_FRAMES = 900    # Minimum frames to guarantee visual content (~30 seconds at
 
 def run_command(cmd: list) -> None:
     """Execute command safely without shell injection."""
-    subprocess.run(cmd, check=True)
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        error_msg = f"Command failed: {' '.join(cmd)}\nStderr: {e.stderr}"
+        print(f"[VIDEO_BUILDER] ❌ {error_msg}")
+        raise RuntimeError(error_msg) from e
 
 
 # ============================================================
@@ -70,8 +80,8 @@ def validate_video(path: str) -> bool:
     ]
     
     try:
-        result = subprocess.check_output(cmd)
-        data = json.loads(result)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        data = json.loads(result.stdout)
         
         streams = data.get("streams", [])
         if not streams:
@@ -198,7 +208,8 @@ def build_video(bg: str, audio: str, out_dir: str) -> str:
         assemble(fallback, audio, out)
     
     # Final validation - MUST pass
-    assert validate_video(out), "CRITICAL: video validation failed - visual stream missing"
+    if not validate_video(out):
+        raise RuntimeError("CRITICAL: video validation failed - visual stream missing")
     
     print(f"[VIDEO_BUILDER] ✅ Video validated: {out}")
     return out
