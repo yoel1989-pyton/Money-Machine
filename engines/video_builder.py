@@ -18,6 +18,7 @@ import subprocess
 import os
 import json
 import uuid
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -33,9 +34,9 @@ MIN_FRAME_COUNT_VALIDATION = 900  # Validation threshold
 # COMMAND EXECUTION
 # ============================================================
 
-def run(cmd: str) -> None:
-    """Execute shell command and raise on error."""
-    subprocess.run(cmd, shell=True, check=True)
+def run_command(cmd: list) -> None:
+    """Execute command safely without shell injection."""
+    subprocess.run(cmd, check=True)
 
 
 # ============================================================
@@ -58,14 +59,19 @@ def validate_video(path: str) -> bool:
     if os.path.getsize(path) < 1024:
         return False
     
-    cmd = f"""
-    ffprobe -v error -select_streams v \
-    -show_entries stream=nb_frames,width,height \
-    -of json "{path}"
-    """
+    # Use count_packets for more reliable frame counting
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "v:0",
+        "-count_packets",
+        "-show_entries", "stream=nb_read_packets,width,height",
+        "-of", "json",
+        path
+    ]
     
     try:
-        result = subprocess.check_output(cmd, shell=True)
+        result = subprocess.check_output(cmd)
         data = json.loads(result)
         
         streams = data.get("streams", [])
@@ -73,7 +79,8 @@ def validate_video(path: str) -> bool:
             return False
         
         s = streams[0]
-        nb_frames = int(s.get("nb_frames", 0))
+        # Use nb_read_packets for accurate frame count
+        nb_frames = int(s.get("nb_read_packets", 0))
         width = int(s.get("width", 0))
         height = int(s.get("height", 0))
         
@@ -99,11 +106,16 @@ def generate_fallback(bg_out: str) -> None:
     Args:
         bg_out: Output path for fallback video
     """
-    run(f"""
-    ffmpeg -y -f lavfi -i color=c=black:s=1080x1920:d={SAFE_DURATION} \
-    -vf "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2" \
-    -pix_fmt yuv420p "{bg_out}"
-    """)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-f", "lavfi",
+        "-i", f"color=c=black:s=1080x1920:d={SAFE_DURATION}",
+        "-vf", "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-pix_fmt", "yuv420p",
+        bg_out
+    ]
+    run_command(cmd)
 
 
 # ============================================================
@@ -120,16 +132,27 @@ def assemble(bg: str, audio: str, out: str) -> None:
         audio: Path to audio file
         out: Output path for final video
     """
-    run(f"""
-    ffmpeg -y -stream_loop -1 -i "{bg}" -i "{audio}" \
-    -map 0:v:0 -map 1:a:0 \
-    -t {SAFE_DURATION} \
-    -vf "scale=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0005,1.08)':d=1" \
-    -c:v libx264 -profile:v high -level 4.2 \
-    -preset ultrafast -crf 28 \
-    -c:a aac -b:a 128k \
-    -movflags +faststart "{out}"
-    """)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-stream_loop", "-1",
+        "-i", bg,
+        "-i", audio,
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-t", str(SAFE_DURATION),
+        "-vf", "scale=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0005,1.08)':d=1",
+        "-c:v", "libx264",
+        "-profile:v", "high",
+        "-level", "4.2",
+        "-preset", "ultrafast",
+        "-crf", "28",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-movflags", "+faststart",
+        out
+    ]
+    run_command(cmd)
 
 
 # ============================================================

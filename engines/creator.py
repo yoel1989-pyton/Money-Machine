@@ -15,6 +15,7 @@ import json
 import asyncio
 import subprocess
 import tempfile
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -438,7 +439,6 @@ class VideoAssembler:
             
             # If output_path is different from generated path, move it
             if final_video != output_path:
-                import shutil
                 shutil.move(final_video, output_path)
             
             # Validate the final output
