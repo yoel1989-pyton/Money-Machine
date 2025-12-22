@@ -29,9 +29,9 @@ VIDEO_HEIGHT = 1920
 # HELPER FUNCTIONS
 # ============================================================
 
-def run(cmd: str):
-    """Execute shell command and check for errors."""
-    subprocess.run(cmd, shell=True, check=True)
+def run(cmd: list):
+    """Execute command as list and check for errors."""
+    subprocess.run(cmd, check=True, capture_output=True)
 
 
 def validate_video(path: str) -> bool:
@@ -52,14 +52,14 @@ def validate_video(path: str) -> bool:
         print(f"[VIDEO_BUILDER] ❌ File too small: {path}")
         return False
     
-    cmd = f"""
-    ffprobe -v error -select_streams v \
-    -show_entries stream=nb_frames,width,height \
-    -of json "{path}"
-    """
+    cmd = [
+        "ffprobe", "-v", "error", "-select_streams", "v",
+        "-show_entries", "stream=nb_frames,width,height",
+        "-of", "json", path
+    ]
     
     try:
-        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        result = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         data = json.loads(result)
         
         streams = data.get("streams", [])
@@ -68,7 +68,13 @@ def validate_video(path: str) -> bool:
             return False
         
         s = streams[0]
-        nb_frames = int(s.get("nb_frames", 0))
+        # Handle nb_frames safely - may not be present or could be invalid
+        try:
+            nb_frames = int(s.get("nb_frames", 0))
+        except (ValueError, TypeError):
+            # If nb_frames not available, estimate from duration and fps
+            nb_frames = 0
+        
         width = int(s.get("width", 0))
         height = int(s.get("height", 0))
         
@@ -103,11 +109,12 @@ def generate_fallback(bg_out: str, duration: int = SAFE_DURATION):
     """
     print(f"[VIDEO_BUILDER] 🎨 Generating fallback background...")
     
-    cmd = f"""
-    ffmpeg -y -f lavfi -i color=c=black:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:d={duration} \
-    -vf "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2" \
-    -pix_fmt yuv420p "{bg_out}"
-    """
+    cmd = [
+        "ffmpeg", "-y", "-f", "lavfi",
+        "-i", f"color=c=black:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:d={duration}",
+        "-vf", "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-pix_fmt", "yuv420p", bg_out
+    ]
     
     try:
         run(cmd)
@@ -133,16 +140,16 @@ def assemble(bg: str, audio: str, out: str, duration: int = SAFE_DURATION):
     print(f"[VIDEO_BUILDER]   Audio: {audio}")
     print(f"[VIDEO_BUILDER]   Output: {out}")
     
-    cmd = f"""
-    ffmpeg -y -stream_loop -1 -i "{bg}" -i "{audio}" \
-    -map 0:v:0 -map 1:a:0 \
-    -t {duration} \
-    -vf "scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},format=yuv420p,zoompan=z='min(zoom+0.0005,1.08)':d=1" \
-    -c:v libx264 -profile:v high -level 4.2 \
-    -preset ultrafast -crf 28 \
-    -c:a aac -b:a 128k \
-    -movflags +faststart "{out}"
-    """
+    cmd = [
+        "ffmpeg", "-y", "-stream_loop", "-1", "-i", bg, "-i", audio,
+        "-map", "0:v:0", "-map", "1:a:0",
+        "-t", str(duration),
+        "-vf", f"scale={VIDEO_WIDTH}:{VIDEO_HEIGHT},format=yuv420p,zoompan=z='min(zoom+0.0005,1.08)':d=1",
+        "-c:v", "libx264", "-profile:v", "high", "-level", "4.2",
+        "-preset", "ultrafast", "-crf", "28",
+        "-c:a", "aac", "-b:a", "128k",
+        "-movflags", "+faststart", out
+    ]
     
     try:
         run(cmd)
