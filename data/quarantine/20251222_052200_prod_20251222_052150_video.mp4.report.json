@@ -1,0 +1,18 @@
+{
+  "video_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\data\\output\\prod_20251222_052150_video.mp4",
+  "channel_id": "UCZppwcvPrWlAG0vb78elPJA",
+  "timestamp": "2025-12-22T05:21:58.964298",
+  "checks": {
+    "video_validation": {
+      "passed": false,
+      "errors": [
+        "Too many black frames: 99.8% > 95.0%"
+      ]
+    }
+  },
+  "passed": false,
+  "errors": [
+    "Too many black frames: 99.8% > 95.0%"
+  ],
+  "safe_mode": true
+}
