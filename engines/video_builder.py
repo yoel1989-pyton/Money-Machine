@@ -28,7 +28,6 @@ from typing import Optional
 
 SAFE_DURATION = 58  # Maximum duration for Shorts
 MIN_FRAMES = 900    # Minimum frames to guarantee visual content (~30 seconds at 30fps)
-MIN_FRAME_COUNT_VALIDATION = 900  # Validation threshold
 
 # ============================================================
 # COMMAND EXECUTION
@@ -110,7 +109,7 @@ def generate_fallback(bg_out: str) -> None:
         "ffmpeg",
         "-y",
         "-f", "lavfi",
-        "-i", f"color=c=black:s=1080x1920:d={SAFE_DURATION}",
+        "-i", "color=c=black:s=1080x1920:d=58",
         "-vf", "drawtext=text='Money Machine AI':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2",
         "-pix_fmt", "yuv420p",
         bg_out

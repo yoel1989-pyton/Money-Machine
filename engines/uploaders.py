@@ -259,8 +259,8 @@ class InstagramUploader:
         Returns:
             Dict with media_id and status
         """
-        # ELITE: If this is a local file path, validate it
-        if os.path.exists(video_url):
+        # ELITE: If this is a local file path (not a URL), validate it
+        if not video_url.startswith(('http://', 'https://')) and os.path.exists(video_url):
             if not validate_video(video_url):
                 raise RuntimeError("UPLOAD BLOCKED: invalid video (audio-only or corrupted)")
         

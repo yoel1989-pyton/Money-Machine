@@ -426,6 +426,10 @@ class VideoAssembler:
         """
         Create a vertical video (9:16) for Shorts/TikTok.
         ELITE: Uses global video_builder to guarantee visual content.
+        
+        Note: subtitles_path parameter is maintained for API compatibility
+        but subtitles are currently handled separately. To add subtitles,
+        use FFmpeg post-processing after video creation.
         """
         
         try:
