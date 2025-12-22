@@ -6,6 +6,8 @@ The Automated Content Factory
 Transforms opportunities into monetizable content assets.
 Uses FREE APIs and tools only.
 ============================================================
+ELITE MODE: Quality gates BLOCK all broken content.
+============================================================
 """
 
 import os
@@ -17,6 +19,15 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 import httpx
+
+# Import quality gates
+from engines.quality_gates import (
+    ScriptSanitizer,
+    TTSProsody,
+    QualityGate,
+    VisualFallback,
+    QualityConfig
+)
 
 # ============================================================
 # CONFIGURATION
@@ -56,6 +67,7 @@ class TTSEngine:
     """
     Text-to-Speech using Microsoft Edge TTS.
     100% FREE, no API key required, unlimited usage.
+    ELITE MODE: Enforces prosody settings for human-like speech.
     """
     
     VOICES = {
@@ -72,24 +84,41 @@ class TTSEngine:
         text: str,
         output_path: str,
         voice: str = "male_us",
-        rate: str = "+0%",
-        pitch: str = "+0Hz"
+        rate: str = None,
+        pitch: str = None,
+        channel_id: str = None
     ) -> bool:
         """
         Generate speech from text using Edge TTS.
+        ELITE: Auto-sanitizes text and applies proper prosody.
         Returns True if successful.
         """
         import edge_tts
         
         voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
         
+        # ELITE: Get prosody settings based on channel
+        prosody = TTSProsody.get_settings(channel_id)
+        rate = rate or prosody["rate"]
+        pitch = pitch or prosody["pitch"]
+        
+        # ELITE: Sanitize text to prevent robotic pauses
+        clean_text = ScriptSanitizer.prepare_for_tts(text)
+        
+        if not clean_text:
+            print("[CREATOR] ❌ TTS failed: Empty text after sanitization")
+            return False
+        
+        print(f"[CREATOR] TTS settings: rate={rate}, pitch={pitch}")
+        print(f"[CREATOR] TTS text length: {len(clean_text)} chars")
+        
         try:
-            communicate = edge_tts.Communicate(text, voice_id, rate=rate, pitch=pitch)
+            communicate = edge_tts.Communicate(clean_text, voice_id, rate=rate, pitch=pitch)
             await communicate.save(output_path)
-            print(f"[CREATOR] TTS generated: {output_path}")
+            print(f"[CREATOR] ✅ TTS generated: {output_path}")
             return True
         except Exception as e:
-            print(f"[CREATOR] TTS exception: {e}")
+            print(f"[CREATOR] ❌ TTS exception: {e}")
             return False
     
     async def generate_with_timestamps(
@@ -97,15 +126,31 @@ class TTSEngine:
         text: str,
         output_audio: str,
         output_srt: str,
-        voice: str = "male_us"
+        voice: str = "male_us",
+        channel_id: str = None
     ) -> bool:
-        """Generate TTS with subtitle timestamps"""
+        """Generate TTS with subtitle timestamps - ELITE: Auto-sanitized"""
         import edge_tts
         
         voice_id = self.VOICES.get(voice, self.VOICES["male_us"])
         
+        # ELITE: Get prosody settings based on channel
+        prosody = TTSProsody.get_settings(channel_id)
+        
+        # ELITE: Sanitize text to prevent robotic pauses
+        clean_text = ScriptSanitizer.prepare_for_tts(text)
+        
+        if not clean_text:
+            print("[CREATOR] ❌ TTS failed: Empty text after sanitization")
+            return False
+        
         try:
-            communicate = edge_tts.Communicate(text, voice_id)
+            communicate = edge_tts.Communicate(
+                clean_text, 
+                voice_id, 
+                rate=prosody["rate"], 
+                pitch=prosody["pitch"]
+            )
             submaker = edge_tts.SubMaker()
             
             with open(output_audio, "wb") as audio_file:
@@ -118,10 +163,11 @@ class TTSEngine:
             with open(output_srt, "w", encoding="utf-8") as srt_file:
                 srt_file.write(submaker.get_srt())
             
+            print(f"[CREATOR] ✅ TTS+SRT generated: {output_audio}")
             return True
             
         except Exception as e:
-            print(f"[CREATOR] TTS+SRT exception: {e}")
+            print(f"[CREATOR] ❌ TTS+SRT exception: {e}")
             return False
 
 
@@ -568,13 +614,18 @@ class MasterCreator:
     """
     Master Creator that orchestrates all creation engines.
     Takes an opportunity and produces a ready-to-upload asset.
+    ELITE MODE: Quality gates block all broken content.
     """
     
-    def __init__(self):
+    def __init__(self, channel_id: str = None):
         self.tts = TTSEngine()
         self.script = ScriptGenerator()
         self.stock = StockEngine()
         self.video = VideoAssembler()
+        self.quality_gate = QualityGate()
+        
+        # Get channel from env if not provided
+        self.channel_id = channel_id or os.getenv("YOUTUBE_CHANNEL_ID")
         
         # Ensure directories exist
         for dir_path in [CreatorConfig.OUTPUT_DIR, CreatorConfig.TEMP_DIR]:
@@ -584,10 +635,12 @@ class MasterCreator:
         self,
         topic: str,
         angle: str = "educational",
-        voice: str = "male_us"
+        voice: str = "male_us",
+        validate: bool = True
     ) -> dict:
         """
         Create a complete YouTube Short / TikTok video.
+        ELITE: Quality gate validates before allowing upload.
         Returns paths to all generated assets.
         """
         
@@ -597,45 +650,70 @@ class MasterCreator:
         result = {
             "job_id": job_id,
             "topic": topic,
+            "channel_id": self.channel_id,
             "status": "processing",
+            "quality_passed": False,
             "assets": {}
         }
         
         try:
             # Step 1: Generate script
-            print(f"[CREATOR] Generating script for: {topic}")
+            print(f"[CREATOR] 📝 Generating script for: {topic}")
             script_data = await self.script.generate_short_script(topic, angle)
             result["script"] = script_data
             
-            # Step 2: Generate TTS
+            # ELITE: Validate and sanitize script
+            full_script = script_data.get("script", topic)
+            valid, sanitized_script = self.quality_gate.check_script(full_script)
+            
+            if not valid:
+                result["status"] = "failed"
+                result["error"] = "Script validation failed - too short or invalid"
+                return result
+            
+            # Step 2: Generate TTS with proper prosody
             audio_path = str(CreatorConfig.TEMP_DIR / f"{job_id}_audio.mp3")
             srt_path = str(CreatorConfig.TEMP_DIR / f"{job_id}.srt")
             
-            full_script = script_data.get("script", topic)
-            print(f"[CREATOR] Generating TTS...")
+            print(f"[CREATOR] 🎙️ Generating TTS...")
             
-            await self.tts.generate_with_timestamps(
-                full_script, audio_path, srt_path, voice
+            tts_success = await self.tts.generate_with_timestamps(
+                sanitized_script,  # Use sanitized script
+                audio_path, 
+                srt_path, 
+                voice,
+                channel_id=self.channel_id
             )
+            
+            if not tts_success:
+                result["status"] = "failed"
+                result["error"] = "TTS generation failed"
+                return result
+            
             result["assets"]["audio"] = audio_path
             result["assets"]["subtitles"] = srt_path
             
-            # Step 3: Get stock footage
-            print(f"[CREATOR] Fetching stock footage...")
+            # Step 3: Get stock footage with FALLBACK
+            print(f"[CREATOR] 🎬 Fetching stock footage...")
             videos = await self.stock.search_pexels_videos(topic)
             
+            bg_path = str(CreatorConfig.TEMP_DIR / f"{job_id}_bg.mp4")
+            
             if videos:
-                bg_path = str(CreatorConfig.TEMP_DIR / f"{job_id}_bg.mp4")
-                await self.stock.download_video(videos[0]["url"], bg_path)
-                result["assets"]["background"] = bg_path
-            else:
-                # Use a default background
-                bg_path = str(CreatorConfig.ASSETS_DIR / "default_bg.mp4")
-                result["assets"]["background"] = bg_path
+                download_success = await self.stock.download_video(videos[0]["url"], bg_path)
+                if not download_success:
+                    videos = []  # Trigger fallback
+            
+            # ELITE: Visual fallback - NEVER allow blank video
+            if not videos or not os.path.exists(bg_path):
+                print(f"[CREATOR] ⚠️ Stock footage failed, using fallback...")
+                bg_path = await VisualFallback.get_fallback_background(duration=60)
+            
+            result["assets"]["background"] = bg_path
             
             # Step 4: Assemble video
             output_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_vertical.mp4")
-            print(f"[CREATOR] Assembling video...")
+            print(f"[CREATOR] 🎥 Assembling video...")
             
             success = await self.video.create_vertical_video(
                 audio_path,
@@ -646,12 +724,33 @@ class MasterCreator:
             
             if success:
                 result["assets"]["video"] = output_path
-                result["status"] = "complete"
                 
                 # Step 5: Add fingerprint
                 final_path = str(CreatorConfig.OUTPUT_DIR / f"{job_id}_final.mp4")
                 await self.video.add_unique_fingerprint(output_path, final_path)
                 result["assets"]["final_video"] = final_path
+                
+                # ELITE: Quality gate validation
+                if validate:
+                    print(f"[CREATOR] 🔍 Running quality gate...")
+                    passed, report = await self.quality_gate.check_video(
+                        final_path, 
+                        self.channel_id
+                    )
+                    
+                    result["quality_passed"] = passed
+                    result["quality_report"] = report
+                    
+                    if passed:
+                        result["status"] = "complete"
+                        print(f"[CREATOR] ✅ Quality gate PASSED - Ready for upload")
+                    else:
+                        result["status"] = "quarantined"
+                        result["error"] = f"Quality gate failed: {report['errors']}"
+                        print(f"[CREATOR] ❌ Quality gate FAILED - Quarantined")
+                else:
+                    result["status"] = "complete"
+                    result["quality_passed"] = True
             else:
                 result["status"] = "failed"
                 result["error"] = "Video assembly failed"
@@ -659,25 +758,27 @@ class MasterCreator:
         except Exception as e:
             result["status"] = "error"
             result["error"] = str(e)
-            print(f"[CREATOR] Error: {e}")
+            print(f"[CREATOR] ❌ Error: {e}")
         
         return result
     
     async def create_multiplatform(
         self,
         topic: str,
-        platforms: list = None
+        platforms: list = None,
+        validate: bool = True
     ) -> dict:
         """
         Create content for multiple platforms from one source.
         Omni-alignment: One asset → All platforms
+        ELITE: Quality gate validates before export.
         """
         
         if platforms is None:
             platforms = ["youtube_short", "tiktok", "instagram_reel"]
         
         # First, create the master asset
-        master = await self.create_short(topic)
+        master = await self.create_short(topic, validate=validate)
         
         if master["status"] != "complete":
             return master
@@ -692,6 +793,10 @@ class MasterCreator:
         
         master["platforms"] = platforms
         return master
+    
+    def is_safe_mode(self) -> bool:
+        """Check if current channel is in safe mode."""
+        return self.quality_gate.is_safe_mode_channel(self.channel_id)
 
 
 # ============================================================
@@ -702,22 +807,40 @@ if __name__ == "__main__":
     import sys
     
     async def main():
-        creator = MasterCreator()
+        # Get channel ID from env
+        channel_id = os.getenv("YOUTUBE_CHANNEL_ID")
+        creator = MasterCreator(channel_id=channel_id)
+        
+        # Check safe mode
+        if creator.is_safe_mode():
+            print(f"[CREATOR] 🔒 SAFE MODE ACTIVE for channel: {channel_id}")
         
         if len(sys.argv) > 1:
             command = sys.argv[1]
             
-            if command == "short" and len(sys.argv) > 2:
-                topic = " ".join(sys.argv[2:])
-                result = await creator.create_short(topic)
-            elif command == "multi" and len(sys.argv) > 2:
-                topic = " ".join(sys.argv[2:])
-                result = await creator.create_multiplatform(topic)
+            # Check for --no-validate flag
+            validate = "--no-validate" not in sys.argv
+            
+            # Remove flags from args
+            args = [a for a in sys.argv[2:] if not a.startswith("--")]
+            
+            if command == "short" and args:
+                topic = " ".join(args)
+                result = await creator.create_short(topic, validate=validate)
+            elif command == "multi" and args:
+                topic = " ".join(args)
+                result = await creator.create_multiplatform(topic, validate=validate)
+            elif command == "test":
+                # Quick test mode
+                result = await creator.create_short(
+                    "Money tips for beginners", 
+                    validate=True
+                )
             else:
-                result = {"error": "Usage: creator.py [short|multi] <topic>"}
+                result = {"error": "Usage: creator.py [short|multi|test] <topic> [--no-validate]"}
         else:
-            result = {"error": "No command provided"}
+            result = {"error": "No command provided. Usage: creator.py [short|multi|test] <topic>"}
         
-        print(json.dumps(result, indent=2))
+        print(json.dumps(result, indent=2, default=str))
     
     asyncio.run(main())

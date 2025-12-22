@@ -8,6 +8,8 @@ Instagram: Reels via Meta Graph API
 TikTok: Draft push via Content Posting API
 LOCAL MODE: Saves videos when APIs not configured
 ============================================================
+ELITE MODE: Quality gates block broken content before upload.
+============================================================
 """
 
 import os
@@ -31,6 +33,15 @@ def get_guardrails():
         from .guardrails import Guardrails
         _guardrails = Guardrails()
     return _guardrails
+
+# Import quality gate (lazy to avoid circular imports)
+_quality_gate = None
+def get_quality_gate():
+    global _quality_gate
+    if _quality_gate is None:
+        from .quality_gates import QualityGate
+        _quality_gate = QualityGate()
+    return _quality_gate
 
 # ============================================================
 # YOUTUBE UPLOADER (PRIMARY - FULL AUTOMATION)
@@ -493,6 +504,7 @@ class MasterUploader:
     Orchestrates uploads across all platforms.
     Uses each platform's official API compliantly.
     Falls back to LOCAL MODE when no APIs are configured.
+    ELITE: Quality gate validates all videos before upload.
     """
     
     def __init__(self):
@@ -500,6 +512,7 @@ class MasterUploader:
         self.instagram = InstagramUploader()
         self.tiktok = TikTokUploader()
         self.local = LocalSaver()
+        self.channel_id = os.getenv("YOUTUBE_CHANNEL_ID")
     
     def get_status(self) -> Dict[str, bool]:
         """Get configuration status for all platforms"""
@@ -512,16 +525,26 @@ class MasterUploader:
         status["mode"] = "API" if status["any_configured"] else "LOCAL"
         return status
     
+    async def validate_video(self, video_path: str) -> tuple:
+        """
+        ELITE: Run quality gate validation before upload.
+        Returns (passed, report)
+        """
+        quality_gate = get_quality_gate()
+        return await quality_gate.check_video(video_path, self.channel_id)
+    
     async def upload_all(
         self,
         video_path: str,
         title: str,
         descriptions: Dict[str, str],
         niche: str,
-        tags: list = None
+        tags: list = None,
+        skip_validation: bool = False
     ) -> Dict[str, Any]:
         """
         Upload to all configured platforms, or save locally.
+        ELITE: Quality gate validates video before any upload.
         
         Args:
             video_path: Path to the video file
@@ -529,6 +552,7 @@ class MasterUploader:
             descriptions: Dict with platform-specific descriptions
             niche: Content niche (wealth/health/survival)
             tags: Optional list of tags
+            skip_validation: Skip quality gate (NOT RECOMMENDED)
         
         Returns:
             Dict with results for each platform
@@ -537,8 +561,27 @@ class MasterUploader:
             "timestamp": datetime.now().isoformat(),
             "mode": "LOCAL",
             "results": {},
-            "summary": {}
+            "summary": {},
+            "quality_check": {}
         }
+        
+        # ELITE: Quality gate validation (MANDATORY unless skipped)
+        if not skip_validation:
+            print("[UPLOADER] 🔍 Running quality gate validation...")
+            passed, report = await self.validate_video(video_path)
+            results["quality_check"] = {
+                "passed": passed,
+                "errors": report.get("errors", [])
+            }
+            
+            if not passed:
+                print(f"[UPLOADER] ❌ Quality gate FAILED - Upload blocked")
+                print(f"[UPLOADER] Errors: {report.get('errors', [])}")
+                results["mode"] = "QUARANTINED"
+                results["summary"] = {"uploaded": 0, "blocked": 1, "reason": "quality_gate_failed"}
+                return results
+            
+            print("[UPLOADER] ✅ Quality gate PASSED")
         
         status = self.get_status()
         
