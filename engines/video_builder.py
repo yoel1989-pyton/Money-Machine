@@ -14,7 +14,6 @@ import subprocess
 import os
 import json
 import uuid
-from pathlib import Path
 
 # ============================================================
 # CONFIGURATION
@@ -71,7 +70,8 @@ def validate_video(path: str) -> bool:
     
     cmd = [
         "ffprobe", "-v", "error", "-select_streams", "v",
-        "-show_entries", "stream=nb_frames,width,height",
+        "-show_entries", "stream=nb_frames,width,height,r_frame_rate",
+        "-show_entries", "format=duration",
         "-of", "json", path
     ]
     
@@ -87,15 +87,10 @@ def validate_video(path: str) -> bool:
         
         s = streams[0]
         # Handle nb_frames safely - may not be present or could be invalid
-        # If unavailable, we'll skip the frame count check and rely on other validations
+        # If unavailable, we'll use duration-based validation as fallback
         try:
             nb_frames = int(s.get("nb_frames", 0))
-            if nb_frames > 0 and nb_frames < MIN_FRAMES:
-                print(f"[VIDEO_BUILDER] ❌ Frame count too low: {nb_frames} < {MIN_FRAMES}")
-                return False
         except (ValueError, TypeError):
-            # If nb_frames not available, skip this check
-            # We still have stream existence and dimension checks
             nb_frames = 0
         
         width = int(s.get("width", 0))
@@ -105,10 +100,35 @@ def validate_video(path: str) -> bool:
             print(f"[VIDEO_BUILDER] ❌ Invalid dimensions: {width}x{height}")
             return False
         
+        # Validate frame count - use duration as fallback
         if nb_frames > 0:
+            # Direct frame count available
+            if nb_frames < MIN_FRAMES:
+                print(f"[VIDEO_BUILDER] ❌ Frame count too low: {nb_frames} < {MIN_FRAMES}")
+                return False
             print(f"[VIDEO_BUILDER] ✅ Valid video: {nb_frames} frames, {width}x{height}")
         else:
-            print(f"[VIDEO_BUILDER] ✅ Valid video: {width}x{height}")
+            # Frame count unavailable - estimate from duration
+            format_info = data.get("format", {})
+            duration = float(format_info.get("duration", 0))
+            
+            # Parse frame rate (e.g., "30/1" or "25/1")
+            fps_str = s.get("r_frame_rate", "30/1")
+            try:
+                num, denom = fps_str.split('/')
+                fps = float(num) / float(denom)
+            except:
+                fps = 30.0  # Default to 30fps
+            
+            # Estimate minimum duration needed for MIN_FRAMES
+            min_duration = MIN_FRAMES / fps
+            
+            if duration < min_duration:
+                print(f"[VIDEO_BUILDER] ❌ Duration too short: {duration:.1f}s < {min_duration:.1f}s (estimated from {MIN_FRAMES} frames @ {fps}fps)")
+                return False
+            
+            print(f"[VIDEO_BUILDER] ✅ Valid video: {width}x{height}, {duration:.1f}s @ {fps}fps")
+        
         return True
         
     except subprocess.CalledProcessError as e:
