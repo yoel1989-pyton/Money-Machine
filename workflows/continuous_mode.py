@@ -147,7 +147,8 @@ Structure:
         except:
             duration = 45.0
         
-        # Assemble (ELITE FIX: Forces video frames)
+        # Assemble (ELITE FIX: Forces video frames with MANDATORY bitrate floor)
+        # noise filter prevents entropy collapse that causes FFmpeg to over-compress
         cmd = [
             "ffmpeg", "-y",
             # Loop background video infinitely
@@ -160,18 +161,27 @@ Structure:
             "-map", "1:a:0",
             # Force duration (cap at 58 seconds for Shorts)
             "-t", str(min(duration, 58.0)),
-            # Video filter with motion guarantee and format
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p,zoompan=z='min(zoom+0.0004,1.05)':d=1:s=1080x1920",
-            # Video codec with YouTube Shorts compliance
+            # Video filter with motion, noise (anti-compression), format
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,eq=contrast=1.08:saturation=1.12,noise=alls=20:allf=t+u,format=yuv420p",
+            # Video codec with YouTube Shorts compliance - ELITE ENCODING
             "-c:v", "libx264",
             "-profile:v", "high",
             "-level", "4.2",
-            "-preset", "ultrafast",
-            "-crf", "28",
+            "-preset", "slow",
             "-pix_fmt", "yuv420p",
+            # MANDATORY BITRATE CONTROLS (prevents 200kbps disaster)
+            "-b:v", "8M",
+            "-minrate", "6M",
+            "-maxrate", "10M",
+            "-bufsize", "16M",
+            # GOP settings for Shorts
+            "-g", "60",
+            "-keyint_min", "60",
+            "-sc_threshold", "0",
             # Audio codec
             "-c:a", "aac",
-            "-b:a", "128k",
+            "-b:a", "192k",
+            "-ar", "48000",
             # Fast start for streaming
             "-movflags", "+faststart",
             # Output

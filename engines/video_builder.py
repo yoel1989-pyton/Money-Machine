@@ -67,10 +67,11 @@ async def build_video(audio_path: str, output_dir: str = None, duration: int = N
     cmd = [
         "ffmpeg", "-y", "-stream_loop", "-1", "-i", bg, "-i", audio_path,
         "-map", "0:v:0", "-map", "1:a:0", "-t", str(duration),
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=contrast=1.05:saturation=1.1,format=yuv420p",
-        "-c:v", "libx264", "-profile:v", "high", "-level", "4.1", "-preset", "fast", "-crf", "23",
-        "-b:v", "6000k", "-maxrate", "8000k", "-bufsize", "12000k", "-r", "30", "-g", "60",
-        "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", output_path
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,eq=contrast=1.08:saturation=1.12,noise=alls=20:allf=t+u,format=yuv420p",
+        "-c:v", "libx264", "-profile:v", "high", "-level", "4.2", "-preset", "slow",
+        "-b:v", "8M", "-minrate", "6M", "-maxrate", "10M", "-bufsize", "16M",
+        "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
+        "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", output_path
     ]
     
     process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -147,21 +148,18 @@ async def build_elite_short(
     # Calculate zoompan duration in frames (30fps)
     zoom_frames = int(audio_duration * 30)
     
-    # Build the ELITE FFmpeg filter chain
+    # Build the ELITE FFmpeg filter chain (Hollywood-grade, Shorts-optimized)
+    # noise=alls=20:allf=t+u prevents entropy collapse that causes low bitrate
     filter_complex = (
         f"[0:v]"
-        f"scale=1920:1080,"
         f"scale=1080:1920:force_original_aspect_ratio=increase,"
         f"crop=1080:1920,"
         f"fps=30,"
-        f"zoompan=z='min(zoom+{params['zoom_rate']},{params['zoom_max']})':"
-        f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-        f"d={zoom_frames}:s=1080x1920,"
-        f"eq=contrast={params['contrast']}:saturation={params['saturation']}:"
-        f"brightness={params['brightness']},"
-        f"unsharp=5:5:{params['sharpness']}"
+        f"format=yuv420p,"
+        f"eq=contrast={params['contrast']}:saturation={params['saturation']}:brightness={params['brightness']},"
+        f"noise=alls=20:allf=t+u"
         f"[v];"
-        f"[v]format=yuv420p[outv]"
+        f"[1:a]aformat=sample_rates=48000[a]"
     )
     
     cmd = [
@@ -170,20 +168,22 @@ async def build_elite_short(
         "-i", bg,
         "-i", audio_path,
         "-filter_complex", filter_complex,
-        "-map", "[outv]",
-        "-map", "1:a",
+        "-map", "[v]",
+        "-map", "[a]",
         "-c:v", "libx264",
         "-profile:v", "high",
         "-level", "4.2",
         "-pix_fmt", "yuv420p",
-        "-r", "30",
+        "-preset", "slow",
+        "-b:v", "8M",
+        "-minrate", "6M",
+        "-maxrate", "10M",
+        "-bufsize", "16M",
         "-g", "60",
         "-keyint_min", "60",
-        "-b:v", "7M",
-        "-maxrate", "8M",
-        "-bufsize", "12M",
+        "-sc_threshold", "0",
         "-c:a", "aac",
-        "-b:a", "128k",
+        "-b:a", "192k",
         "-movflags", "+faststart",
         "-shortest",
         output_path
