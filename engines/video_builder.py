@@ -71,8 +71,7 @@ def validate_video(path: str) -> bool:
     
     cmd = [
         "ffprobe", "-v", "error", "-select_streams", "v",
-        "-show_entries", "stream=nb_frames,width,height,r_frame_rate",
-        "-show_entries", "format=duration",
+        "-show_entries", "stream=nb_frames,width,height,r_frame_rate:format=duration",
         "-of", "json", path
     ]
     
@@ -120,11 +119,14 @@ def validate_video(path: str) -> bool:
             # Parse frame rate (e.g., "30/1" or "25/1")
             fps_str = s.get("r_frame_rate", f"{DEFAULT_FPS}/1")
             try:
+                # Ensure fps_str is a string before splitting
+                if not isinstance(fps_str, str) or '/' not in fps_str:
+                    raise ValueError("Invalid FPS format")
                 num, denom = fps_str.split('/')
                 fps = float(num) / float(denom)
                 if fps <= 0:
-                    raise ValueError("Invalid FPS")
-            except (ValueError, ZeroDivisionError, AttributeError):
+                    raise ValueError("Invalid FPS value")
+            except (ValueError, ZeroDivisionError, AttributeError, TypeError):
                 fps = DEFAULT_FPS
             
             # Estimate minimum duration needed for MIN_FRAMES
