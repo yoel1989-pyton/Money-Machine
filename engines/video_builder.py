@@ -21,6 +21,7 @@ import uuid
 
 SAFE_DURATION = 58  # Max Shorts duration
 MIN_FRAMES = 900    # Minimum frames to ensure video stream exists
+DEFAULT_FPS = 30.0  # Default frame rate when unable to determine from metadata
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 
@@ -110,15 +111,21 @@ def validate_video(path: str) -> bool:
         else:
             # Frame count unavailable - estimate from duration
             format_info = data.get("format", {})
-            duration = float(format_info.get("duration", 0))
+            try:
+                duration = float(format_info.get("duration", 0))
+            except (ValueError, TypeError):
+                print(f"[VIDEO_BUILDER] ❌ Unable to determine video duration")
+                return False
             
             # Parse frame rate (e.g., "30/1" or "25/1")
-            fps_str = s.get("r_frame_rate", "30/1")
+            fps_str = s.get("r_frame_rate", f"{DEFAULT_FPS}/1")
             try:
                 num, denom = fps_str.split('/')
                 fps = float(num) / float(denom)
-            except:
-                fps = 30.0  # Default to 30fps
+                if fps <= 0:
+                    raise ValueError("Invalid FPS")
+            except (ValueError, ZeroDivisionError, AttributeError):
+                fps = DEFAULT_FPS
             
             # Estimate minimum duration needed for MIN_FRAMES
             min_duration = MIN_FRAMES / fps
