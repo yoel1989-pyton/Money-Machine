@@ -753,3 +753,6 @@ if __name__ == "__main__":
         print(json.dumps(result, indent=2, default=str))
     
     asyncio.run(main())
+
+# Alias for backward compatibility
+SurvivorEngine = MasterSurvivor

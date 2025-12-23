@@ -68,6 +68,21 @@ from .guardrails import (
     HealthDowngradeManager,
     PLATFORM_LIMITS
 )
+from .aave_engine import (
+    AAVEEngine,
+    VisualDNA,
+    VideoMetrics,
+    HookType,
+    ELITE_TOPICS
+)
+from .video_builder import (
+    build_video,
+    build_video_sync,
+    build_elite_short,
+    build_elite_short_sync,
+    pick_background,
+    validate_visual_entropy
+)
 
 __all__ = [
     # Core Engines
@@ -139,7 +154,20 @@ __all__ = [
     "UploadRateLimiter",
     "LogRotator",
     "HealthDowngradeManager",
-    "PLATFORM_LIMITS"
+    "PLATFORM_LIMITS",
+    # AAVE (Algorithm-Adaptive Visual Evolution)
+    "AAVEEngine",
+    "VisualDNA",
+    "VideoMetrics",
+    "HookType",
+    "ELITE_TOPICS",
+    # Video Builder
+    "build_video",
+    "build_video_sync",
+    "build_elite_short",
+    "build_elite_short_sync",
+    "pick_background",
+    "validate_visual_entropy"
 ]
 
 
