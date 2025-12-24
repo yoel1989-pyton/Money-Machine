@@ -270,18 +270,26 @@ def handle_error(error: Exception, node_name: str = "Unknown",
 def send_success_alert(message: str):
     """Send success notification to Telegram"""
     if not _handler.telegram_bot_token:
-        return
+        print("[TELEGRAM] No bot token - skipping alert")
+        return False
     
     try:
         url = f"https://api.telegram.org/bot{_handler.telegram_bot_token}/sendMessage"
+        # Use plain text to avoid Markdown parsing issues
         payload = {
             "chat_id": _handler.telegram_chat_id,
-            "text": f"✅ **MONEY MACHINE SUCCESS**\n\n{message}",
-            "parse_mode": "Markdown"
+            "text": f"✅ MONEY MACHINE SUCCESS\n\n{message}",
         }
-        requests.post(url, json=payload, timeout=10)
-    except:
-        pass  # Silent fail for success messages
+        response = requests.post(url, json=payload, timeout=10)
+        if response.json().get('ok'):
+            print("[TELEGRAM] ✅ Success alert sent!")
+            return True
+        else:
+            print(f"[TELEGRAM] ❌ Failed: {response.json()}")
+            return False
+    except Exception as e:
+        print(f"[TELEGRAM] ❌ Error: {e}")
+        return False
 
 
 def send_status_update(title: str, details: dict):

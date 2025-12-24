@@ -319,12 +319,51 @@ def main():
             print(f"   📁 {output_path}")
             print(f"   📊 {validation['size_mb']:.1f} MB | {validation['duration']:.1f}s | {validation['bitrate_mbps']:.1f} Mbps")
             
+            # Step 6: Upload to YouTube
+            upload_result = None
+            try:
+                import asyncio
+                from engines.uploaders import MasterUploader
+                uploader = MasterUploader()
+                
+                # Generate title and description
+                title = f"{topic} #shorts #money #finance"
+                description = f"""🔥 {topic}
+
+💰 Subscribe for daily wealth wisdom!
+
+#shorts #finance #money #investing #wealth #financialfreedom #millionaire"""
+                
+                log("Uploading to YouTube...")
+                
+                # Run async upload in sync context
+                async def do_upload():
+                    return await uploader.upload_youtube_only(
+                        video_path=str(output_path),
+                        title=title[:100],
+                        description=description,
+                        tags=["shorts", "money", "finance", "investing", "wealth"]
+                    )
+                
+                upload_result = asyncio.run(do_upload())
+                
+                if upload_result and upload_result.get("success"):
+                    log(f"✅ UPLOADED: {upload_result.get('url', 'Success')}", "SUCCESS")
+                else:
+                    log(f"Upload returned: {upload_result}", "WARN")
+                    
+            except Exception as upload_err:
+                log(f"Upload failed: {upload_err}", "WARN")
+                upload_result = {"success": False, "error": str(upload_err)}
+            
             # Send success alert to Telegram
+            upload_status = "✅ UPLOADED" if (upload_result and upload_result.get("success")) else "⏳ Ready for manual upload"
             send_success_alert(
-                f"**Elite Short Complete!**\n\n"
+                f"Elite Short Complete!\n\n"
                 f"📹 Topic: {topic}\n"
                 f"📊 {validation['size_mb']:.1f} MB | {validation['duration']:.1f}s | {validation['bitrate_mbps']:.1f} Mbps\n"
-                f"📁 {output_path.name}"
+                f"📁 {output_path.name}\n"
+                f"🎬 Status: {upload_status}"
             )
         else:
             print("   ❌ VALIDATION FAILED - CHECK LOGS")
