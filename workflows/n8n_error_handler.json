@@ -2,6 +2,19 @@
   "name": "Money Machine Error Handler",
   "nodes": [
     {
+      "parameters": {
+        "jsCode": "// 🔐 ENV INJECTOR - Maps Cloud variables into workflow context\n// This is the ONLY way to access env vars in n8n Cloud\nreturn [{\n  json: {\n    TELEGRAM_CHAT_ID: $vars.TELEGRAM_CHAT_ID\n  }\n}];"
+      },
+      "id": "env-injector-001",
+      "name": "🔐 Env Injector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
       "parameters": {},
       "id": "ff65f095-0d75-47aa-b4ab-cbb154c4e0f2",
       "name": "🚨 Global Error Handler",
@@ -14,7 +27,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ELITE ERROR PROCESSOR - Extract actionable intelligence\nconst error = $input.all()[0]?.json || {};\nconst executionId = $execution?.id || 'unknown';\nconst workflowName = $workflow?.name || 'Money Machine';\nconst timestamp = new Date().toISOString();\n\n// Build forensic error report\nconst errorReport = {\n  severity: error.message?.includes('rate limit') ? 'WARN' : 'CRITICAL',\n  execution_id: executionId,\n  workflow: workflowName,\n  timestamp: timestamp,\n  node_failed: error.node?.name || 'Unknown Node',\n  error_type: error.message?.includes('timeout') ? 'TIMEOUT' : \n              error.message?.includes('401') ? 'AUTH_FAILURE' :\n              error.message?.includes('429') ? 'RATE_LIMIT' :\n              error.message?.includes('500') ? 'API_DOWN' : 'UNKNOWN',\n  message: error.message || 'No message',\n  stack: error.stack?.substring(0, 500) || 'No stack',\n  recovery_action: getRecoveryAction(error)\n};\n\nfunction getRecoveryAction(err) {\n  if (err.message?.includes('rate limit') || err.message?.includes('429')) {\n    return 'AUTO_RETRY_DELAYED';\n  }\n  if (err.message?.includes('timeout')) {\n    return 'AUTO_RETRY_IMMEDIATE';\n  }\n  if (err.message?.includes('401') || err.message?.includes('403')) {\n    return 'CHECK_CREDENTIALS';\n  }\n  return 'MANUAL_REVIEW';\n}\n\nreturn [{ json: errorReport }];"
+        "jsCode": "// ELITE ERROR PROCESSOR - Extract actionable intelligence\nconst error = $input.all()[0]?.json || {};\nconst executionId = $execution?.id || 'unknown';\nconst workflowName = $workflow?.name || 'Money Machine';\nconst timestamp = new Date().toISOString();\nconst chatId = $('🔐 Env Injector').first().json.TELEGRAM_CHAT_ID;\n\n// Build forensic error report\nconst errorReport = {\n  severity: error.message?.includes('rate limit') ? 'WARN' : 'CRITICAL',\n  execution_id: executionId,\n  workflow: workflowName,\n  timestamp: timestamp,\n  node_failed: error.node?.name || 'Unknown Node',\n  error_type: error.message?.includes('timeout') ? 'TIMEOUT' : \n              error.message?.includes('401') ? 'AUTH_FAILURE' :\n              error.message?.includes('429') ? 'RATE_LIMIT' :\n              error.message?.includes('500') ? 'API_DOWN' : 'UNKNOWN',\n  message: error.message || 'No message',\n  stack: error.stack?.substring(0, 500) || 'No stack',\n  recovery_action: getRecoveryAction(error),\n  TELEGRAM_CHAT_ID: chatId\n};\n\nfunction getRecoveryAction(err) {\n  if (err.message?.includes('rate limit') || err.message?.includes('429')) {\n    return 'AUTO_RETRY_DELAYED';\n  }\n  if (err.message?.includes('timeout')) {\n    return 'AUTO_RETRY_IMMEDIATE';\n  }\n  if (err.message?.includes('401') || err.message?.includes('403')) {\n    return 'CHECK_CREDENTIALS';\n  }\n  return 'MANUAL_REVIEW';\n}\n\nreturn [{ json: errorReport }];"
       },
       "id": "7d0552eb-75a9-413f-8cf1-67309c504381",
       "name": "⚡ Error Intelligence",
@@ -27,8 +40,8 @@
     },
     {
       "parameters": {
-        "chatId": "=5033650061",
-        "text": "=🚨 **MONEY MACHINE ALERT**\n\n**Severity:** {{ $json.severity }}\n**Node:** {{ $json.node_failed }}\n**Type:** {{ $json.error_type }}\n**Time:** {{ $json.timestamp }}\n\n**Message:**\n```{{ $json.message }}```\n\n**Recovery:** {{ $json.recovery_action }}\n\n🔗 [View Execution]({{ 5033650061 }}/execution/{{ $json.execution_id }})",
+        "chatId": "={{ $json.TELEGRAM_CHAT_ID }}",
+        "text": "=🚨 **MONEY MACHINE ALERT**\n\n**Severity:** {{ $json.severity }}\n**Workflow:** {{ $json.workflow }}\n**Execution ID:** {{ $json.execution_id }}\n**Node:** {{ $json.node_failed }}\n**Type:** {{ $json.error_type }}\n**Time:** {{ $json.timestamp }}\n\n**Message:**\n```{{ $json.message }}```\n\n**Recovery:** {{ $json.recovery_action }}\n\n🔗 [View Full Execution](https://anointment.app.n8n.cloud/execution/{{ $json.execution_id }})",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
@@ -54,6 +67,17 @@
     }
   ],
   "connections": {
+    "🔐 Env Injector": {
+      "main": [
+        [
+          {
+            "node": "🚨 Global Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "🚨 Global Error Handler": {
       "main": [
         [
