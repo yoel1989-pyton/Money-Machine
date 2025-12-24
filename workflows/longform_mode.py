@@ -33,7 +33,7 @@ sys.path.insert(0, str(BASE_DIR))
 
 from engines.dna_expander import DNAExpander, ShortDNA, DocumentaryOutline
 from engines.longform_builder import LongformBuilder
-from engines.broll_engine import get_clip_for_intent
+from engines.broll_engine import BRollEngine, resolve_visual_intent
 
 # Try importing optional dependencies
 try:
@@ -186,7 +186,7 @@ Begin the script:"""
             print(f"[LONGFORM] Audio error: {e}")
             return None
     
-    def assemble_documentary(
+    async def assemble_documentary(
         self, 
         outline: DocumentaryOutline,
         script: str,
@@ -195,11 +195,14 @@ Begin the script:"""
         """
         Assemble the full documentary video.
         """
-        # Get visual clips for each act
+        # Get visual clips for each act using BRollEngine
         visual_clips = []
+        broll_engine = BRollEngine()
+        
         for act in outline.acts:
             intent = act.get("visual_intent", "power_finance")
-            clip = get_clip_for_intent(intent)
+            clip = await broll_engine.get_clip_for_intent(intent)
+            
             if clip:
                 visual_clips.append({
                     "act": act["name"],
@@ -207,18 +210,35 @@ Begin the script:"""
                     "duration": act["duration_minutes"] * 60
                 })
         
-        # Build the documentary
-        output_path = self.longform_builder.build(
-            outline=outline,
-            script=script,
-            audio_path=str(audio_path) if audio_path else None,
-            visual_clips=visual_clips
-        )
+        # Build the documentary using the longform_builder
+        try:
+            output_path = await self.longform_builder.expand_to_documentary(
+                dna=self._convert_outline_to_dna(outline),
+                audio_path=str(audio_path) if audio_path else None
+            )
+        except Exception as e:
+            print(f"[LONGFORM] Assembly error: {e}")
+            output_path = None
         
         if output_path:
             print(f"[LONGFORM] ✅ Documentary assembled: {output_path}")
         
         return output_path
+    
+    def _convert_outline_to_dna(self, outline: DocumentaryOutline):
+        """Convert DocumentaryOutline to DocumentaryDNA for builder."""
+        from engines.longform_builder import DocumentaryDNA
+        return DocumentaryDNA(
+            topic=outline.source_dna.topic,
+            theme="hidden_truth",
+            hook_structure=outline.source_dna.hook_type,
+            emotional_trigger=outline.source_dna.emotional_trigger,
+            visual_intent=outline.source_dna.visual_dna.intent,
+            curiosity_gaps=["How does this work?", "Who benefits?", "What can you do?"],
+            retention_pattern="front_loaded",
+            rpm_score=outline.source_dna.rpm,
+            source_short_id=outline.source_dna.video_id
+        )
     
     async def produce_documentary(self, dna: ShortDNA) -> Optional[Path]:
         """
@@ -247,7 +267,7 @@ Begin the script:"""
         audio_result = await self.generate_audio(script, audio_path)
         
         # Step 4: Assemble documentary
-        output_path = self.assemble_documentary(outline, script, audio_result)
+        output_path = await self.assemble_documentary(outline, script, audio_result)
         
         return output_path
     

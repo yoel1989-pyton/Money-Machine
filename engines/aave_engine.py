@@ -416,6 +416,11 @@ class AAVEEngine:
     MUTATION_RATE = 0.25
     ELITE_PRESERVE = 3  # Always keep top N DNA strains
     
+    # Golden Gate Winner Thresholds (for longform expansion)
+    WINNER_AVD_THRESHOLD = 75.0  # Avg View Duration % (0-100)
+    WINNER_RPM_THRESHOLD = 0.05  # Revenue per mille
+    WINNER_REPLAY_THRESHOLD = 15.0  # Replay rate %
+    
     def __init__(self):
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)
         self.dna_pool = self._load_dna_pool()

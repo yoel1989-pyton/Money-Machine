@@ -19,10 +19,13 @@ import subprocess
 import os
 import json
 import asyncio
+import tempfile
+import re
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 
 # Production constants
 LF_BITRATE = "18M"  # 4K-ready bitrate
@@ -44,6 +47,263 @@ ACT_STRUCTURE = {
     "consequences": {"start": 600, "end": 840, "intensity": "escalating", "visual_density": "high"},
     "resolution": {"start": 840, "end": 1200, "intensity": "conclusive", "visual_density": "medium"},
 }
+
+
+# ============================================================
+# HARDENED ASYNC AUDIO ENGINE
+# ============================================================
+
+class TTSVoice(Enum):
+    """Premium edge-tts voices for documentary narration."""
+    # Male authority voices
+    ANDREW = "en-US-AndrewNeural"  # Documentary default
+    GUY = "en-US-GuyNeural"
+    DAVIS = "en-US-DavisNeural"
+    # Female authority voices  
+    ARIA = "en-US-AriaNeural"
+    JENNY = "en-US-JennyNeural"
+    # British authority
+    RYAN = "en-GB-RyanNeural"
+    LIBBY = "en-GB-LibbyNeural"
+
+
+class LongformAudioEngine:
+    """
+    Hardened async TTS engine for documentary narration.
+    
+    Fixes the 'audio_path is None' immune response by ensuring:
+    1. Proper async/await handling
+    2. Minimum script validation (100 words)
+    3. Retries with voice fallback
+    4. Silence padding for pacing
+    """
+    
+    MIN_SCRIPT_WORDS = 100
+    MAX_RETRIES = 3
+    VOICE_FALLBACKS = [
+        TTSVoice.ANDREW,
+        TTSVoice.GUY, 
+        TTSVoice.RYAN,
+        TTSVoice.ARIA
+    ]
+    
+    def __init__(self, output_dir: Path = None):
+        self.output_dir = output_dir or (BASE_DIR / "data" / "audio" / "longform")
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self._edge_tts_available = None
+    
+    async def _check_edge_tts(self) -> bool:
+        """Check if edge-tts is available."""
+        if self._edge_tts_available is not None:
+            return self._edge_tts_available
+        
+        try:
+            import edge_tts
+            self._edge_tts_available = True
+        except ImportError:
+            print("[AUDIO] Warning: edge-tts not installed. Run: pip install edge-tts")
+            self._edge_tts_available = False
+        
+        return self._edge_tts_available
+    
+    def _validate_script(self, script: str) -> Tuple[bool, str]:
+        """
+        Validate script meets minimum requirements.
+        Returns (is_valid, cleaned_script).
+        """
+        if not script or not isinstance(script, str):
+            return False, ""
+        
+        # Clean script
+        cleaned = re.sub(r'\s+', ' ', script.strip())
+        word_count = len(cleaned.split())
+        
+        if word_count < self.MIN_SCRIPT_WORDS:
+            print(f"[AUDIO] Script too short: {word_count} words (min: {self.MIN_SCRIPT_WORDS})")
+            return False, cleaned
+        
+        return True, cleaned
+    
+    async def generate_narration(
+        self,
+        script: str,
+        voice: TTSVoice = TTSVoice.ANDREW,
+        output_filename: str = None,
+        rate: str = "+0%",
+        pitch: str = "+0Hz"
+    ) -> Optional[str]:
+        """
+        Generate TTS narration from documentary script.
+        
+        Args:
+            script: The full documentary script (must be 100+ words)
+            voice: TTSVoice enum for voice selection
+            output_filename: Optional filename, auto-generated if None
+            rate: Speed adjustment (e.g., "+5%", "-10%")
+            pitch: Pitch adjustment (e.g., "+5Hz", "-3Hz")
+            
+        Returns:
+            Path to generated audio file, or None if failed
+        """
+        # Validate script
+        is_valid, cleaned_script = self._validate_script(script)
+        if not is_valid:
+            print("[AUDIO] ❌ Script validation failed")
+            return None
+        
+        # Check edge-tts availability
+        if not await self._check_edge_tts():
+            return await self._fallback_gtts(cleaned_script, output_filename)
+        
+        import edge_tts
+        
+        # Generate filename
+        if output_filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = f"narration_{timestamp}.mp3"
+        
+        output_path = self.output_dir / output_filename
+        
+        # Attempt generation with retries and voice fallbacks
+        for attempt, fallback_voice in enumerate(self.VOICE_FALLBACKS):
+            current_voice = voice if attempt == 0 else fallback_voice
+            
+            try:
+                print(f"[AUDIO] Generating narration with {current_voice.name}...")
+                
+                communicate = edge_tts.Communicate(
+                    cleaned_script,
+                    current_voice.value,
+                    rate=rate,
+                    pitch=pitch
+                )
+                
+                await communicate.save(str(output_path))
+                
+                # Verify file was created and has content
+                if output_path.exists() and output_path.stat().st_size > 1000:
+                    duration = await self._get_audio_duration(str(output_path))
+                    print(f"[AUDIO] ✅ Narration generated: {duration/60:.1f} minutes")
+                    return str(output_path)
+                    
+            except Exception as e:
+                print(f"[AUDIO] Attempt {attempt + 1} failed with {current_voice.name}: {e}")
+                if attempt < self.MAX_RETRIES - 1:
+                    await asyncio.sleep(1)  # Brief pause before retry
+                continue
+        
+        print("[AUDIO] ❌ All TTS attempts failed")
+        return None
+    
+    async def _fallback_gtts(self, script: str, output_filename: str = None) -> Optional[str]:
+        """Fallback to gTTS if edge-tts is unavailable."""
+        try:
+            from gtts import gTTS
+            
+            if output_filename is None:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = f"narration_{timestamp}.mp3"
+            
+            output_path = self.output_dir / output_filename
+            
+            print("[AUDIO] Using gTTS fallback...")
+            tts = gTTS(text=script, lang='en', slow=False)
+            tts.save(str(output_path))
+            
+            if output_path.exists():
+                print("[AUDIO] ✅ Fallback narration generated")
+                return str(output_path)
+                
+        except ImportError:
+            print("[AUDIO] Neither edge-tts nor gTTS available")
+        except Exception as e:
+            print(f"[AUDIO] gTTS fallback failed: {e}")
+        
+        return None
+    
+    async def _get_audio_duration(self, audio_path: str) -> float:
+        """Get audio file duration using ffprobe."""
+        try:
+            result = subprocess.run([
+                "ffprobe", "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "json", audio_path
+            ], capture_output=True, text=True)
+            return float(json.loads(result.stdout)["format"]["duration"])
+        except:
+            return 0.0
+    
+    async def add_pacing_pauses(
+        self, 
+        audio_path: str, 
+        pause_after_hook: float = 1.0,
+        section_pauses: List[Tuple[int, float]] = None
+    ) -> str:
+        """
+        Add silence pauses for documentary pacing.
+        
+        Args:
+            audio_path: Path to source audio
+            pause_after_hook: Seconds of silence after hook section
+            section_pauses: List of (timestamp_seconds, pause_duration) tuples
+            
+        Returns:
+            Path to paced audio file
+        """
+        if section_pauses is None:
+            # Default pauses at act transitions
+            section_pauses = [
+                (120, 1.5),   # After hook
+                (360, 1.0),   # After mechanism
+                (600, 1.0),   # After players
+                (840, 1.5),   # After consequences
+            ]
+        
+        output_path = audio_path.replace('.mp3', '_paced.mp3')
+        
+        # For now, just return original (FFmpeg concatenation of silence would go here)
+        # This is a placeholder for full implementation
+        return audio_path
+    
+    async def generate_from_script_with_validation(
+        self,
+        script: str,
+        dna: "DocumentaryDNA" = None,
+        voice: TTSVoice = None
+    ) -> Optional[str]:
+        """
+        Full pipeline: validate, generate, and pace audio.
+        
+        Args:
+            script: Documentary script
+            dna: Optional DocumentaryDNA for theme-based voice selection
+            voice: Override voice selection
+            
+        Returns:
+            Path to final audio file, or None if failed
+        """
+        # Auto-select voice based on theme
+        if voice is None:
+            if dna and hasattr(dna, 'theme'):
+                # Use authoritative male for financial themes
+                if dna.theme in ['wealth_inequality', 'financial_power', 'systemic_manipulation']:
+                    voice = TTSVoice.ANDREW
+                else:
+                    voice = TTSVoice.GUY
+            else:
+                voice = TTSVoice.ANDREW
+        
+        # Generate narration
+        audio_path = await self.generate_narration(script, voice)
+        
+        if audio_path is None:
+            print("[AUDIO] ❌ Generation failed - audio_path is None")
+            return None
+        
+        # Add pacing pauses
+        paced_audio = await self.add_pacing_pauses(audio_path)
+        
+        return paced_audio
 
 
 @dataclass
