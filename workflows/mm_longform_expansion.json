@@ -1,0 +1,291 @@
+{
+  "name": "MM_Longform_Expansion_Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "trigger_6h_scan",
+      "name": "Every 6 Hours - Scan Winners",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 340]
+    },
+    {
+      "parameters": {
+        "command": "cd {{$json.workspace_path}} && python engines/aave_engine.py expansion --limit=3"
+      },
+      "id": "get_expansion_candidates",
+      "name": "Get Golden Gate Winners",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [440, 340],
+      "notes": "Returns JSON with expansion candidates meeting Golden Gate thresholds:\n- AVD > 75%\n- RPM > $0.05\n- Replay > 15%"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AAVE expansion output\nconst stdout = $input.all()[0].json.stdout || '';\n\ntry {\n  const data = JSON.parse(stdout);\n  \n  if (data.status === 'success' && data.candidates && data.candidates.length > 0) {\n    // Return each candidate as separate item for processing\n    return data.candidates.map(candidate => ({\n      json: {\n        video_id: candidate.video_id,\n        topic: candidate.topic,\n        dna_id: candidate.dna_id,\n        fitness_score: candidate.fitness_score,\n        metrics: candidate.metrics,\n        documentary_potential: candidate.documentary_potential,\n        expansion_ready: true\n      }\n    }));\n  }\n  \n  // No candidates found\n  return [{ json: { expansion_ready: false, reason: 'No winners meeting Golden Gate thresholds' } }];\n  \n} catch (e) {\n  return [{ json: { expansion_ready: false, error: e.message, raw: stdout } }];\n}"
+      },
+      "id": "parse_candidates",
+      "name": "Parse Expansion Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.expansion_ready}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "filter_ready",
+      "name": "Filter Ready for Expansion",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 340]
+    },
+    {
+      "parameters": {
+        "command": "cd {{$json.workspace_path}} && python -m workflows.longform_mode --batch 1"
+      },
+      "id": "produce_documentary",
+      "name": "Produce Documentary",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1100, 240],
+      "notes": "Runs the longform pipeline:\n1. GPT-4 script expansion (100 → 2500 words)\n2. edge-tts narration generation\n3. 5-Act documentary assembly\n4. Hollywood-grade FFmpeg encoding"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log why we skipped\nconst reason = $input.all()[0].json.reason || 'No qualifying winners';\nconsole.log(`[LONGFORM] Skipped: ${reason}`);\n\nreturn [{ json: { status: 'skipped', reason } }];"
+      },
+      "id": "log_skip",
+      "name": "Log Skip Reason",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse production output\nconst stdout = $input.all()[0].json.stdout || '';\nconst stderr = $input.all()[0].json.stderr || '';\n\nconst success = stdout.includes('Documentary complete') || stdout.includes('✅');\n\nreturn [{\n  json: {\n    status: success ? 'completed' : 'failed',\n    output: stdout,\n    errors: stderr,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse_result",
+      "name": "Parse Production Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "check_success",
+      "name": "Production Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 240]
+    },
+    {
+      "parameters": {
+        "channel": "#money-machine",
+        "text": "🎬 *Documentary Produced!*\n\n*Topic:* {{$json.topic}}\n*Fitness Score:* {{$json.fitness_score}}\n*Revenue Multiplier:* {{$json.documentary_potential.revenue_multiplier}}\n*Status:* ✅ Ready for upload\n\n_Produced by Money Machine Longform Engine_",
+        "otherOptions": {}
+      },
+      "id": "notify_success",
+      "name": "Notify Success (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1760, 140],
+      "credentials": {
+        "slackApi": {
+          "id": "slack_credentials",
+          "name": "Slack"
+        }
+      },
+      "disabled": true,
+      "notes": "Enable this and configure Slack credentials for notifications"
+    },
+    {
+      "parameters": {
+        "channel": "#money-machine",
+        "text": "⚠️ *Documentary Production Failed*\n\n*Errors:* {{$json.errors}}\n*Timestamp:* {{$json.timestamp}}\n\n_Check logs for details_",
+        "otherOptions": {}
+      },
+      "id": "notify_failure",
+      "name": "Notify Failure (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1760, 340],
+      "credentials": {
+        "slackApi": {
+          "id": "slack_credentials",
+          "name": "Slack"
+        }
+      },
+      "disabled": true,
+      "notes": "Enable this and configure Slack credentials for notifications"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "workspace_path",
+              "value": "/path/to/Money-Machine"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set_config",
+      "name": "Set Workspace Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 140],
+      "notes": "⚠️ CONFIGURE THIS:\nSet workspace_path to your Money-Machine directory"
+    }
+  ],
+  "connections": {
+    "Every 6 Hours - Scan Winners": {
+      "main": [
+        [
+          {
+            "node": "Get Golden Gate Winners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Golden Gate Winners": {
+      "main": [
+        [
+          {
+            "node": "Parse Expansion Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Expansion Candidates": {
+      "main": [
+        [
+          {
+            "node": "Filter Ready for Expansion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Ready for Expansion": {
+      "main": [
+        [
+          {
+            "node": "Produce Documentary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skip Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produce Documentary": {
+      "main": [
+        [
+          {
+            "node": "Parse Production Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Production Result": {
+      "main": [
+        [
+          {
+            "node": "Production Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Production Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Notify Success (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Failure (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Workspace Path": {
+      "main": [
+        [
+          {
+            "node": "Every 6 Hours - Scan Winners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "money-machine-longform"
+  },
+  "tags": [
+    {
+      "name": "Money Machine",
+      "id": "money-machine"
+    },
+    {
+      "name": "Longform",
+      "id": "longform"
+    }
+  ],
+  "pinData": {},
+  "versionId": "1.0.0"
+}

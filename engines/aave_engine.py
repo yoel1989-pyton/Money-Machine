@@ -853,6 +853,146 @@ class AAVEEngine:
             "open_loops": dna.open_loops,
             "pause_after_hook": dna.pause_after_hook
         }
+    
+    # ============================================================
+    # GOLDEN GATE WINNER DETECTION (FOR LONGFORM EXPANSION)
+    # ============================================================
+    
+    def get_winners(
+        self,
+        min_avd: float = None,
+        min_rpm: float = None,
+        min_replay: float = None,
+        min_views: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """
+        Identify winner Shorts eligible for longform expansion.
+        
+        Golden Gate Thresholds (defaults):
+        - AVD (Avg View Duration): > 75%
+        - RPM: > $0.05
+        - Replay Rate: > 15%
+        
+        Returns list of winner data with DNA for documentary conversion.
+        """
+        min_avd = min_avd if min_avd is not None else self.WINNER_AVD_THRESHOLD
+        min_rpm = min_rpm if min_rpm is not None else self.WINNER_RPM_THRESHOLD
+        min_replay = min_replay if min_replay is not None else self.WINNER_REPLAY_THRESHOLD
+        
+        winners = []
+        
+        for video_id, metrics in self.metrics.items():
+            # Skip videos without sufficient views
+            total_views = metrics.views_total or metrics.views_24hr or metrics.views_1hr or 0
+            if total_views < min_views:
+                continue
+            
+            # Calculate AVD percentage (avg_view_duration / estimated_video_duration * 100)
+            # For Shorts, assume ~30 second videos
+            avd_pct = (metrics.avg_view_duration / 30.0) * 100 if metrics.avg_view_duration > 0 else 0
+            
+            # Calculate replay rate (replays / views * 100)
+            replay_rate = (metrics.replays / total_views * 100) if total_views > 0 else 0
+            
+            # Check Golden Gate thresholds
+            passes_avd = avd_pct >= min_avd
+            passes_rpm = metrics.rpm >= min_rpm
+            passes_replay = replay_rate >= min_replay
+            
+            # Must pass at least 2 of 3 criteria to be a winner
+            criteria_passed = sum([passes_avd, passes_rpm, passes_replay])
+            
+            if criteria_passed >= 2:
+                # Get DNA for this video
+                dna = self.dna_pool.get(metrics.dna_id)
+                dna_dict = dna.to_dict() if dna else {}
+                
+                winners.append({
+                    "video_id": video_id,
+                    "topic": metrics.topic,
+                    "dna_id": metrics.dna_id,
+                    "dna": dna_dict,
+                    "metrics": {
+                        "avd_pct": round(avd_pct, 2),
+                        "rpm": metrics.rpm,
+                        "replay_rate": round(replay_rate, 2),
+                        "views_total": total_views,
+                        "retention_0_3s": metrics.retention_0_3s,
+                        "retention_3_10s": metrics.retention_3_10s
+                    },
+                    "fitness_score": round(metrics.fitness_score(), 3),
+                    "criteria_passed": criteria_passed,
+                    "expansion_ready": True
+                })
+        
+        # Sort by fitness score (best first)
+        winners.sort(key=lambda x: x["fitness_score"], reverse=True)
+        
+        return winners
+    
+    def get_expansion_candidates(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get top expansion candidates for longform documentary production.
+        
+        Returns videos that:
+        1. Pass Golden Gate thresholds
+        2. Have rich topic potential
+        3. Have high-performing DNA
+        
+        This is the n8n integration endpoint.
+        """
+        winners = self.get_winners()[:limit]
+        
+        # Enrich with expansion metadata
+        for winner in winners:
+            topic = winner["topic"]
+            
+            # Detect documentary potential
+            winner["documentary_potential"] = {
+                "theme": self._detect_documentary_theme(topic),
+                "estimated_length_minutes": self._estimate_documentary_length(winner["metrics"]),
+                "revenue_multiplier": self._calculate_revenue_multiplier(winner["metrics"]),
+                "priority": "high" if winner["fitness_score"] > 0.7 else "medium"
+            }
+        
+        return winners
+    
+    def _detect_documentary_theme(self, topic: str) -> str:
+        """Detect documentary theme from topic."""
+        topic_lower = topic.lower()
+        if any(w in topic_lower for w in ["rich", "wealth", "money", "billion"]):
+            return "wealth_inequality"
+        if any(w in topic_lower for w in ["system", "control", "design", "algorithm"]):
+            return "systemic_manipulation"
+        if any(w in topic_lower for w in ["bank", "fed", "reserve", "credit"]):
+            return "financial_power"
+        if any(w in topic_lower for w in ["ai", "future", "obsolete", "automation"]):
+            return "technological_disruption"
+        return "hidden_truth"
+    
+    def _estimate_documentary_length(self, metrics: Dict) -> int:
+        """Estimate optimal documentary length based on metrics."""
+        avd = metrics.get("avd_pct", 50)
+        
+        # Higher AVD = audience can handle longer content
+        if avd > 85:
+            return 20  # 20 minute documentary
+        elif avd > 75:
+            return 15  # 15 minute documentary
+        else:
+            return 10  # 10 minute documentary
+    
+    def _calculate_revenue_multiplier(self, metrics: Dict) -> str:
+        """Calculate expected revenue multiplier for longform."""
+        # Shorts RPM: $0.02-0.08, Longform RPM: $12-30+
+        # Multiplier: 170x-850x per view
+        rpm = metrics.get("rpm", 0.05)
+        if rpm >= 0.08:
+            return "170x-200x"
+        elif rpm >= 0.05:
+            return "200x-400x"
+        else:
+            return "400x-850x"
 
 
 # ============================================================
@@ -866,7 +1006,7 @@ def main():
     
     if len(sys.argv) < 2:
         print("Usage: python aave_engine.py <command>")
-        print("Commands: stats, select, evolve, topics, init")
+        print("Commands: stats, select, evolve, topics, init, winners")
         return
     
     cmd = sys.argv[1].lower()
@@ -898,6 +1038,55 @@ def main():
         engine.dna_pool = engine._initialize_dna_pool()
         engine._save_dna_pool()
         print("DNA pool initialized with diverse strains")
+    
+    elif cmd == "winners":
+        # Parse optional arguments
+        min_avd = 75.0
+        for arg in sys.argv[2:]:
+            if arg.startswith("--min-avd="):
+                min_avd = float(arg.split("=")[1])
+        
+        winners = engine.get_winners(min_avd=min_avd)
+        
+        print("\n=== GOLDEN GATE WINNERS ===")
+        print(f"Thresholds: AVD > {min_avd}%, RPM > $0.05, Replay > 15%")
+        print("-" * 60)
+        
+        if not winners:
+            print("No winners found meeting criteria.")
+            print("Tips: Lower thresholds or wait for more video metrics.")
+        else:
+            for i, w in enumerate(winners, 1):
+                print(f"\n{i}. {w['topic'][:50]}...")
+                print(f"   Video ID: {w['video_id']}")
+                print(f"   Fitness: {w['fitness_score']} | Criteria Passed: {w['criteria_passed']}/3")
+                m = w['metrics']
+                print(f"   AVD: {m['avd_pct']}% | RPM: ${m['rpm']:.3f} | Replay: {m['replay_rate']}%")
+                print(f"   Views: {m['views_total']:,}")
+            
+            print(f"\n✅ {len(winners)} winner(s) ready for longform expansion")
+            print("Run: python -m workflows.longform_mode <video_id>")
+    
+    elif cmd == "expansion":
+        # Get top expansion candidates (for n8n integration)
+        limit = 5
+        for arg in sys.argv[2:]:
+            if arg.startswith("--limit="):
+                limit = int(arg.split("=")[1])
+        
+        candidates = engine.get_expansion_candidates(limit=limit)
+        
+        # Output as JSON for n8n consumption
+        print(json.dumps({
+            "status": "success",
+            "candidates": candidates,
+            "count": len(candidates),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }, indent=2))
+    
+    else:
+        print(f"Unknown command: {cmd}")
+        print("Commands: stats, select, evolve, topics, init, winners, expansion")
 
 
 if __name__ == "__main__":
