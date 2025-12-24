@@ -1,6 +1,686 @@
 """
 ============================================================
-MONEY MACHINE - QUALITY GATES ENGINE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}  ]    }      "updatedAt": "2025-01-01T00:00:00.000Z"      "createdAt": "2025-01-01T00:00:00.000Z",      "name": "Money-Machine",    {    },      "updatedAt": "2025-01-01T00:00:00.000Z"      "createdAt": "2025-01-01T00:00:00.000Z",      "name": "Self-Healing",    {    },      "updatedAt": "2025-01-01T00:00:00.000Z"      "createdAt": "2025-01-01T00:00:00.000Z",      "name": "Elite",    {  "tags": [  },    "instanceId": "elite-money-machine-v1"    "templateCredsSetupCompleted": false,  "meta": {  "pinData": {},  "staticData": null,  },    "errorWorkflow": "error-trigger-global"    "callerPolicy": "workflowsFromSameOwner",    "saveManualExecutions": true,    "executionOrder": "v1",  "settings": {  },    }      ]        ]          }            "index": 0            "type": "main",            "node": "🔄 Self-Improvement Logic",          {        [      "main": [    "🚀 Expansion Engine": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "🚀 Expansion Engine",          {        [      "main": [    "📊 Performance Analyzer": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📊 Performance Analyzer",          {        [      "main": [    "📈 Analytics Scan (6hr)": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📱 Success Alert",          {        [      "main": [    "📋 Log to Airtable": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📋 Log to Airtable",          {        [      "main": [    "🧬 DNA Extractor": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "🧬 DNA Extractor",          {        [      "main": [    "📺 YouTube Upload": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📺 YouTube Upload",          {        [      "main": [    "📊 YouTube Metadata": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "⚠️ Partial Alert",          {        [        ],          }            "index": 0            "type": "main",            "node": "📊 YouTube Metadata",          {        [      "main": [    "✅ Quality Gate": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "✅ Quality Gate",          {        [      "main": [    "📦 Asset Aggregator": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📦 Asset Aggregator",          {        [      "main": [    "🎨 Leonardo Visuals": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📦 Asset Aggregator",          {        [      "main": [    "☁️ Save Audio to Drive": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "☁️ Save Audio to Drive",          {        [      "main": [    "🎙️ ElevenLabs Voice": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "🎨 Leonardo Visuals",          {          },            "index": 0            "type": "main",            "node": "🎙️ ElevenLabs Voice",          {        [      "main": [    "⚡ Script Processor": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "⚡ Script Processor",          {        [      "main": [    "📝 Elite Script Architect": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📝 Elite Script Architect",          {        [      "main": [    "🧠 AAVE Brain - Topic Selector": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "🧠 AAVE Brain - Topic Selector",          {        [      "main": [    "🎯 Manual Trigger": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "🧠 AAVE Brain - Topic Selector",          {        [      "main": [    "💓 30min Heartbeat": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "📱 Alert to Phone",          {        [      "main": [    "⚡ Error Intelligence": {    },      ]        ]          }            "index": 0            "type": "main",            "node": "⚡ Error Intelligence",          {        [      "main": [    "🚨 Global Error Handler": {  "connections": {  ],    }      "position": [1000, 900]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "🔄 Self-Improvement Logic",      "id": "self-improvement",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🔄 SELF-IMPROVEMENT ENGINE - Mutation Based on Performance\n// ════════════════════════════════════════════════════════════════\n\n// This is the AAVE mutation logic that evolves the content strategy\n\nconst mutationEngine = {\n  mutation_rules: [\n    {\n      condition: 'AVD < 50%',\n      action: 'STRENGTHEN_HOOK',\n      adjustment: 'Increase pattern interrupt intensity in first 3 seconds'\n    },\n    {\n      condition: 'CTR < 3%',\n      action: 'OPTIMIZE_THUMBNAIL',\n      adjustment: 'Test high-contrast colors and facial expressions'\n    },\n    {\n      condition: 'Engagement < 3%',\n      action: 'ADD_CONTROVERSY',\n      adjustment: 'Increase provocative statements and open loops'\n    },\n    {\n      condition: 'RPM < $0.03',\n      action: 'SHIFT_NICHE',\n      adjustment: 'Move toward higher CPM topics (investing > budgeting)'\n    }\n  ],\n  learning_window: '7 days',\n  mutation_frequency: 'Weekly',\n  genetic_inheritance: 'Winners pass DNA to next generation of content'\n};\n\nreturn [{ json: mutationEngine }];"      "parameters": {    {    },      "position": [700, 900]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "🚀 Expansion Engine",      "id": "expansion-engine",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🚀 EXPANSION DECISION ENGINE - Shorts → Documentary\n// ════════════════════════════════════════════════════════════════\n\n// This node would receive winner data and decide on expansion\n\nconst expansionProtocol = {\n  expansion_type: 'DOCUMENTARY',\n  target_duration: '10-15 minutes',\n  act_structure: [\n    'ACT 1: Hook (Shorts DNA - first 60 seconds)',\n    'ACT 2: Historical Context',\n    'ACT 3: The Hidden Mechanism',\n    'ACT 4: Global Impact',\n    'ACT 5: Resolution & Call to Action'\n  ],\n  production_specs: {\n    resolution: '3840x2160',\n    bitrate: '18M',\n    audio_quality: 'studio_dry',\n    visual_style: 'ken_burns_parallax'\n  },\n  trigger_conditions: 'AVD > 75% AND RPM > $0.05 AND Views > 1000'\n};\n\nreturn [{ json: expansionProtocol }];"      "parameters": {    {    },      "position": [400, 900]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "📊 Performance Analyzer",      "id": "performance-analyzer",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 📈 PERFORMANCE ANALYZER - Identify Winners for Expansion\n// ════════════════════════════════════════════════════════════════\n\nconst WINNER_THRESHOLDS = {\n  min_avd: 75,          // Average View Duration %\n  min_rpm: 0.05,        // Revenue per 1000 views\n  min_views: 1000,      // Minimum views to qualify\n  min_engagement: 5     // Engagement rate %\n};\n\n// This would normally fetch from YouTube Analytics API\n// For now, it returns the analysis framework\n\nconst analysisFramework = {\n  thresholds: WINNER_THRESHOLDS,\n  scan_time: new Date().toISOString(),\n  action: 'SCAN_FOR_WINNERS',\n  next_steps: [\n    'Fetch recent videos from Airtable DNA log',\n    'Query YouTube Analytics for each video',\n    'Compare metrics against thresholds',\n    'Flag winners for longform expansion',\n    'Update DNA records with performance data'\n  ]\n};\n\nreturn [{ json: analysisFramework }];"      "parameters": {    {    },      "position": [100, 900]      "typeVersion": 1.2,      "type": "n8n-nodes-base.scheduleTrigger",      "name": "📈 Analytics Scan (6hr)",      "id": "analytics-trigger",      },        }          ]            }              "hoursInterval": 6              "field": "hours",            {          "interval": [        "rule": {      "parameters": {    {    },      "waitBetweenTries": 5000      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Telegram Bot"          "id": "TELEGRAM_CRED_ID",        "telegramApi": {      "credentials": {      "position": [2300, 700],      "typeVersion": 1.2,      "type": "n8n-nodes-base.telegram",      "name": "⚠️ Partial Alert",      "id": "partial-notify",      },        }          "parse_mode": "Markdown"        "additionalFields": {        "text": "=⚠️ **PARTIAL GENERATION**\n\n🎯 Topic: {{ $json.topic }}\n\n**Missing Assets:**\n{{ $json.pipeline.missing_assets.join(', ') || 'Unknown' }}\n\n🔧 The system will retry on next cycle.\n\n**Available:**\n- Script: {{ $json.script?.word_count || 0 }} words\n- Audio: {{ $json.audio?.drive_link ? '✅' : '❌' }}\n- Visuals: {{ $json.visuals?.images?.length || 0 }} images",        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",      "parameters": {    {    },      "waitBetweenTries": 5000      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Telegram Bot"          "id": "TELEGRAM_CRED_ID",        "telegramApi": {      "credentials": {      "position": [3100, 400],      "typeVersion": 1.2,      "type": "n8n-nodes-base.telegram",      "name": "📱 Success Alert",      "id": "success-notify",      },        }          "parse_mode": "Markdown"        "additionalFields": {        "text": "=✅ **CONTENT PUBLISHED**\n\n📹 **{{ $node['📊 YouTube Metadata'].json.title }}**\n\n🔗 {{ $node['🧬 DNA Extractor'].json.video_url || 'Processing...' }}\n\n📊 **Stats:**\n- Words: {{ $node['📊 YouTube Metadata'].json.assets.script.word_count }}\n- Archetype: {{ $node['📊 YouTube Metadata'].json.assets.archetype }}\n\n⏱️ Uploaded: {{ $node['🧬 DNA Extractor'].json.uploaded_at }}",        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",      "parameters": {    {    },      "waitBetweenTries": 5000      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Airtable Token"          "id": "AIRTABLE_CRED_ID",        "airtableTokenApi": {      "credentials": {      "position": [2900, 400],      "typeVersion": 2.1,      "type": "n8n-nodes-base.airtable",      "name": "📋 Log to Airtable",      "id": "airtable-log",      },        "options": {}        },          "value": {}          "mappingMode": "autoMapInputData",        "columns": {        },          "mode": "name"          "value": "Content DNA",          "__rl": true,        "sheetName": {        },          "mode": "id"          "value": "={{ $env.AIRTABLE_BASE_ID }}",          "__rl": true,        "documentId": {        "operation": "append",      "parameters": {    {    },      "position": [2700, 400]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "🧬 DNA Extractor",      "id": "dna-extractor",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🧬 DNA EXTRACTION - Learn from this execution\n// ════════════════════════════════════════════════════════════════\n\nconst metadata = $node['📊 YouTube Metadata'].json || {};\nconst uploadResult = $input.all()[0]?.json || {};\n\nconst dnaRecord = {\n  // Video identification\n  video_id: uploadResult.id || 'pending',\n  video_url: uploadResult.id ? `https://youtube.com/shorts/${uploadResult.id}` : null,\n  \n  // Content DNA\n  topic: metadata.assets?.topic,\n  archetype: metadata.assets?.archetype,\n  visual_intent: metadata.assets?.visuals?.visual_intent,\n  word_count: metadata.assets?.script?.word_count,\n  \n  // Tracking fields (to be updated by analytics workflow)\n  metrics: {\n    views: 0,\n    retention_rate: null,\n    rpm: null,\n    engagement_rate: null\n  },\n  \n  // Status\n  uploaded_at: new Date().toISOString(),\n  status: uploadResult.id ? 'PUBLISHED' : 'PENDING_UPLOAD',\n  expansion_eligible: false, // Set to true when metrics exceed threshold\n  \n  // Execution tracking\n  execution_id: $execution?.id\n};\n\nreturn [{ json: dnaRecord }];"      "parameters": {    {    },      "onError": "continueRegularOutput"      "waitBetweenTries": 10000,      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "YouTube OAuth"          "id": "YOUTUBE_CRED_ID",        "youTubeOAuth2Api": {      "credentials": {      "position": [2500, 400],      "typeVersion": 1,      "type": "n8n-nodes-base.youTube",      "name": "📺 YouTube Upload",      "id": "youtube-upload",      },        }          "tags": "={{ $json.tags.join(',') }}"          "privacyStatus": "={{ $json.privacy }}",        "options": {        "description": "={{ $json.description }}",        "title": "={{ $json.title }}",        "resource": "video",      "parameters": {    {    },      "position": [2300, 400]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "📊 YouTube Metadata",      "id": "youtube-metadata",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 📊 YOUTUBE METADATA GENERATOR - SEO Optimized\n// ════════════════════════════════════════════════════════════════\n\nconst assets = $input.all()[0]?.json || {};\n\nconst HASHTAGS = {\n  system_reveal: '#money #wealth #financialfreedom #investing #richvsrich',\n  hidden_mechanism: '#taxes #economy #inflation #finance #truth',\n  lifestyle_hack: '#savemoney #budgeting #personalfinance #moneytips',\n  psychology_reveal: '#psychology #mindset #wealthmindset #success',\n  conspiracy_lite: '#system #middleclass #economy #awakening',\n  urgency_narrative: '#wealthtransfer #opportunity #investing #now'\n};\n\nconst POWER_WORDS = ['SECRET', 'HIDDEN', 'EXPOSED', 'TRUTH', 'REALITY', 'REVEALED'];\n\nfunction generateTitle(topic, archetype) {\n  const powerWord = POWER_WORDS[Math.floor(Math.random() * POWER_WORDS.length)];\n  const templates = [\n    `${topic} (${powerWord})`,\n    `The ${powerWord} About ${topic.split(' ').slice(-3).join(' ')}`,\n    `${topic} - What They Don't Tell You`\n  ];\n  return templates[Math.floor(Math.random() * templates.length)];\n}\n\nfunction generateDescription(topic, script) {\n  const preview = script?.substring(0, 150) || '';\n  return `${preview}...\n\n🔔 Subscribe for more wealth secrets\n\n${HASHTAGS[assets.archetype] || '#money #finance'}\n\n⚠️ This is educational content only. Not financial advice.`;\n}\n\nconst youtubeMetadata = {\n  title: generateTitle(assets.topic, assets.archetype),\n  description: generateDescription(assets.topic, assets.script?.optimized),\n  tags: [\n    'money', 'wealth', 'finance', 'investing', 'rich',\n    'financial freedom', 'passive income', 'money tips',\n    assets.archetype?.replace('_', ' '),\n    ...assets.visuals?.asset_keywords || []\n  ].filter(Boolean),\n  category: '22', // People & Blogs\n  privacy: 'public',\n  madeForKids: false,\n  assets: assets\n};\n\nreturn [{ json: youtubeMetadata }];"      "parameters": {    {    },      "position": [2100, 500]      "typeVersion": 2,      "type": "n8n-nodes-base.if",      "name": "✅ Quality Gate",      "id": "quality-gate",      },        }          ]            }              }                "operation": "equals"                "type": "string",              "operator": {              "rightValue": "COMPLETE",              "leftValue": "={{ $json.pipeline.status }}",              "id": "pipeline-status",            {          "conditions": [          },            "typeValidation": "strict"            "leftValue": "",            "caseSensitive": true,          "options": {        "conditions": {      "parameters": {    {    },      "position": [1900, 500]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "📦 Asset Aggregator",      "id": "asset-aggregator",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🎬 ASSET AGGREGATOR - Combine all generated assets\n// ════════════════════════════════════════════════════════════════\n\nconst scriptData = $node['⚡ Script Processor'].json || {};\nconst audioData = $node['☁️ Save Audio to Drive'].json || {};\nconst visualData = $node['🎨 Leonardo Visuals'].json || {};\n\n// Validate critical assets\nconst hasAudio = audioData.id || audioData.webViewLink;\nconst hasVisuals = visualData.generations?.length > 0 || visualData.generatedImages?.length > 0;\n\nif (!hasAudio) {\n  console.log('⚠️ WARNING: Audio generation may have failed');\n}\n\n// Build comprehensive asset package\nconst assetPackage = {\n  // Content metadata\n  topic: scriptData.topic,\n  archetype: scriptData.archetype,\n  content_type: scriptData.content_type,\n  \n  // Script assets\n  script: {\n    raw: scriptData.script_raw,\n    optimized: scriptData.script_optimized,\n    word_count: scriptData.word_count,\n    duration_estimate: scriptData.estimated_duration_seconds\n  },\n  \n  // Audio assets\n  audio: {\n    drive_id: audioData.id || null,\n    drive_link: audioData.webViewLink || null,\n    download_link: audioData.webContentLink || null,\n    filename: audioData.name || null\n  },\n  \n  // Visual assets\n  visuals: {\n    images: visualData.generations || visualData.generatedImages || [],\n    visual_intent: scriptData.visual_intent,\n    asset_keywords: scriptData.visual_assets\n  },\n  \n  // Pipeline metadata\n  pipeline: {\n    generated_at: new Date().toISOString(),\n    execution_id: $execution?.id,\n    status: hasAudio && hasVisuals ? 'COMPLETE' : 'PARTIAL',\n    missing_assets: []\n      .concat(!hasAudio ? ['audio'] : [])\n      .concat(!hasVisuals ? ['visuals'] : [])\n  }\n};\n\nreturn [{ json: assetPackage }];"      "parameters": {    {    },      "onError": "continueRegularOutput"      "waitBetweenTries": 15000,      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Leonardo API"          "id": "LEONARDO_CRED_ID",        "httpHeaderAuth": {      "credentials": {      "position": [1300, 600],      "typeVersion": 4.2,      "type": "n8n-nodes-base.httpRequest",      "name": "🎨 Leonardo Visuals",      "id": "visual-generator",      },        }          "timeout": 180000        "options": {        "jsonBody": "={\n  \"prompt\": \"Cinematic {{ $node['⚡ Script Processor'].json.visual_assets[0] || 'finance' }} scene, dark moody lighting, 8k resolution, film grain, dramatic shadows, professional photography, {{ $node['⚡ Script Processor'].json.visual_intent }} aesthetic\",\n  \"negative_prompt\": \"text, watermark, low quality, blurry, cartoon, anime\",\n  \"modelId\": \"6bef9f1b-29cb-40c7-b9df-32b51c1f67d3\",\n  \"width\": 1080,\n  \"height\": 1920,\n  \"num_images\": 4,\n  \"guidance_scale\": 7\n}",        "specifyBody": "json",        "sendBody": true,        "genericAuthType": "httpHeaderAuth",        "authentication": "genericCredentialType",        "url": "https://api.leonardo.ai/v1/generations",        "method": "POST",      "parameters": {    {    },      "waitBetweenTries": 5000      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Google Drive"          "id": "GDRIVE_CRED_ID",        "googleDriveOAuth2Api": {      "credentials": {      "position": [1600, 400],      "typeVersion": 3,      "type": "n8n-nodes-base.googleDrive",      "name": "☁️ Save Audio to Drive",      "id": "drive-upload-audio",      },        "options": {}        "folderId": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}",        "name": "={{ $node['⚡ Script Processor'].json.topic.replace(/[^a-zA-Z0-9]/g, '_') }}_{{ Date.now() }}.mp3",        "operation": "upload",      "parameters": {    {    },      "onError": "continueRegularOutput"      "waitBetweenTries": 10000,      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "ElevenLabs API"          "id": "ELEVENLABS_CRED_ID",        "httpHeaderAuth": {      "credentials": {      "position": [1300, 400],      "typeVersion": 4.2,      "type": "n8n-nodes-base.httpRequest",      "name": "🎙️ ElevenLabs Voice",      "id": "voice-generator",      },        }          "timeout": 120000          },            }              "responseFormat": "file"            "response": {          "response": {        "options": {        "jsonBody": "={\n  \"text\": \"{{ $json.script_optimized }}\",\n  \"model_id\": \"eleven_multilingual_v2\",\n  \"voice_settings\": {\n    \"stability\": 0.5,\n    \"similarity_boost\": 0.8,\n    \"style\": 0.4,\n    \"use_speaker_boost\": true\n  }\n}",        "specifyBody": "json",        "sendBody": true,        "genericAuthType": "httpHeaderAuth",        "authentication": "genericCredentialType",        "url": "https://api.elevenlabs.io/v1/text-to-speech/={{ $env.ELEVENLABS_VOICE_ID }}",        "method": "POST",      "parameters": {    {    },      "position": [1000, 400]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "⚡ Script Processor",      "id": "script-processor",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🎙️ VOICE GENERATION ORCHESTRATOR\n// ════════════════════════════════════════════════════════════════\n\nconst input = $input.all()[0]?.json || {};\nconst previousData = $node['🧠 AAVE Brain - Topic Selector'].json || {};\n\nconst script = input.message?.content || input.text || '';\n\nif (!script || script.length < 50) {\n  throw new Error('SCRIPT_TOO_SHORT: Generated script is invalid or empty');\n}\n\n// Clean and optimize script for TTS\nfunction optimizeForTTS(text) {\n  return text\n    .replace(/\\n{2,}/g, ' ... ')  // Natural pauses\n    .replace(/\\*\\*/g, '')          // Remove markdown\n    .replace(/[#_]/g, '')          // Remove formatting\n    .replace(/\\s+/g, ' ')          // Normalize whitespace\n    .trim();\n}\n\nconst optimizedScript = optimizeForTTS(script);\nconst wordCount = optimizedScript.split(/\\s+/).length;\nconst estimatedDuration = Math.ceil(wordCount / 2.5); // ~150 words/min\n\nreturn [{\n  json: {\n    topic: previousData.topic,\n    archetype: previousData.archetype,\n    visual_intent: previousData.visual_intent,\n    visual_assets: previousData.visual_assets,\n    script_raw: script,\n    script_optimized: optimizedScript,\n    word_count: wordCount,\n    estimated_duration_seconds: estimatedDuration,\n    content_type: estimatedDuration <= 60 ? 'SHORT' : 'LONGFORM',\n    generation_timestamp: new Date().toISOString()\n  }\n}];"      "parameters": {    {    },      "onError": "continueRegularOutput"      "waitBetweenTries": 5000,      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "OpenAI API"          "id": "OPENAI_CRED_ID",        "openAiApi": {      "credentials": {      "position": [700, 400],      "typeVersion": 1.4,      "type": "@n8n/n8n-nodes-langchain.openAi",      "name": "📝 Elite Script Architect",      "id": "script-generator",      },        }          "maxTokens": 400          "temperature": 0.8,        "options": {        },          ]            }              "content": "=Write a 60-second viral script about: {{ $json.topic }}\n\nArchetype: {{ $json.archetype }}\nVisual Intent: {{ $json.visual_intent }}"              "role": "user",            {            },              "content": "You are an elite YouTube Shorts scriptwriter specializing in finance/wealth content. Your scripts are designed for MAXIMUM retention:\n\n**HOOK FORMULA (First 3 seconds):**\n- Pattern interrupt (shocking stat/question)\n- Direct address (\"You're being...\")\n- Controversy trigger\n\n**STRUCTURE:**\n1. HOOK (0-3s): Pattern interrupt\n2. PROBLEM (3-15s): Agitate the pain\n3. MECHANISM (15-35s): The hidden \"how\"\n4. PAYOFF (35-50s): The revelation\n5. CTA (50-60s): Engagement trigger\n\n**VOICE:**\n- Authoritative but accessible\n- Short punchy sentences\n- Rhetorical questions\n- Power words: \"secret\", \"hidden\", \"rigged\", \"exposed\"\n\nOutput ONLY the script. No titles, no labels, no timestamps. Pure narration text."              "role": "system",            {          "values": [        "messages": {        "model": "gpt-4o",      "parameters": {    {    },      "position": [400, 400]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "🧠 AAVE Brain - Topic Selector",      "id": "aave-brain",      },        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🧠 AAVE INTELLIGENCE ENGINE - Topic Selection & DNA Extraction\n// ════════════════════════════════════════════════════════════════\n\nconst ELITE_TOPIC_POOL = [\n  // SYSTEM REVEALS (Kiyosaki Framework)\n  { topic: \"Why the Rich Use Debt as a Weapon\", archetype: \"system_reveal\", visual_intent: \"power_finance\", priority: 95 },\n  { topic: \"The Hidden Tax That Steals Your Wealth\", archetype: \"hidden_mechanism\", visual_intent: \"surveillance\", priority: 92 },\n  { topic: \"Why Banks Want You Broke\", archetype: \"system_reveal\", visual_intent: \"corporate_power\", priority: 90 },\n  { topic: \"The 3 Money Lies They Teach in School\", archetype: \"education_expose\", visual_intent: \"deception\", priority: 88 },\n  \n  // LIFESTYLE ARBITRAGE (Graham Stephan Framework)\n  { topic: \"How I Save 50% of My Income Automatically\", archetype: \"lifestyle_hack\", visual_intent: \"wealth_building\", priority: 87 },\n  { topic: \"The Credit Card Hack Banks Hate\", archetype: \"system_exploit\", visual_intent: \"financial_hack\", priority: 85 },\n  { topic: \"Why Your Savings Account is Losing Money\", archetype: \"hidden_loss\", visual_intent: \"inflation_visual\", priority: 84 },\n  \n  // PSYCHOLOGY (Andrei Jikh Framework)\n  { topic: \"The Psychology of Why You Stay Poor\", archetype: \"psychology_reveal\", visual_intent: \"human_behavior\", priority: 91 },\n  { topic: \"Why the Middle Class is Disappearing by Design\", archetype: \"conspiracy_lite\", visual_intent: \"systems_control\", priority: 93 },\n  { topic: \"The Wealth Transfer Happening Right Now\", archetype: \"urgency_narrative\", visual_intent: \"economic_shift\", priority: 89 }\n];\n\nconst VISUAL_DNA_MAP = {\n  power_finance: [\"skyscrapers\", \"vaults\", \"dark_boardrooms\", \"luxury_suits\"],\n  surveillance: [\"cameras\", \"data_streams\", \"government_buildings\", \"documents\"],\n  corporate_power: [\"wall_street\", \"bank_buildings\", \"money_stacks\", \"contracts\"],\n  deception: [\"masks\", \"shadows\", \"fine_print\", \"manipulation\"],\n  wealth_building: [\"compound_growth\", \"real_estate\", \"investment_charts\", \"passive_income\"],\n  financial_hack: [\"credit_cards\", \"points\", \"travel\", \"rewards\"],\n  inflation_visual: [\"shrinking_dollar\", \"price_tags\", \"grocery_costs\", \"fed_building\"],\n  human_behavior: [\"brain_scans\", \"decision_making\", \"crowd_psychology\", \"emotions\"],\n  systems_control: [\"chess_pieces\", \"puppet_strings\", \"class_divide\", \"policy_documents\"],\n  economic_shift: [\"wealth_gap\", \"market_crashes\", \"opportunity_zones\", \"timing\"]\n};\n\n// Select topic using weighted randomization favoring high priority\nfunction selectEliteTopic() {\n  const totalWeight = ELITE_TOPIC_POOL.reduce((sum, t) => sum + t.priority, 0);\n  let random = Math.random() * totalWeight;\n  \n  for (const topic of ELITE_TOPIC_POOL) {\n    random -= topic.priority;\n    if (random <= 0) {\n      return {\n        ...topic,\n        visual_assets: VISUAL_DNA_MAP[topic.visual_intent] || [],\n        selected_at: new Date().toISOString(),\n        execution_id: $execution?.id || 'manual'\n      };\n    }\n  }\n  return { ...ELITE_TOPIC_POOL[0], visual_assets: VISUAL_DNA_MAP[ELITE_TOPIC_POOL[0].visual_intent] };\n}\n\nconst selected = selectEliteTopic();\n\nreturn [{ json: selected }];"      "parameters": {    {    },      "webhookId": "money-machine-trigger"      "position": [100, 500],      "typeVersion": 2,      "type": "n8n-nodes-base.webhook",      "name": "🎯 Manual Trigger",      "id": "webhook-trigger",      },        "options": {}        "genericAuthType": "httpHeaderAuth",        "authentication": "genericCredentialType",        "url": "={{ $env.WEBHOOK_MANUAL_TRIGGER }}",        "method": "POST",      "parameters": {    {    },      "position": [100, 300]      "typeVersion": 1.2,      "type": "n8n-nodes-base.scheduleTrigger",      "name": "💓 30min Heartbeat",      "id": "heartbeat-trigger",      },        }          ]            }              "minutesInterval": 30              "field": "minutes",            {          "interval": [        "rule": {      "parameters": {    {    },      "waitBetweenTries": 5000      "maxTries": 3,      "retryOnFail": true,      },        }          "name": "Telegram Bot"          "id": "TELEGRAM_CRED_ID",        "telegramApi": {      "credentials": {      "position": [2800, -200],      "typeVersion": 1.2,      "type": "n8n-nodes-base.telegram",      "name": "📱 Alert to Phone",      "id": "error-notify-telegram",      },        }          "parse_mode": "Markdown"        "additionalFields": {        "text": "=🚨 **MONEY MACHINE ALERT**\n\n**Severity:** {{ $json.severity }}\n**Node:** {{ $json.node_failed }}\n**Type:** {{ $json.error_type }}\n**Time:** {{ $json.timestamp }}\n\n**Message:**\n```{{ $json.message }}```\n\n**Recovery:** {{ $json.recovery_action }}\n\n🔗 [View Execution]({{ $env.N8N_URL }}/execution/{{ $json.execution_id }})",        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",      "parameters": {    {    },      "position": [2600, -200]      "typeVersion": 2,      "type": "n8n-nodes-base.code",      "name": "⚡ Error Intelligence",      "id": "error-processor",      },        "jsCode": "// ELITE ERROR PROCESSOR - Extract actionable intelligence\nconst error = $input.all()[0]?.json || {};\nconst executionId = $execution?.id || 'unknown';\nconst workflowName = $workflow?.name || 'Money Machine';\nconst timestamp = new Date().toISOString();\n\n// Build forensic error report\nconst errorReport = {\n  severity: error.message?.includes('rate limit') ? 'WARN' : 'CRITICAL',\n  execution_id: executionId,\n  workflow: workflowName,\n  timestamp: timestamp,\n  node_failed: error.node?.name || 'Unknown Node',\n  error_type: error.message?.includes('timeout') ? 'TIMEOUT' : \n              error.message?.includes('401') ? 'AUTH_FAILURE' :\n              error.message?.includes('429') ? 'RATE_LIMIT' :\n              error.message?.includes('500') ? 'API_DOWN' : 'UNKNOWN',\n  message: error.message || 'No message',\n  stack: error.stack?.substring(0, 500) || 'No stack',\n  recovery_action: getRecoveryAction(error)\n};\n\nfunction getRecoveryAction(err) {\n  if (err.message?.includes('rate limit') || err.message?.includes('429')) {\n    return 'AUTO_RETRY_DELAYED';\n  }\n  if (err.message?.includes('timeout')) {\n    return 'AUTO_RETRY_IMMEDIATE';\n  }\n  if (err.message?.includes('401') || err.message?.includes('403')) {\n    return 'CHECK_CREDENTIALS';\n  }\n  return 'MANUAL_REVIEW';\n}\n\nreturn [{ json: errorReport }];"      "parameters": {    {    },      "position": [2400, -200]      "typeVersion": 1,      "type": "n8n-nodes-base.errorTrigger",      "name": "🚨 Global Error Handler",      "id": "error-trigger-global",      "parameters": {},    {  "nodes": [MONEY MACHINE - QUALITY GATES ENGINE
 Elite Pre-Upload Validation & Channel Protection
 ============================================================
 NEVER upload broken content. Quarantine instead.
@@ -45,6 +725,10 @@ class QualityConfig:
     MIN_WORDS_PER_SENTENCE = 3
     MAX_WORDS_PER_SENTENCE = 18
     
+    # 🛡️ FILE INTEGRITY REQUIREMENTS (Blocking Authority)
+    MIN_SHORT_SIZE_MB = 15  # Elite 8Mbps Short must be >15MB
+    MIN_LONGFORM_SIZE_MB = 100  # Documentary must be >100MB
+    
     # Paths
     BASE_DIR = Path(__file__).parent.parent
     QUARANTINE_DIR = BASE_DIR / "data" / "quarantine"
@@ -53,6 +737,82 @@ class QualityConfig:
     SAFE_MODE_CHANNELS = [
         "UCZppwcvPrWlAG0vb78elPJA",  # Money machine ai
     ]
+
+
+# ============================================================
+# 🛡️ FILE INTEGRITY GUARD (Blocking Authority Fix)
+# ============================================================
+
+def validate_file_integrity(file_path: str, content_type: str = "SHORT") -> Tuple[bool, dict]:
+    """
+    Blocks uploads of corrupted/partial renders.
+    This is the FINAL gate before any upload.
+    
+    Args:
+        file_path: Path to video file
+        content_type: "SHORT" or "LONGFORM"
+    
+    Returns:
+        (passed, report) - Whether file passes integrity check
+    """
+    report = {
+        "file_path": file_path,
+        "content_type": content_type,
+        "passed": False,
+        "errors": []
+    }
+    
+    if not os.path.exists(file_path):
+        report["errors"].append("FILE_NOT_FOUND")
+        return False, report
+    
+    file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    report["file_size_mb"] = round(file_size_mb, 2)
+    
+    # Size thresholds based on content type
+    min_size = QualityConfig.MIN_SHORT_SIZE_MB if content_type == "SHORT" else QualityConfig.MIN_LONGFORM_SIZE_MB
+    
+    if file_size_mb < min_size:
+        report["errors"].append(f"FILE_TOO_SMALL: {file_size_mb:.2f}MB < {min_size}MB minimum")
+        print(f"🚫 [GATE] Integrity FAILED: {file_size_mb:.2f}MB is too small. Suspected corruption.")
+        return False, report
+    
+    # Verify video is playable using ffprobe
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration,bit_rate",
+             "-of", "json", file_path],
+            capture_output=True, text=True, timeout=30
+        )
+        
+        if result.returncode != 0:
+            report["errors"].append("FFPROBE_FAILED: Cannot read video metadata")
+            return False, report
+        
+        probe_data = json.loads(result.stdout)
+        duration = float(probe_data.get("format", {}).get("duration", 0))
+        bitrate = int(probe_data.get("format", {}).get("bit_rate", 0))
+        
+        report["duration_seconds"] = round(duration, 2)
+        report["bitrate_mbps"] = round(bitrate / 1_000_000, 2)
+        
+        # Verify duration is reasonable
+        if content_type == "SHORT" and (duration < 10 or duration > 65):
+            report["errors"].append(f"DURATION_INVALID: {duration:.1f}s not in 10-65s range")
+            return False, report
+        
+        # Verify bitrate meets minimum
+        if bitrate < 2_000_000:  # 2 Mbps minimum
+            report["errors"].append(f"BITRATE_TOO_LOW: {bitrate/1_000_000:.2f} Mbps < 2 Mbps")
+            return False, report
+            
+    except Exception as e:
+        report["errors"].append(f"PROBE_ERROR: {str(e)}")
+        return False, report
+    
+    report["passed"] = True
+    print(f"💎 [GATE] Integrity Verified: {file_size_mb:.2f}MB @ {report['bitrate_mbps']}Mbps")
+    return True, report
 
 
 # ============================================================

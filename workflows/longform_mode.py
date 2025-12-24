@@ -651,12 +651,109 @@ What you do with that knowledge is up to you.
         
         result = await self.produce_documentary(demo_dna)
         return result
+    
+    async def produce_elite_documentary(self, topic: str) -> Optional[Path]:
+        """
+        Produce a documentary from a specified elite topic.
+        This is the God-Mode launcher for testing.
+        """
+        print(f"\n{'='*60}")
+        print(f"[LONGFORM] 🎬 ELITE DOCUMENTARY PRODUCTION")
+        print(f"[LONGFORM] Topic: {topic}")
+        print(f"{'='*60}\n")
+        
+        # Create DocumentaryDNA from elite topic
+        documentary_dna = DocumentaryDNA(
+            topic=topic,
+            theme=self._detect_theme_from_topic(topic),
+            hook_structure="threat",
+            emotional_trigger=self._detect_emotion_from_topic(topic),
+            visual_intent="power_finance",
+            curiosity_gaps=self._generate_curiosity_gaps(topic),
+            retention_pattern="front_loaded",
+            rpm_score=0.08,
+            source_short_id=f"elite_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
+        
+        print(f"[LONGFORM] Theme: {documentary_dna.theme}")
+        print(f"[LONGFORM] Emotion: {documentary_dna.emotional_trigger}")
+        
+        # Create synthetic winner data
+        elite_winner = {
+            "video_id": documentary_dna.source_short_id,
+            "topic": topic,
+            "dna": {},
+            "documentary_potential": {
+                "theme": documentary_dna.theme,
+                "estimated_length_minutes": 15,
+                "revenue_multiplier": "170x-850x",
+                "priority": "high"
+            },
+            "metrics": {"rpm": 0.08}
+        }
+        
+        # Generate expanded script
+        print("[LONGFORM] 📝 Generating 5-Act script...")
+        script = await self._expand_winner_to_script(elite_winner, documentary_dna)
+        word_count = len(script.split())
+        print(f"[LONGFORM] ✓ Generated {word_count} words")
+        
+        # Save script
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        script_path = SCRIPTS_DIR / f"elite_{timestamp}.txt"
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(script)
+        print(f"[LONGFORM] ✓ Script saved: {script_path}")
+        
+        # Generate audio using hardened engine
+        print("[LONGFORM] 🎙️ Generating narration...")
+        audio_path = AUDIO_DIR / f"elite_{timestamp}.mp3"
+        audio_result = await self.generate_audio(script, audio_path, documentary_dna)
+        
+        if not audio_result:
+            print("[LONGFORM] ❌ Audio generation failed - cannot proceed")
+            return None
+        
+        print(f"[LONGFORM] ✓ Audio generated: {audio_result}")
+        
+        # Assemble documentary
+        print("[LONGFORM] 🎥 Assembling documentary (this may take 10-15 min)...")
+        try:
+            output_path = await self.longform_builder.expand_to_documentary(
+                dna=documentary_dna,
+                audio_path=str(audio_result)
+            )
+            if output_path:
+                file_size = Path(output_path).stat().st_size / (1024 * 1024)
+                print(f"[LONGFORM] ✅ Documentary complete: {output_path}")
+                print(f"[LONGFORM] 📦 Size: {file_size:.1f} MB")
+                return Path(output_path)
+        except Exception as e:
+            print(f"[LONGFORM] ❌ Assembly error: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        return None
+    
+    def _detect_theme_from_topic(self, topic: str) -> str:
+        """Detect documentary theme from topic."""
+        topic_lower = topic.lower()
+        if any(w in topic_lower for w in ["rich", "wealth", "money", "billion", "class"]):
+            return "wealth_inequality"
+        if any(w in topic_lower for w in ["system", "control", "design", "algorithm"]):
+            return "systemic_manipulation"
+        if any(w in topic_lower for w in ["bank", "fed", "reserve", "credit"]):
+            return "financial_power"
+        if any(w in topic_lower for w in ["ai", "future", "obsolete", "automation"]):
+            return "technological_disruption"
+        return "hidden_truth"
 
 
 async def main():
     parser = argparse.ArgumentParser(description="Long-form Documentary Mode")
     parser.add_argument("--demo", action="store_true", help="Run demo production")
-    parser.add_argument("--topic", type=str, help="Custom topic for demo")
+    parser.add_argument("--topic", type=str, help="Custom topic for documentary")
+    parser.add_argument("--elite", action="store_true", help="Force elite topic (uses --topic as elite)")
     parser.add_argument("--batch", type=int, default=1, help="Number of documentaries to produce")
     parser.add_argument("--loop", action="store_true", help="Run continuously")
     parser.add_argument("--interval", type=int, default=86400, help="Loop interval in seconds (default: 24 hours)")
@@ -664,6 +761,24 @@ async def main():
     args = parser.parse_args()
     
     longform = LongformMode()
+    
+    # Elite mode: produce documentary from specified topic
+    if args.elite and args.topic:
+        print(f"\n[LONGFORM] 🔥 ELITE MODE ACTIVATED")
+        print(f"[LONGFORM] Topic: {args.topic}")
+        result = await longform.produce_elite_documentary(args.topic)
+        if result:
+            print(f"\n✅ Elite documentary: {result}")
+        return
+    
+    if args.topic and not args.demo:
+        # Direct topic mode
+        print(f"\n[LONGFORM] 🎬 TOPIC MODE")
+        print(f"[LONGFORM] Topic: {args.topic}")
+        result = await longform.produce_elite_documentary(args.topic)
+        if result:
+            print(f"\n✅ Documentary: {result}")
+        return
     
     if args.demo:
         result = await longform.run_demo(args.topic)

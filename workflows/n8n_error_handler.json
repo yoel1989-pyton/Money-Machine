@@ -1,0 +1,84 @@
+{
+  "name": "Money Machine Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ff65f095-0d75-47aa-b4ab-cbb154c4e0f2",
+      "name": "🚨 Global Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ELITE ERROR PROCESSOR - Extract actionable intelligence\nconst error = $input.all()[0]?.json || {};\nconst executionId = $execution?.id || 'unknown';\nconst workflowName = $workflow?.name || 'Money Machine';\nconst timestamp = new Date().toISOString();\n\n// Build forensic error report\nconst errorReport = {\n  severity: error.message?.includes('rate limit') ? 'WARN' : 'CRITICAL',\n  execution_id: executionId,\n  workflow: workflowName,\n  timestamp: timestamp,\n  node_failed: error.node?.name || 'Unknown Node',\n  error_type: error.message?.includes('timeout') ? 'TIMEOUT' : \n              error.message?.includes('401') ? 'AUTH_FAILURE' :\n              error.message?.includes('429') ? 'RATE_LIMIT' :\n              error.message?.includes('500') ? 'API_DOWN' : 'UNKNOWN',\n  message: error.message || 'No message',\n  stack: error.stack?.substring(0, 500) || 'No stack',\n  recovery_action: getRecoveryAction(error)\n};\n\nfunction getRecoveryAction(err) {\n  if (err.message?.includes('rate limit') || err.message?.includes('429')) {\n    return 'AUTO_RETRY_DELAYED';\n  }\n  if (err.message?.includes('timeout')) {\n    return 'AUTO_RETRY_IMMEDIATE';\n  }\n  if (err.message?.includes('401') || err.message?.includes('403')) {\n    return 'CHECK_CREDENTIALS';\n  }\n  return 'MANUAL_REVIEW';\n}\n\nreturn [{ json: errorReport }];"
+      },
+      "id": "7d0552eb-75a9-413f-8cf1-67309c504381",
+      "name": "⚡ Error Intelligence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=5033650061",
+        "text": "=🚨 **MONEY MACHINE ALERT**\n\n**Severity:** {{ $json.severity }}\n**Node:** {{ $json.node_failed }}\n**Type:** {{ $json.error_type }}\n**Time:** {{ $json.timestamp }}\n\n**Message:**\n```{{ $json.message }}```\n\n**Recovery:** {{ $json.recovery_action }}\n\n🔗 [View Execution]({{ 5033650061 }}/execution/{{ $json.execution_id }})",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c4eaf1e3-9514-415a-9241-4aa23f2be5f3",
+      "name": "📱 Alert to Phone",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "219b5b6e-a88c-4f38-bf04-cdeaf5f2b1fe",
+      "credentials": {
+        "telegramApi": {
+          "id": "CPsUKLsnXM2y51z1",
+          "name": "Omnipotenlator telegram"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "🚨 Global Error Handler": {
+      "main": [
+        [
+          {
+            "node": "⚡ Error Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚡ Error Intelligence": {
+      "main": [
+        [
+          {
+            "node": "📱 Alert to Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "6ed880d926ad8397b92373685b0d12b563fbbf9410c8428e2c46beea4e543f45"
+  }
+}

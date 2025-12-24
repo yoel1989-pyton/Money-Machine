@@ -62,6 +62,9 @@ class ContinuousMode:
         self.topic_pool = TopicPool()  # Self-rotating topic selection
         self.current_topic = None
         self.current_pool = None
+        self.elite_mode = False  # Force elite topic selection
+        self._forced_topic = None  # Override topic from CLI
+        self._force_upload = False  # Upload even with quota warnings
         self.stats = {
             "created": 0,
             "uploaded": 0,
@@ -71,6 +74,28 @@ class ContinuousMode:
     
     def get_next_topic(self) -> str:
         """Get next topic from self-rotating pool."""
+        # Check for forced topic first
+        if self._forced_topic:
+            self.current_topic = self._forced_topic
+            self.current_pool = "forced"
+            print(f"[FORCED] 🎯 Topic: {self.current_topic}")
+            return self.current_topic
+        
+        if self.elite_mode:
+            # Force elite topic from AAVE engine
+            try:
+                from engines.aave_engine import AAVEEngine, ELITE_TOPICS
+                aave = AAVEEngine()
+                topic_data, dna = aave.select_elite_topic()
+                self.current_topic = topic_data["topic"]
+                self.current_pool = "elite"
+                print(f"[ELITE] 🎯 Topic: {self.current_topic}")
+                print(f"[ELITE] 🧬 DNA ID: {dna.get_id()}")
+                print(f"[ELITE] 🎣 Hook: {topic_data['hook'].value}")
+                return self.current_topic
+            except Exception as e:
+                print(f"[ELITE] ⚠️ Fallback to regular pool: {e}")
+        
         self.current_topic, self.current_pool = self.topic_pool.get_next_topic()
         return self.current_topic
     
@@ -156,55 +181,67 @@ Structure:
         except:
             duration = 45.0
         
-        # Assemble (ELITE FIX: Forces video frames with MANDATORY bitrate floor)
-        # noise filter prevents entropy collapse that causes FFmpeg to over-compress
-        cmd = [
-            "ffmpeg", "-y",
-            # Loop background video infinitely
-            "-stream_loop", "-1",
-            "-i", bg_path,
-            # Add audio
-            "-i", audio_path,
-            # FORCE stream mapping (prevents audio-only)
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            # Force duration (cap at 58 seconds for Shorts)
-            "-t", str(min(duration, 58.0)),
-            # Video filter with motion, noise (anti-compression), format
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,eq=contrast=1.08:saturation=1.12,noise=alls=20:allf=t+u,format=yuv420p",
-            # Video codec with YouTube Shorts compliance - ELITE ENCODING
-            "-c:v", "libx264",
-            "-profile:v", "high",
-            "-level", "4.2",
-            "-preset", "slow",
-            "-pix_fmt", "yuv420p",
-            # MANDATORY BITRATE CONTROLS (prevents 200kbps disaster)
-            "-b:v", "8M",
-            "-minrate", "6M",
-            "-maxrate", "10M",
-            "-bufsize", "16M",
-            # GOP settings for Shorts
-            "-g", "60",
-            "-keyint_min", "60",
-            "-sc_threshold", "0",
-            # Audio codec
-            "-c:a", "aac",
-            "-b:a", "192k",
-            "-ar", "48000",
-            # Fast start for streaming
-            "-movflags", "+faststart",
-            # Output
-            output_path
-        ]
+        # ════════════════════════════════════════════════════════════════
+        # 🛡️ BLOCKING AUTHORITY FIX - Prevents asyncio cancellation
+        # Uses subprocess.run instead of asyncio to ensure FFmpeg completes
+        # ════════════════════════════════════════════════════════════════
         
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+        import subprocess as sp
+        import shlex
+        
+        # Build FFmpeg command as string for blocking execution
+        ffmpeg_cmd = (
+            f'ffmpeg -y -stream_loop -1 -i "{bg_path}" -i "{audio_path}" '
+            f'-map 0:v:0 -map 1:a:0 -t {min(duration, 58.0)} '
+            f'-vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,'
+            f'eq=contrast=1.08:saturation=1.12,noise=alls=20:allf=t+u,format=yuv420p" '
+            f'-c:v libx264 -profile:v high -level 4.2 -preset slow -pix_fmt yuv420p '
+            f'-b:v 8M -minrate 6M -maxrate 10M -bufsize 16M -g 60 -keyint_min 60 -sc_threshold 0 '
+            f'-c:a aac -b:a 192k -ar 48000 -movflags +faststart "{output_path}"'
         )
-        await process.communicate()
         
-        return output_path if os.path.exists(output_path) else None
+        print(f"   🎬 [AUTHORITY] Starting Blocking Render...")
+        print(f"   ⏳ This will take 60-120 seconds. DO NOT INTERRUPT.")
+        
+        try:
+            # BLOCKING CALL - Python WAITS until FFmpeg exits
+            result = sp.run(
+                ffmpeg_cmd,
+                shell=True,  # Use shell=True for Windows compatibility
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout max
+            )
+            
+            if result.returncode != 0:
+                print(f"   ❌ [CRITICAL] FFmpeg error: {result.stderr[-500:] if result.stderr else 'Unknown'}")
+                return None
+                
+            print(f"   ✅ [COMPLETE] Render finished successfully.")
+            
+        except sp.TimeoutExpired:
+            print(f"   ❌ [TIMEOUT] FFmpeg exceeded 5 minute limit")
+            return None
+        except Exception as e:
+            print(f"   ❌ [ERROR] FFmpeg failed: {e}")
+            return None
+        
+        # ════════════════════════════════════════════════════════════════
+        # 💎 SIZE GUARD - Verify file integrity before returning
+        # ════════════════════════════════════════════════════════════════
+        
+        if os.path.exists(output_path):
+            file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+            
+            # Elite 8Mbps Short of 40s should be ~40MB, never under 15MB
+            if file_size_mb < 15:
+                print(f"   🚫 [GATE] Integrity FAILED: {file_size_mb:.2f}MB is too small. Corrupted render.")
+                return None
+            
+            print(f"   💎 [GATE] Integrity Verified: {file_size_mb:.2f}MB")
+            return output_path
+        
+        return None
     
     async def generate_metadata(self, topic: str) -> dict:
         """Generate title, description, tags."""
@@ -401,10 +438,32 @@ Output as JSON:
 async def main():
     parser = argparse.ArgumentParser(description="Money Machine AI - Continuous Mode")
     parser.add_argument("--loop", action="store_true", help="Run continuously")
+    parser.add_argument("--once", action="store_true", help="Run once (default)")
+    parser.add_argument("--elite", action="store_true", help="Force elite topic selection")
+    parser.add_argument("--topic", type=str, help="Force specific topic (overrides pool)")
+    parser.add_argument("--force-upload", action="store_true", help="Upload even if quota warnings")
     parser.add_argument("--interval", type=int, default=3600, help="Seconds between uploads (default: 3600)")
     args = parser.parse_args()
     
     mode = ContinuousMode()
+    
+    # Elite mode: force elite topic
+    if args.elite:
+        print("\n🔥 ELITE MODE ACTIVATED")
+        mode.elite_mode = True
+    
+    # Force specific topic
+    if args.topic:
+        print(f"\n🎯 FORCED TOPIC: {args.topic}")
+        mode.current_topic = args.topic
+        mode.current_pool = "forced"
+        # Override get_next_topic to return forced topic
+        mode._forced_topic = args.topic
+    
+    # Force upload flag
+    if args.force_upload:
+        print("📤 FORCE UPLOAD: Ignoring quota warnings")
+        mode._force_upload = True
     
     if args.loop:
         await mode.run_continuous(interval=args.interval)

@@ -30,15 +30,38 @@ KEYWORD_TO_VISUAL = {
 }
 
 # ELITE: Visual intent to B-roll category mapping (scene-aware)
+# Gold Standard: Kiyosaki, Graham Stephan, Andrei Jikh, Minority Mindset
 VISUAL_INTENT_TO_CATEGORY = {
-    # Finance/Power
+    # ============================================================
+    # GOLD STANDARD ARCHETYPES (from research)
+    # ============================================================
+    
+    # Kiyosaki/Hidden Secrets: System reveals, power structures
     "power_finance": ["money", "city"],
+    "systems_control": ["tech", "city", "money"],
+    
+    # Graham Stephan: Lifestyle arbitrage, wealth hacks
+    "wealth_hacks": ["money", "lifestyle", "city"],
+    "lifestyle_arbitrage": ["lifestyle", "money", "city"],
+    
+    # Andrei Jikh: Psychology, comparative narratives
+    "psychology": ["people", "tech"],
+    "comparative": ["people", "money", "tech"],
+    
+    # Minority Mindset: Hidden rules, tax logic
+    "hidden_rules": ["money", "city", "tech"],
+    "tax_logic": ["money", "city"],
+    
+    # ============================================================
+    # ORIGINAL INTENTS (proven)
+    # ============================================================
+    
+    # Finance/Power
     "wealth": ["money", "lifestyle"],
     "banking": ["money", "city"],
     "elite_finance": ["money", "city", "lifestyle"],
     
     # Systems/Control
-    "systems_control": ["tech", "city"],
     "surveillance": ["tech", "city"],
     "automation": ["tech"],
     "data_flows": ["tech"],
@@ -50,7 +73,6 @@ VISUAL_INTENT_TO_CATEGORY = {
     "urgency": ["city", "tech"],
     
     # Psychology/People
-    "psychology": ["people"],
     "human": ["people", "lifestyle"],
     "emotion": ["people"],
     "decision": ["people", "tech"],

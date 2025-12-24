@@ -260,6 +260,147 @@ class VideoMetrics:
 # ============================================================
 
 ELITE_TOPICS = [
+    # ============================================================
+    # 🔥 GOLD STANDARD: Modeled after top performers
+    # Kiyosaki, Graham Stephan, Andrei Jikh, Minority Mindset
+    # ============================================================
+    
+    # CATEGORY: SYSTEM REVEAL (KIYOSAKI ARCHETYPE)
+    # "How the rich use debt" — 9.4M+ views pattern
+    {
+        "topic": "Why the Rich Use Debt as a Weapon",
+        "hook": HookType.SYSTEM_EXPOSURE,
+        "category": "system_reveal",
+        "rpm_expected": "very_high",
+        "visual_intent": "power_finance",
+        "archetype": "kiyosaki"
+    },
+    {
+        "topic": "How the Economic Machine Really Works",
+        "hook": HookType.MYTH_DESTRUCTION,
+        "category": "system_reveal",
+        "rpm_expected": "very_high",
+        "visual_intent": "systems_control",
+        "archetype": "dalio"
+    },
+    {
+        "topic": "The Hidden Tax That Steals Your Wealth Every Year",
+        "hook": HookType.THREAT,
+        "category": "system_reveal",
+        "rpm_expected": "very_high",
+        "visual_intent": "power_finance",
+        "archetype": "kiyosaki"
+    },
+    {
+        "topic": "Why the Fed Prints Money and What It Means for You",
+        "hook": HookType.CONSPIRACY_ADJACENT,
+        "category": "system_reveal",
+        "rpm_expected": "very_high",
+        "visual_intent": "systems_control",
+        "archetype": "hidden_secrets"
+    },
+    {
+        "topic": "The 3 Hidden Systems That Keep You Poor",
+        "hook": HookType.VICTIM_AWAKENING,
+        "category": "system_reveal",
+        "rpm_expected": "very_high",
+        "visual_intent": "systems_control",
+        "archetype": "kiyosaki"
+    },
+    
+    # CATEGORY: LIFESTYLE ARBITRAGE (GRAHAM STEPHAN ARCHETYPE)
+    # "How I bought a Tesla for $78/month" — 10M+ views pattern
+    {
+        "topic": "How I Turn Debt Into Monthly Income",
+        "hook": HookType.CONTRARIAN_FEAR,
+        "category": "lifestyle_arbitrage",
+        "rpm_expected": "very_high",
+        "visual_intent": "wealth_hacks",
+        "archetype": "graham_stephan"
+    },
+    {
+        "topic": "The Passive Income Strategy That Actually Works",
+        "hook": HookType.AUTHORITY_GAP,
+        "category": "lifestyle_arbitrage",
+        "rpm_expected": "very_high",
+        "visual_intent": "wealth_hacks",
+        "archetype": "graham_stephan"
+    },
+    {
+        "topic": "Why the Rich Never Work for a Salary",
+        "hook": HookType.HARSH_TRUTH,
+        "category": "lifestyle_arbitrage",
+        "rpm_expected": "high",
+        "visual_intent": "power_finance",
+        "archetype": "graham_stephan"
+    },
+    {
+        "topic": "How Car Dealerships Actually Rip You Off",
+        "hook": HookType.SYSTEM_EXPOSURE,
+        "category": "lifestyle_arbitrage",
+        "rpm_expected": "very_high",
+        "visual_intent": "wealth_hacks",
+        "archetype": "whiteboard_finance"
+    },
+    
+    # CATEGORY: COMPARATIVE NARRATIVE (ANDREI JIKH ARCHETYPE)
+    # "18-Year-Old vs 30-Year-Old: Who Wins?" — 5.4M+ views pattern
+    {
+        "topic": "Investing at 20 vs 40: The Million Dollar Difference",
+        "hook": HookType.URGENCY,
+        "category": "comparative_narrative",
+        "rpm_expected": "very_high",
+        "visual_intent": "psychology",
+        "archetype": "andrei_jikh"
+    },
+    {
+        "topic": "How I Made Dividends Pay for My Life",
+        "hook": HookType.AUTHORITY_GAP,
+        "category": "comparative_narrative",
+        "rpm_expected": "very_high",
+        "visual_intent": "wealth_hacks",
+        "archetype": "andrei_jikh"
+    },
+    {
+        "topic": "Why Compound Interest Is the 8th Wonder",
+        "hook": HookType.METAPHOR_SHOCK,
+        "category": "comparative_narrative",
+        "rpm_expected": "high",
+        "visual_intent": "psychology",
+        "archetype": "andrei_jikh"
+    },
+    
+    # CATEGORY: HIDDEN TAX LOGIC (MINORITY MINDSET ARCHETYPE)
+    # "How the Rich Use Debt to Get Richer" — 7.5M+ views pattern
+    {
+        "topic": "Why Poor People Pay More Taxes Than Billionaires",
+        "hook": HookType.MORAL_SHOCK,
+        "category": "hidden_tax_logic",
+        "rpm_expected": "very_high",
+        "visual_intent": "systems_control",
+        "archetype": "minority_mindset"
+    },
+    {
+        "topic": "The Credit Score Trap Nobody Talks About",
+        "hook": HookType.VICTIM_AWAKENING,
+        "category": "hidden_tax_logic",
+        "rpm_expected": "very_high",
+        "visual_intent": "systems_control",
+        "archetype": "minority_mindset"
+    },
+    {
+        "topic": "How Banks Profit From Your Savings Account",
+        "hook": HookType.THREAT,
+        "category": "hidden_tax_logic",
+        "rpm_expected": "high",
+        "visual_intent": "power_finance",
+        "archetype": "minority_mindset"
+    },
+    
+    # ============================================================
+    # ORIGINAL HIGH PERFORMERS (PROVEN)
+    # ============================================================
+    
     # CATEGORY: MONEY / POWER / SYSTEMS (HIGH RPM)
     {
         "topic": "The Quiet Way Banks Legally Take Your Money",
