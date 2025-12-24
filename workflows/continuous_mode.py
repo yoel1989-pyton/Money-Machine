@@ -33,6 +33,15 @@ from engines.quality_gates import (
     VisualFallback
 )
 from engines.creator import CreatorConfig
+from engines.broll_engine import resolve_visual_intent
+
+
+# DNA tracking for documentary expansion
+try:
+    from engines.dna_expander import get_expander
+    HAS_DNA_TRACKING = True
+except ImportError:
+    HAS_DNA_TRACKING = False
 
 
 # ============================================================
@@ -324,6 +333,21 @@ Output as JSON:
             if success:
                 self.stats["created"] += 1
                 print("\n✅ SHORT CREATED AND UPLOADED SUCCESSFULLY")
+                
+                # 8. Extract DNA for documentary expansion
+                if HAS_DNA_TRACKING:
+                    try:
+                        visual_intent = resolve_visual_intent(script)
+                        expander = get_expander()
+                        expander.extract_dna(
+                            video_id=metadata.get("title", "").replace(" ", "_")[:30],
+                            topic=topic,
+                            script=script,
+                            visual_intent=visual_intent
+                        )
+                        print("🧬 DNA extracted for documentary expansion")
+                    except Exception as e:
+                        print(f"⚠️ DNA extraction skipped: {e}")
             
             return success
             
