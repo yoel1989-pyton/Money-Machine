@@ -656,18 +656,39 @@ class VisualFallback:
     @staticmethod
     async def get_fallback_background(duration: float = 60) -> str:
         """
-        Get or create a fallback background.
+        Get background video.
         Tries in order:
-        1. Existing default_bg.mp4
-        2. Create gradient
-        3. Create kinetic text
+        1. REAL B-roll from backgrounds folder (PRIORITY)
+        2. Existing default_bg.mp4
+        3. Create gradient (LAST RESORT)
         """
-        # Check for existing default
+        import random
+        import os
+        
+        # PRIORITY 1: Real B-roll from backgrounds folder
+        backgrounds_dir = VisualFallback.ASSETS_DIR / "backgrounds"
+        if backgrounds_dir.exists():
+            real_videos = []
+            for root, dirs, files in os.walk(backgrounds_dir):
+                # Skip deprecated/synthetic folders
+                if "_deprecated" in root or "synthetic" in root.lower():
+                    continue
+                for f in files:
+                    if f.endswith(('.mp4', '.mov', '.webm')):
+                        real_videos.append(os.path.join(root, f))
+            
+            if real_videos:
+                selected = random.choice(real_videos)
+                print(f"[VISUAL] Using REAL B-roll: {Path(selected).name}")
+                return selected
+        
+        # FALLBACK 2: Check for existing default
         default_bg = VisualFallback.ASSETS_DIR / "default_bg.mp4"
         if default_bg.exists():
             return str(default_bg)
         
-        # Create assets directory
+        # FALLBACK 3: Create assets directory and gradient (LAST RESORT)
+        print("[VISUAL] ⚠️ No real B-roll found, creating gradient fallback")
         VisualFallback.ASSETS_DIR.mkdir(parents=True, exist_ok=True)
         
         # Try gradient
