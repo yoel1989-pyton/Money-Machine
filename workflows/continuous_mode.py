@@ -126,15 +126,15 @@ Structure:
         
         return audio_path
     
-    async def assemble_video(self, audio_path: str) -> str:
-        """Assemble video with guaranteed visuals."""
+    async def assemble_video(self, audio_path: str, script: str = None) -> str:
+        """Assemble video with guaranteed visuals matched to script."""
         import subprocess
         
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         output_path = str(CreatorConfig.OUTPUT_DIR / f"prod_{timestamp}_video.mp4")
         
-        # Get background
-        bg_path = await VisualFallback.get_fallback_background(duration=60)
+        # Get background - ELITE: Pass script for visual intent matching
+        bg_path = await VisualFallback.get_fallback_background(duration=60, script=script)
         
         # Get audio duration
         try:
@@ -294,9 +294,9 @@ Output as JSON:
             audio_path = await self.generate_voice(script)
             print(f"   ✓ {os.path.getsize(audio_path) / 1024:.1f} KB")
             
-            # 4. Assemble video
+            # 4. Assemble video - ELITE: Pass script for visual intent matching
             print("🎥 Assembling video...")
-            video_path = await self.assemble_video(audio_path)
+            video_path = await self.assemble_video(audio_path, script=script)
             if not video_path:
                 print("   ❌ Video assembly failed")
                 self.stats["failed"] += 1

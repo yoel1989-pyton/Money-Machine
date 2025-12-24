@@ -654,18 +654,39 @@ class VisualFallback:
             return False
     
     @staticmethod
-    async def get_fallback_background(duration: float = 60) -> str:
+    async def get_fallback_background(duration: float = 60, script: str = None) -> str:
         """
-        Get background video.
+        Get background video matched to script content.
         Tries in order:
-        1. REAL B-roll from backgrounds folder (PRIORITY)
-        2. Existing default_bg.mp4
-        3. Create gradient (LAST RESORT)
+        1. REAL B-roll matched to visual_intent (ELITE)
+        2. REAL B-roll from any category
+        3. Existing default_bg.mp4
+        4. Create gradient (LAST RESORT)
         """
         import random
         import os
+        from engines.broll_engine import BRollEngine, resolve_visual_intent
         
-        # PRIORITY 1: Real B-roll from backgrounds folder
+        # PRIORITY 1: Use B-roll engine with visual intent matching
+        try:
+            engine = BRollEngine()
+            
+            if script:
+                # ELITE: Match B-roll to script content
+                intent = resolve_visual_intent(script)
+                clip = await engine.get_clip_for_intent(intent)
+                if clip:
+                    return clip
+            
+            # Fallback: Any real B-roll
+            clip = await engine.get_random_clip()
+            if clip:
+                print(f"[VISUAL] Using REAL B-roll: {Path(clip).name}")
+                return clip
+        except Exception as e:
+            print(f"[VISUAL] B-roll engine error: {e}")
+        
+        # PRIORITY 2: Manual search of backgrounds folder
         backgrounds_dir = VisualFallback.ASSETS_DIR / "backgrounds"
         if backgrounds_dir.exists():
             real_videos = []
@@ -682,12 +703,12 @@ class VisualFallback:
                 print(f"[VISUAL] Using REAL B-roll: {Path(selected).name}")
                 return selected
         
-        # FALLBACK 2: Check for existing default
+        # FALLBACK 3: Check for existing default
         default_bg = VisualFallback.ASSETS_DIR / "default_bg.mp4"
         if default_bg.exists():
             return str(default_bg)
         
-        # FALLBACK 3: Create assets directory and gradient (LAST RESORT)
+        # FALLBACK 4: Create assets directory and gradient (LAST RESORT)
         print("[VISUAL] ⚠️ No real B-roll found, creating gradient fallback")
         VisualFallback.ASSETS_DIR.mkdir(parents=True, exist_ok=True)
         

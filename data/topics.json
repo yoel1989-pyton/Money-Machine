@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "last_updated": "2025-12-24T00:01:16.254951+00:00",
+  "last_updated": "2025-12-24T01:51:38.893122+00:00",
   "niche": "wealth",
   "aave_enabled": true,
   "pools": {
@@ -109,6 +109,11 @@
       "topic": "Why rich people avoid motivation content",
       "pool": "fallback",
       "used_at": "2025-12-24T00:01:16.254944+00:00"
+    },
+    {
+      "topic": "How compound interest builds generational wealth",
+      "pool": "fallback",
+      "used_at": "2025-12-24T01:51:38.893095+00:00"
     }
   ],
   "performance_log": []
