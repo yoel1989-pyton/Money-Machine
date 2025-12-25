@@ -1,0 +1,370 @@
+{
+  "name": "🧠 CLOUD MASTER BRAIN - Money Machine Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "scheduler-30min",
+      "name": "⏰ 30min Heartbeat",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1200, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "scheduler-6hr",
+      "name": "📊 6hr Analytics",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1200, 600],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "manual-trigger",
+        "options": {}
+      },
+      "id": "webhook-manual",
+      "name": "🎯 Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1200, 500],
+      "webhookId": "manual-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════\n// ENV INJECTOR - Solves \"access to env vars denied\" on n8n Cloud\n// ════════════════════════════════════════════════════════════════\n// This node pulls from n8n Settings → Variables and makes them\n// available as $json.* for all downstream nodes\n// ════════════════════════════════════════════════════════════════\n\nreturn [{\n  json: {\n    // Telegram\n    TELEGRAM_CHAT_ID: $vars.TELEGRAM_CHAT_ID || '5033650061',\n    TELEGRAM_BOT_TOKEN: $vars.TELEGRAM_BOT_TOKEN || '',\n    \n    // APIs\n    OPENAI_API_KEY: $vars.OPENAI_API_KEY || '',\n    ELEVENLABS_API_KEY: $vars.ELEVENLABS_API_KEY || '',\n    \n    // Local webhook (your machine)\n    LOCAL_WEBHOOK_URL: $vars.LOCAL_WEBHOOK_URL || 'http://localhost:5678/webhook/run-job',\n    \n    // Shotstack (cloud rendering)\n    SHOTSTACK_API_KEY: $vars.SHOTSTACK_API_KEY || 'sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV',\n    \n    // Google Drive folder\n    GOOGLE_DRIVE_FOLDER: $vars.GOOGLE_DRIVE_FOLDER || '1BGGyx_C-Yv1m_v-fmC2aJj3Yp_c8IJ6Y',\n    \n    // Timestamp\n    triggered_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "env-injector",
+      "name": "🔧 ENV Injector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════\n// AAVE BRAIN - Algorithm-Adaptive Visual Evolution (Cloud Version)\n// ════════════════════════════════════════════════════════════════\n// Gold Standard DNA from: Graham Stephan, Jake Tran, ColdFusion,\n// Minority Mindset, Robert Kiyosaki\n// ════════════════════════════════════════════════════════════════\n\nconst ELITE_TOPIC_POOL = [\n  // Tier 1: Viral Proven (Priority 90-95)\n  { topic: \"Why the Rich Use Debt as a Weapon\", archetype: \"system_exploit\", visual_intent: \"power_finance\", hook: \"threat\", priority: 95 },\n  { topic: \"The Fed Just Changed Everything\", archetype: \"news_reaction\", visual_intent: \"policy_impact\", hook: \"urgency\", priority: 94 },\n  { topic: \"Why the Middle Class is Disappearing by Design\", archetype: \"conspiracy_lite\", visual_intent: \"class_divide\", hook: \"system_exposure\", priority: 93 },\n  { topic: \"The Hidden Tax That Steals Your Wealth\", archetype: \"hidden_mechanism\", visual_intent: \"surveillance\", hook: \"victim_awakening\", priority: 92 },\n  { topic: \"The Psychology of Why You Stay Poor\", archetype: \"psychology_reveal\", visual_intent: \"human_behavior\", hook: \"self_attack\", priority: 91 },\n  \n  // Tier 2: High Performers (Priority 85-90)\n  { topic: \"Why Banks Want You Broke\", archetype: \"system_reveal\", visual_intent: \"corporate_power\", hook: \"victim_awakening\", priority: 90 },\n  { topic: \"The Wealth Transfer Happening Right Now\", archetype: \"urgency_narrative\", visual_intent: \"economic_shift\", hook: \"future_threat\", priority: 89 },\n  { topic: \"How the 1 Percent Think Differently\", archetype: \"mindset_gap\", visual_intent: \"elite_psychology\", hook: \"power_gap\", priority: 88 },\n  { topic: \"The 3 Money Lies They Teach in School\", archetype: \"education_expose\", visual_intent: \"deception\", hook: \"myth_destruction\", priority: 88 },\n  { topic: \"How I Save 50% of My Income Automatically\", archetype: \"lifestyle_hack\", visual_intent: \"wealth_building\", hook: \"authority_gap\", priority: 87 },\n  { topic: \"Investing at 20 vs 40: The Math Will Shock You\", archetype: \"time_urgency\", visual_intent: \"compound_growth\", hook: \"loss_framing\", priority: 86 },\n  { topic: \"The Credit Card Hack Banks Hate\", archetype: \"system_exploit\", visual_intent: \"financial_hack\", hook: \"contrarian_fear\", priority: 85 },\n  \n  // Tier 3: Steady Performers (Priority 80-85)\n  { topic: \"Why Your Savings Account is Losing Money\", archetype: \"hidden_loss\", visual_intent: \"inflation_visual\", hook: \"harsh_truth\", priority: 84 },\n  { topic: \"Why I Stopped Using Savings Accounts\", archetype: \"personal_revelation\", visual_intent: \"alternative_wealth\", hook: \"identity_trigger\", priority: 83 },\n  { topic: \"The Real Reason College is So Expensive\", archetype: \"system_expose\", visual_intent: \"education_scam\", hook: \"moral_shock\", priority: 82 },\n  { topic: \"You Will Own Nothing And They're Planning It\", archetype: \"future_warning\", visual_intent: \"surveillance\", hook: \"conspiracy_adjacent\", priority: 81 },\n  { topic: \"Cash Is Trash: Why Your Money Dies Daily\", archetype: \"authority_contradiction\", visual_intent: \"inflation_visual\", hook: \"harsh_truth\", priority: 80 }\n];\n\n// Visual DNA mapping (for scene planning)\nconst VISUAL_DNA = {\n  power_finance: { clips: ['boardrooms', 'vaults', 'suits', 'skyscrapers'], motion: 'slow_zoom', color: 'high_contrast' },\n  surveillance: { clips: ['cameras', 'data_streams', 'documents', 'screens'], motion: 'pan', color: 'cold' },\n  corporate_power: { clips: ['wall_street', 'banks', 'money_stacks', 'contracts'], motion: 'zoompan', color: 'cinematic' },\n  class_divide: { clips: ['wealth_gap', 'mansions', 'poverty', 'chess'], motion: 'slow_pan', color: 'dark' },\n  human_behavior: { clips: ['brain', 'decisions', 'crowds', 'emotions'], motion: 'zoompan', color: 'neutral' },\n  policy_impact: { clips: ['federal_reserve', 'congress', 'markets', 'announcements'], motion: 'news_style', color: 'urgent' },\n  economic_shift: { clips: ['markets', 'crashes', 'opportunities', 'timing'], motion: 'dynamic', color: 'high_contrast' },\n  elite_psychology: { clips: ['luxury', 'mindset', 'habits', 'success'], motion: 'aspirational', color: 'premium' },\n  deception: { clips: ['masks', 'shadows', 'fine_print', 'manipulation'], motion: 'shake', color: 'vintage' },\n  wealth_building: { clips: ['charts', 'real_estate', 'investments', 'growth'], motion: 'slow_zoom', color: 'warm' },\n  compound_growth: { clips: ['exponential', 'snowball', 'time_value', 'retirement'], motion: 'accelerating', color: 'hopeful' },\n  financial_hack: { clips: ['credit_cards', 'rewards', 'travel', 'points'], motion: 'fast_cuts', color: 'vibrant' },\n  inflation_visual: { clips: ['dollar', 'prices', 'groceries', 'fed_building'], motion: 'zoom_out', color: 'muted' },\n  alternative_wealth: { clips: ['gold', 'crypto', 'assets', 'diversification'], motion: 'reveal', color: 'modern' },\n  education_scam: { clips: ['universities', 'debt', 'graduates', 'system'], motion: 'expose', color: 'harsh' }\n};\n\n// Weighted random selection (higher priority = higher chance)\nfunction selectTopic() {\n  const totalWeight = ELITE_TOPIC_POOL.reduce((sum, t) => sum + t.priority, 0);\n  let random = Math.random() * totalWeight;\n  \n  for (const topic of ELITE_TOPIC_POOL) {\n    random -= topic.priority;\n    if (random <= 0) {\n      const dna = VISUAL_DNA[topic.visual_intent] || VISUAL_DNA.power_finance;\n      return {\n        ...topic,\n        visual_dna: dna,\n        dna_id: `dna_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,\n        selected_at: new Date().toISOString()\n      };\n    }\n  }\n  \n  return { ...ELITE_TOPIC_POOL[0], visual_dna: VISUAL_DNA.power_finance };\n}\n\nconst selected = selectTopic();\nconst env = $input.first().json;\n\nreturn [{\n  json: {\n    ...env,\n    ...selected,\n    job_id: `cloud_${Date.now()}`\n  }\n}];"
+      },
+      "id": "aave-brain",
+      "name": "🧠 AAVE Brain",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-600, 400]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an elite YouTube Shorts scriptwriter. Your scripts achieve 80%+ average view duration.\n\n**GOLD STANDARD DNA (Graham Stephan, Jake Tran, ColdFusion, Minority Mindset):**\n\n1. HOOK (0-3s) - Pattern Interrupt:\n   - \"You're being lied to about...\"\n   - Shocking stat or counterintuitive claim\n   - Create cognitive dissonance\n\n2. AGITATION (3-15s) - Open the Wound:\n   - \"Every time you...\" / \"While you sleep...\"\n   - Make the problem feel personal\n   - Build emotional investment\n\n3. MECHANISM (15-40s) - The Hidden Truth:\n   - Reveal the \"how\" nobody talks about\n   - Simple metaphors\n   - Each sentence earns the next\n\n4. PAYOFF (40-55s) - The Revelation:\n   - Deliver the insight they came for\n   - Make them feel smarter\n   - Paradigm shift\n\n5. LOOP (55-60s) - Engagement:\n   - Open question OR\n   - Tease next video OR\n   - Challenge beliefs\n\n**VOICE:**\n- Short sentences (5-12 words)\n- Conversational authority\n- Power words: exposed, rigged, weapon, hidden, real\n\n**RULES:**\n- 90-115 words total\n- NO emojis, hashtags, timestamps\n- NO stage directions\n- Pure spoken narration only",
+              "role": "system"
+            },
+            {
+              "content": "=Write an elite viral script about: {{ $json.topic }}\n\nHook Type: {{ $json.hook }}\nArchetype: {{ $json.archetype }}\nVisual Intent: {{ $json.visual_intent }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 350,
+          "temperature": 0.75
+        }
+      },
+      "id": "script-generator",
+      "name": "📝 Elite Script Generator",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [-300, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "openAiApi": {
+          "id": "tgF2FazdNfVR1lMh",
+          "name": "OpenAI Anointment"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process and validate script\nconst input = $input.first().json;\nconst prevData = $node['🧠 AAVE Brain'].json;\n\nconst rawScript = input.message?.content || input.text || '';\n\nif (!rawScript || rawScript.length < 50) {\n  throw new Error('SCRIPT_GENERATION_FAILED: Script too short');\n}\n\n// TTS optimization\nfunction optimizeForTTS(text) {\n  return text\n    .replace(/\\*\\*/g, '')\n    .replace(/[#_*]/g, '')\n    .replace(/\\n+/g, ' ')\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n}\n\nconst script = optimizeForTTS(rawScript);\nconst wordCount = script.split(/\\s+/).length;\n\nreturn [{\n  json: {\n    ...prevData,\n    script: script,\n    script_raw: rawScript,\n    word_count: wordCount,\n    estimated_duration: Math.ceil(wordCount / 2.4)\n  }\n}];"
+      },
+      "id": "script-processor",
+      "name": "⚡ Script Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.script }}\",\n  \"model_id\": \"eleven_multilingual_v2\",\n  \"voice_settings\": {\n    \"stability\": 0.45,\n    \"similarity_boost\": 0.85,\n    \"style\": 0.35,\n    \"use_speaker_boost\": true\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "elevenlabs-tts",
+      "name": "🎙️ ElevenLabs Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pD7r1ApG2XA4ZVxB",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "=elite_{{ $node['⚡ Script Processor'].json.dna_id }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1BGGyx_C-Yv1m_v-fmC2aJj3Yp_c8IJ6Y"
+        },
+        "options": {}
+      },
+      "id": "drive-upload",
+      "name": "☁️ Save Audio to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [600, 400],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "lQp7tCjjzrwFF2uj",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare payload for local execution\nconst scriptData = $node['⚡ Script Processor'].json;\nconst audioData = $input.first().json;\n\nreturn [{\n  json: {\n    job_id: scriptData.job_id,\n    mode: 'shorts',\n    topic: scriptData.topic,\n    script: scriptData.script,\n    visual_intent: scriptData.visual_intent,\n    archetype: scriptData.archetype,\n    hook: scriptData.hook,\n    dna_id: scriptData.dna_id,\n    audio_url: audioData.webContentLink || audioData.webViewLink,\n    force_upload: true,\n    elite: true\n  }\n}];"
+      },
+      "id": "prepare-local-payload",
+      "name": "📦 Prepare Local Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $node['🧠 AAVE Brain'].json.LOCAL_WEBHOOK_URL || 'http://localhost:5678/webhook/run-job' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "call-local",
+      "name": "🚀 Call Local Executor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 400],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 30000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-result",
+      "name": "✅ Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1500, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node['🧠 AAVE Brain'].json.TELEGRAM_CHAT_ID || '5033650061' }}",
+        "text": "=🎬 *ELITE VIDEO PUBLISHED*\n\n📌 *Topic:* {{ $node['⚡ Script Processor'].json.topic }}\n🧬 *DNA:* `{{ $node['⚡ Script Processor'].json.dna_id }}`\n📝 *Words:* {{ $node['⚡ Script Processor'].json.word_count }}\n⏱️ *Duration:* ~{{ $node['⚡ Script Processor'].json.estimated_duration }}s\n\n📊 *Quality:*\n• Bitrate: {{ Math.round(($json.bitrate || 0) / 1000000 * 10) / 10 }} Mbps\n• Duration: {{ Math.round(($json.duration || 0) * 10) / 10 }}s\n\n🔗 *YouTube:* {{ $json.youtube_url || 'Local save only' }}\n📁 *File:* {{ $json.video_path }}\n\n_The machine is learning. 🧠_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-success",
+      "name": "📱 Success Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1800, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node['🧠 AAVE Brain'].json.TELEGRAM_CHAT_ID || '5033650061' }}",
+        "text": "=⚠️ *PRODUCTION FAILED*\n\n📌 *Topic:* {{ $node['⚡ Script Processor'].json.topic }}\n❌ *Error:* {{ $json.error || 'Unknown error' }}\n\n🔄 Will retry next cycle...",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-error",
+      "name": "🚨 Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1800, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log DNA for evolution tracking\nconst scriptData = $node['⚡ Script Processor'].json;\nconst result = $input.first().json;\n\nreturn [{\n  json: {\n    dna_id: scriptData.dna_id,\n    topic: scriptData.topic,\n    archetype: scriptData.archetype,\n    hook: scriptData.hook,\n    visual_intent: scriptData.visual_intent,\n    word_count: scriptData.word_count,\n    bitrate: result.bitrate,\n    duration: result.duration,\n    youtube_url: result.youtube_url,\n    status: result.status,\n    created_at: new Date().toISOString(),\n    // For future AAVE evolution\n    performance: {\n      views: 0,\n      avd: 0,\n      ctr: 0,\n      rpm: 0,\n      last_checked: null\n    }\n  }\n}];"
+      },
+      "id": "log-dna",
+      "name": "🧬 Log DNA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2100, 300]
+    }
+  ],
+  "connections": {
+    "⏰ 30min Heartbeat": {
+      "main": [
+        [{ "node": "🔧 ENV Injector", "type": "main", "index": 0 }]
+      ]
+    },
+    "📊 6hr Analytics": {
+      "main": [
+        [{ "node": "🔧 ENV Injector", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎯 Manual Trigger": {
+      "main": [
+        [{ "node": "🔧 ENV Injector", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔧 ENV Injector": {
+      "main": [
+        [{ "node": "🧠 AAVE Brain", "type": "main", "index": 0 }]
+      ]
+    },
+    "🧠 AAVE Brain": {
+      "main": [
+        [{ "node": "📝 Elite Script Generator", "type": "main", "index": 0 }]
+      ]
+    },
+    "📝 Elite Script Generator": {
+      "main": [
+        [{ "node": "⚡ Script Processor", "type": "main", "index": 0 }]
+      ]
+    },
+    "⚡ Script Processor": {
+      "main": [
+        [{ "node": "🎙️ ElevenLabs Voice", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎙️ ElevenLabs Voice": {
+      "main": [
+        [{ "node": "☁️ Save Audio to Drive", "type": "main", "index": 0 }]
+      ]
+    },
+    "☁️ Save Audio to Drive": {
+      "main": [
+        [{ "node": "📦 Prepare Local Payload", "type": "main", "index": 0 }]
+      ]
+    },
+    "📦 Prepare Local Payload": {
+      "main": [
+        [{ "node": "🚀 Call Local Executor", "type": "main", "index": 0 }]
+      ]
+    },
+    "🚀 Call Local Executor": {
+      "main": [
+        [{ "node": "✅ Success?", "type": "main", "index": 0 }]
+      ]
+    },
+    "✅ Success?": {
+      "main": [
+        [{ "node": "📱 Success Alert", "type": "main", "index": 0 }],
+        [{ "node": "🚨 Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "📱 Success Alert": {
+      "main": [
+        [{ "node": "🧬 Log DNA", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "cloud" },
+    { "name": "master-brain" },
+    { "name": "elite" }
+  ]
+}

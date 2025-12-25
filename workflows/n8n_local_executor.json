@@ -1,0 +1,92 @@
+{
+  "name": "💪 LOCAL EXECUTOR - Money Machine Muscle",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "run-job",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receive",
+      "name": "🎯 Receive Job",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-400, 300],
+      "webhookId": "run-job"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate incoming payload\nconst payload = $input.first().json;\n\nconst validModes = ['shorts', 'longform', 'expand'];\nconst mode = payload.mode || 'shorts';\n\nif (!validModes.includes(mode)) {\n  throw new Error(`Invalid mode: ${mode}. Must be one of: ${validModes.join(', ')}`);\n}\n\n// Prepare clean payload\nconst cleanPayload = {\n  job_id: payload.job_id || `job_${Date.now()}`,\n  mode: mode,\n  topic: payload.topic || null,\n  script: payload.script || null,\n  visual_intent: payload.visual_intent || 'power_finance',\n  force_upload: payload.force_upload !== false,\n  elite: payload.elite !== false,\n  source_dna: payload.source_dna || null\n};\n\nreturn [{ json: cleanPayload }];"
+      },
+      "id": "validate-payload",
+      "name": "⚡ Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-100, 300]
+    },
+    {
+      "parameters": {
+        "command": "=cd C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine && .\\.venv\\Scripts\\python.exe workflows/run_job.py --json '{{ JSON.stringify($json) }}'"
+      },
+      "id": "execute-job",
+      "name": "🚀 Execute Money Machine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first();\nconst stdout = input.json.stdout || '';\nconst stderr = input.json.stderr || '';\nconst exitCode = input.json.exitCode;\n\nlet result;\n\ntry {\n  // Parse JSON from stdout\n  const jsonMatch = stdout.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    result = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON in output');\n  }\n} catch (e) {\n  result = {\n    status: 'FAILED',\n    error: `Parse error: ${e.message}`,\n    stdout: stdout.slice(-500),\n    stderr: stderr.slice(-500),\n    exitCode: exitCode\n  };\n}\n\n// Add execution metadata\nresult.executed_at = new Date().toISOString();\nresult.execution_id = $execution?.id || 'local';\n\nreturn [{ json: result }];"
+      },
+      "id": "parse-result",
+      "name": "📊 Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "✅ Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "🎯 Receive Job": {
+      "main": [
+        [{ "node": "⚡ Validate Payload", "type": "main", "index": 0 }]
+      ]
+    },
+    "⚡ Validate Payload": {
+      "main": [
+        [{ "node": "🚀 Execute Money Machine", "type": "main", "index": 0 }]
+      ]
+    },
+    "🚀 Execute Money Machine": {
+      "main": [
+        [{ "node": "📊 Parse Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "📊 Parse Result": {
+      "main": [
+        [{ "node": "✅ Respond", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "local" },
+    { "name": "executor" }
+  ]
+}
