@@ -18,6 +18,7 @@ import sys
 import os
 import json
 import argparse
+import random
 from pathlib import Path
 from datetime import datetime
 
@@ -34,8 +35,11 @@ load_dotenv()
 # =============================================================================
 OUTPUT_DIR = Path("data/output/queue")  # Queue folder for pending uploads
 TEMP_DIR = Path("data/temp")
-BROLL_DIR = Path("data/assets/backgrounds/money")
+BROLL_ROOT = Path("data/assets/backgrounds")  # Root for all B-roll folders
 MANIFEST_PATH = Path("data/output/upload_queue.json")
+
+# Used B-roll tracking to avoid repeats
+USED_BROLL = set()
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -57,6 +61,67 @@ ELITE_TOPICS = [
     {"topic": "Why Your Boss Wants You in Debt", "archetype": "hidden_tax_logic"},
     {"topic": "The Investing Mistake 90% of People Make", "archetype": "comparative_narrative"},
 ]
+
+# B-roll category mapping for topic archetypes
+BROLL_MAPPING = {
+    "system_reveal": ["city", "tech", "money"],
+    "lifestyle_arbitrage": ["lifestyle", "city", "money"],
+    "comparative_narrative": ["money", "people", "tech"],
+    "hidden_tax_logic": ["city", "money", "tech"],
+}
+
+
+def get_all_broll_files() -> list:
+    """Scan all available B-roll files"""
+    broll_files = []
+    exclude_folders = ["_deprecated", "test"]
+    
+    for folder in BROLL_ROOT.iterdir():
+        if folder.is_dir() and folder.name not in exclude_folders:
+            for f in folder.glob("*.mp4"):
+                if f.stat().st_size > 500_000:  # At least 500KB
+                    broll_files.append({
+                        "path": f,
+                        "category": folder.name,
+                        "size_mb": f.stat().st_size / (1024 * 1024)
+                    })
+    return broll_files
+
+
+def pick_diverse_broll(archetype: str) -> Path:
+    """Pick B-roll with diversity - never repeat until all used"""
+    global USED_BROLL
+    
+    all_broll = get_all_broll_files()
+    
+    if not all_broll:
+        raise FileNotFoundError("No B-roll files found!")
+    
+    # Preferred categories for this archetype
+    preferred = BROLL_MAPPING.get(archetype, ["money", "city", "tech"])
+    
+    # Filter to unused B-roll in preferred categories
+    candidates = [
+        b for b in all_broll 
+        if b["category"] in preferred and str(b["path"]) not in USED_BROLL
+    ]
+    
+    # If all preferred used, try any unused
+    if not candidates:
+        candidates = [b for b in all_broll if str(b["path"]) not in USED_BROLL]
+    
+    # If ALL used, reset tracking
+    if not candidates:
+        USED_BROLL.clear()
+        candidates = [b for b in all_broll if b["category"] in preferred]
+        if not candidates:
+            candidates = all_broll
+    
+    # Random selection
+    selected = random.choice(candidates)
+    USED_BROLL.add(str(selected["path"]))
+    
+    return selected["path"]
 
 
 def log(msg: str, level: str = "INFO"):
@@ -139,16 +204,45 @@ def generate_voice(script: str, output_path: Path) -> float:
     return float(json.loads(probe.stdout)["format"]["duration"])
 
 
-def render_video(broll: Path, audio: Path, output: Path, duration: float) -> bool:
-    """Render video using PowerShell isolation"""
+def render_video(audio: Path, output: Path, duration: float, archetype: str) -> bool:
+    """Render video using PowerShell isolation with Hollywood scene cuts"""
     target_duration = min(duration + 2, 58)
     
+    # Pick multiple B-roll clips for scene cuts (1.5-3 second segments)
+    scene_clips = []
+    remaining = target_duration
+    
+    while remaining > 0:
+        broll = pick_diverse_broll(archetype)
+        scene_duration = random.uniform(1.5, 3.0)  # Hollywood cut timing
+        scene_duration = min(scene_duration, remaining)
+        scene_clips.append((broll, scene_duration))
+        remaining -= scene_duration
+    
+    log(f"   Using {len(scene_clips)} scene cuts from diverse B-roll")
+    
+    # Create concat list file for FFmpeg
+    concat_file = TEMP_DIR / f"concat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    
+    with open(concat_file, "w") as f:
+        for clip, dur in scene_clips:
+            # Escape path for FFmpeg
+            safe_path = str(clip).replace("\\", "/").replace("'", "'\\''")
+            f.write(f"file '{safe_path}'\n")
+            f.write(f"inpoint 0\n")
+            f.write(f"outpoint {dur:.2f}\n")
+    
+    # FFmpeg concat demuxer with audio overlay
+    safe_concat = str(concat_file).replace("\\", "/")
+    safe_audio = str(audio).replace("\\", "/")
+    safe_output = str(output).replace("\\", "/")
+    
     ffmpeg_args = (
-        f'-y -stream_loop -1 -i "{broll}" -i "{audio}" '
+        f'-y -f concat -safe 0 -i "{safe_concat}" -i "{safe_audio}" '
         f'-map 0:v:0 -map 1:a:0 -t {target_duration:.1f} '
         f'-vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,eq=contrast=1.08:saturation=1.12" '
         f'-c:v libx264 -profile:v high -preset fast -b:v 8M -minrate 6M -maxrate 10M -bufsize 16M '
-        f'-c:a aac -b:a 192k "{output}"'
+        f'-c:a aac -b:a 192k "{safe_output}"'
     )
     
     ps_command = f"Start-Process -NoNewWindow -Wait -FilePath 'ffmpeg' -ArgumentList '{ffmpeg_args}'"
@@ -157,6 +251,9 @@ def render_video(broll: Path, audio: Path, output: Path, duration: float) -> boo
         ["powershell", "-Command", ps_command],
         capture_output=True, timeout=600
     )
+    
+    # Cleanup concat file
+    concat_file.unlink(missing_ok=True)
     
     if output.exists():
         size_mb = output.stat().st_size / (1024 * 1024)
@@ -187,15 +284,12 @@ def produce_one(topic_data: dict, batch_num: int) -> dict:
         duration = generate_voice(script, audio_path)
         log(f"[{batch_num}] Voice: {duration:.1f}s")
         
-        # Select B-roll
-        broll = BROLL_DIR / "money_real_1.mp4"
-        
-        # Render
+        # Render with diverse B-roll + Hollywood cuts
         output_filename = f"elite_{ts}_{topic[:20].replace(' ', '_')}.mp4"
         output_path = OUTPUT_DIR / output_filename
         
-        log(f"[{batch_num}] Rendering...")
-        success = render_video(broll, audio_path, output_path, duration)
+        log(f"[{batch_num}] Rendering with scene cuts...")
+        success = render_video(audio_path, output_path, duration, archetype)
         
         if success:
             size_mb = output_path.stat().st_size / (1024 * 1024)

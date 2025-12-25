@@ -1,0 +1,253 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $node['⚡ Script Processor'].json.topic.replace(/[^a-zA-Z0-9]/g, '_') }}_{{ Date.now() }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}"
+        },
+        "options": {}
+      },
+      "id": "d491959b-0ab8-4ca2-80e3-53747e4c5bdc",
+      "name": "☁️ Save Audio to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [-880, 608],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "lQp7tCjjzrwFF2uj",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🎬 ASSET AGGREGATOR - Combine all generated assets\n// ════════════════════════════════════════════════════════════════\n\nconst scriptData = $node['⚡ Script Processor'].json || {};\nconst audioData = $node['☁️ Save Audio to Drive'].json || {};\nconst visualData = $node['🎨 Leonardo Visuals'].json || {};\n\n// Validate critical assets\nconst hasAudio = audioData.id || audioData.webViewLink;\nconst hasVisuals = visualData.generations?.length > 0 || visualData.generatedImages?.length > 0;\n\nif (!hasAudio) {\n  console.log('⚠️ WARNING: Audio generation may have failed');\n}\n\n// Build comprehensive asset package\nconst assetPackage = {\n  // Content metadata\n  topic: scriptData.topic,\n  archetype: scriptData.archetype,\n  content_type: scriptData.content_type,\n  \n  // Script assets\n  script: {\n    raw: scriptData.script_raw,\n    optimized: scriptData.script_optimized,\n    word_count: scriptData.word_count,\n    duration_estimate: scriptData.estimated_duration_seconds\n  },\n  \n  // Audio assets\n  audio: {\n    drive_id: audioData.id || null,\n    drive_link: audioData.webViewLink || null,\n    download_link: audioData.webContentLink || null,\n    filename: audioData.name || null\n  },\n  \n  // Visual assets\n  visuals: {\n    images: visualData.generations || visualData.generatedImages || [],\n    visual_intent: scriptData.visual_intent,\n    asset_keywords: scriptData.visual_assets\n  },\n  \n  // Pipeline metadata\n  pipeline: {\n    generated_at: new Date().toISOString(),\n    execution_id: $execution?.id,\n    status: hasAudio && hasVisuals ? 'COMPLETE' : 'PARTIAL',\n    missing_assets: []\n      .concat(!hasAudio ? ['audio'] : [])\n      .concat(!hasVisuals ? ['visuals'] : [])\n  }\n};\n\nreturn [{ json: assetPackage }];"
+      },
+      "id": "b8709ba6-fca6-47e1-a1d9-5102fa8ddfec",
+      "name": "📦 Asset Aggregator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-576, 704]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "pipeline-status",
+              "leftValue": "={{ $json.pipeline.status }}",
+              "rightValue": "COMPLETE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78366b93-d8bd-4165-a02b-3deca76d2639",
+      "name": "✅ Quality Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-384, 704]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 📊 YOUTUBE METADATA GENERATOR - SEO Optimized\n// ════════════════════════════════════════════════════════════════\n\nconst assets = $input.all()[0]?.json || {};\n\nconst HASHTAGS = {\n  system_reveal: '#money #wealth #financialfreedom #investing #richvsrich',\n  hidden_mechanism: '#taxes #economy #inflation #finance #truth',\n  lifestyle_hack: '#savemoney #budgeting #personalfinance #moneytips',\n  psychology_reveal: '#psychology #mindset #wealthmindset #success',\n  conspiracy_lite: '#system #middleclass #economy #awakening',\n  urgency_narrative: '#wealthtransfer #opportunity #investing #now'\n};\n\nconst POWER_WORDS = ['SECRET', 'HIDDEN', 'EXPOSED', 'TRUTH', 'REALITY', 'REVEALED'];\n\nfunction generateTitle(topic, archetype) {\n  const powerWord = POWER_WORDS[Math.floor(Math.random() * POWER_WORDS.length)];\n  const templates = [\n    `${topic} (${powerWord})`,\n    `The ${powerWord} About ${topic.split(' ').slice(-3).join(' ')}`,\n    `${topic} - What They Don't Tell You`\n  ];\n  return templates[Math.floor(Math.random() * templates.length)];\n}\n\nfunction generateDescription(topic, script) {\n  const preview = script?.substring(0, 150) || '';\n  return `${preview}...\n\n🔔 Subscribe for more wealth secrets\n\n${HASHTAGS[assets.archetype] || '#money #finance'}\n\n⚠️ This is educational content only. Not financial advice.`;\n}\n\nconst youtubeMetadata = {\n  title: generateTitle(assets.topic, assets.archetype),\n  description: generateDescription(assets.topic, assets.script?.optimized),\n  tags: [\n    'money', 'wealth', 'finance', 'investing', 'rich',\n    'financial freedom', 'passive income', 'money tips',\n    assets.archetype?.replace('_', ' '),\n    ...assets.visuals?.asset_keywords || []\n  ].filter(Boolean),\n  category: '22',\n  privacy: 'public',\n  madeForKids: false,\n  assets: assets\n};\n\nreturn [{ json: youtubeMetadata }];"
+      },
+      "id": "ce805740-7750-4c7b-91b4-003d42f03500",
+      "name": "📊 YouTube Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-176, 608]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $json.title }}",
+        "categoryId": "={{ $json.category }}",
+        "options": {
+          "description": "={{ $json.description }}",
+          "privacyStatus": "={{ $json.privacy }}",
+          "tags": "={{ $json.tags.join(',') }}",
+          "notifySubscribers": true,
+          "selfDeclaredMadeForKids": false
+        }
+      },
+      "id": "3040d3af-c3b1-4a57-8eeb-fbb7c1a4b37b",
+      "name": "📺 YouTube Upload",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [32, 608],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "YOUR_YOUTUBE_CREDENTIAL_ID",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════\n// 🧬 DNA EXTRACTION - Learn from this execution\n// ════════════════════════════════════════════════════════════════\n\nconst metadata = $node['📊 YouTube Metadata'].json || {};\nconst uploadResult = $input.all()[0]?.json || {};\n\nconst dnaRecord = {\n  // Video identification\n  video_id: uploadResult.id || 'pending',\n  video_url: uploadResult.id ? `https://youtube.com/shorts/${uploadResult.id}` : null,\n  \n  // Content DNA\n  topic: metadata.assets?.topic,\n  archetype: metadata.assets?.archetype,\n  visual_intent: metadata.assets?.visuals?.visual_intent,\n  word_count: metadata.assets?.script?.word_count,\n  \n  // Tracking fields (to be updated by analytics workflow)\n  metrics: {\n    views: 0,\n    retention_rate: null,\n    rpm: null,\n    engagement_rate: null\n  },\n  \n  // Status\n  uploaded_at: new Date().toISOString(),\n  status: uploadResult.id ? 'PUBLISHED' : 'PENDING_UPLOAD',\n  expansion_eligible: false,\n  \n  // Execution tracking\n  execution_id: $execution?.id\n};\n\nreturn [{ json: dnaRecord }];"
+      },
+      "id": "cedd1943-5816-41bb-a991-ffa183dd2dc4",
+      "name": "🧬 DNA Extractor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 608]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Content DNA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "video_id": "={{ $json.video_id }}",
+            "video_url": "={{ $json.video_url }}",
+            "topic": "={{ $json.topic }}",
+            "archetype": "={{ $json.archetype }}",
+            "visual_intent": "={{ $json.visual_intent }}",
+            "word_count": "={{ $json.word_count }}",
+            "uploaded_at": "={{ $json.uploaded_at }}",
+            "status": "={{ $json.status }}",
+            "execution_id": "={{ $json.execution_id }}"
+          },
+          "schema": [
+            {"id": "video_id", "displayName": "video_id", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "display": true, "type": "string"},
+            {"id": "video_url", "displayName": "video_url", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "topic", "displayName": "topic", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "archetype", "displayName": "archetype", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "visual_intent", "displayName": "visual_intent", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "word_count", "displayName": "word_count", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "number"},
+            {"id": "uploaded_at", "displayName": "uploaded_at", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"},
+            {"id": "execution_id", "displayName": "execution_id", "required": false, "defaultMatch": false, "canBeUsedToMatch": false, "display": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "afc41a18-3aac-41be-a335-29d11d1582f6",
+      "name": "📋 Log to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [432, 608],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=✅ **CONTENT PUBLISHED**\n\n📹 **{{ $node['📊 YouTube Metadata'].json.title }}**\n\n🔗 {{ $node['🧬 DNA Extractor'].json.video_url || 'Processing...' }}\n\n📊 **Stats:**\n- Words: {{ $node['📊 YouTube Metadata'].json.assets.script.word_count }}\n- Archetype: {{ $node['📊 YouTube Metadata'].json.assets.archetype }}\n\n⏱️ Uploaded: {{ $node['🧬 DNA Extractor'].json.uploaded_at }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "9063c992-db5f-4220-93fb-80017484a6cb",
+      "name": "📱 Success Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [624, 608],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram Anointment Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=⚠️ **PARTIAL GENERATION**\n\n🎯 Topic: {{ $json.topic }}\n\n**Missing Assets:**\n{{ $json.pipeline.missing_assets.join(', ') || 'Unknown' }}\n\n🔧 The system will retry on next cycle.\n\n**Available:**\n- Script: {{ $json.script?.word_count || 0 }} words\n- Audio: {{ $json.audio?.drive_link ? '✅' : '❌' }}\n- Visuals: {{ $json.visuals?.images?.length || 0 }} images",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "8aa8580d-0faa-4378-9baa-98618fd1aff0",
+      "name": "⚠️ Partial Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [-176, 912],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram Anointment Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "☁️ Save Audio to Drive": {
+      "main": [[{"node": "📦 Asset Aggregator", "type": "main", "index": 0}]]
+    },
+    "📦 Asset Aggregator": {
+      "main": [[{"node": "✅ Quality Gate", "type": "main", "index": 0}]]
+    },
+    "✅ Quality Gate": {
+      "main": [
+        [{"node": "📊 YouTube Metadata", "type": "main", "index": 0}],
+        [{"node": "⚠️ Partial Alert", "type": "main", "index": 0}]
+      ]
+    },
+    "📊 YouTube Metadata": {
+      "main": [[{"node": "📺 YouTube Upload", "type": "main", "index": 0}]]
+    },
+    "📺 YouTube Upload": {
+      "main": [[{"node": "🧬 DNA Extractor", "type": "main", "index": 0}]]
+    },
+    "🧬 DNA Extractor": {
+      "main": [[{"node": "📋 Log to Airtable", "type": "main", "index": 0}]]
+    },
+    "📋 Log to Airtable": {
+      "main": [[{"node": "📱 Success Alert", "type": "main", "index": 0}]]
+    }
+  },
+  "meta": {
+    "instanceId": "6ed880d926ad8397b92373685b0d12b563fbbf9410c8428e2c46beea4e543f45"
+  }
+}

@@ -1,0 +1,419 @@
+{
+  "name": "💰 ELITE Money Machine - Autonomous Production",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "⏰ Hourly Production",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-800, 300]
+    },
+    {
+      "parameters": {
+        "path": "elite-trigger",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "🎯 Manual Elite Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-800, 500],
+      "webhookId": "elite-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// ELITE AAVE BRAIN - Algorithm-Adaptive Visual Evolution\n// Weighted topic selection with performance DNA tracking\n// ============================================================\n\nconst ELITE_TOPIC_POOL = [\n  { topic: \"Why the Rich Use Debt as a Weapon\", archetype: \"system_reveal\", visual_intent: \"power_finance\", hook: \"threat\", priority: 95 },\n  { topic: \"The Hidden Tax That Steals Your Wealth\", archetype: \"hidden_mechanism\", visual_intent: \"surveillance\", hook: \"conspiracy_adjacent\", priority: 92 },\n  { topic: \"Why Banks Want You Broke\", archetype: \"system_reveal\", visual_intent: \"corporate_power\", hook: \"victim_awakening\", priority: 90 },\n  { topic: \"The 3 Money Lies They Teach in School\", archetype: \"education_expose\", visual_intent: \"deception\", hook: \"myth_destruction\", priority: 88 },\n  { topic: \"How I Save 50% of My Income Automatically\", archetype: \"lifestyle_hack\", visual_intent: \"wealth_building\", hook: \"authority_gap\", priority: 87 },\n  { topic: \"The Credit Card Hack Banks Hate\", archetype: \"system_exploit\", visual_intent: \"financial_hack\", hook: \"contrarian_fear\", priority: 85 },\n  { topic: \"Why Your Savings Account is Losing Money\", archetype: \"hidden_loss\", visual_intent: \"inflation_visual\", hook: \"harsh_truth\", priority: 84 },\n  { topic: \"The Psychology of Why You Stay Poor\", archetype: \"psychology_reveal\", visual_intent: \"human_behavior\", hook: \"self_attack\", priority: 91 },\n  { topic: \"Why the Middle Class is Disappearing by Design\", archetype: \"conspiracy_lite\", visual_intent: \"systems_control\", hook: \"system_exposure\", priority: 93 },\n  { topic: \"The Wealth Transfer Happening Right Now\", archetype: \"urgency_narrative\", visual_intent: \"economic_shift\", hook: \"future_threat\", priority: 89 },\n  { topic: \"Investing at 20 vs 40 The Math Will Shock You\", archetype: \"time_urgency\", visual_intent: \"compound_growth\", hook: \"loss_framing\", priority: 86 },\n  { topic: \"The Fed Just Changed Everything\", archetype: \"news_reaction\", visual_intent: \"policy_impact\", hook: \"urgency\", priority: 94 },\n  { topic: \"Why I Stopped Using Savings Accounts\", archetype: \"personal_revelation\", visual_intent: \"alternative_wealth\", hook: \"identity_trigger\", priority: 83 },\n  { topic: \"The Real Reason College is So Expensive\", archetype: \"system_expose\", visual_intent: \"education_scam\", hook: \"moral_shock\", priority: 82 },\n  { topic: \"How the 1 Percent Think Differently\", archetype: \"mindset_gap\", visual_intent: \"elite_psychology\", hook: \"power_gap\", priority: 88 }\n];\n\nconst VISUAL_DNA_MAP = {\n  power_finance: { clips: [\"skyscrapers\", \"vaults\", \"boardrooms\", \"suits\"], motion: \"slow_zoom\", color: \"high_contrast\" },\n  surveillance: { clips: [\"cameras\", \"data_streams\", \"documents\", \"screens\"], motion: \"pan\", color: \"cold\" },\n  corporate_power: { clips: [\"wall_street\", \"banks\", \"money_stacks\", \"contracts\"], motion: \"zoompan\", color: \"cinematic\" },\n  deception: { clips: [\"masks\", \"shadows\", \"fine_print\", \"manipulation\"], motion: \"shake\", color: \"vintage\" },\n  wealth_building: { clips: [\"charts\", \"real_estate\", \"investments\", \"passive_income\"], motion: \"slow_zoom\", color: \"warm\" },\n  financial_hack: { clips: [\"credit_cards\", \"rewards\", \"travel\", \"points\"], motion: \"fast_cuts\", color: \"vibrant\" },\n  inflation_visual: { clips: [\"dollar\", \"prices\", \"groceries\", \"fed_building\"], motion: \"zoom_out\", color: \"muted\" },\n  human_behavior: { clips: [\"brain\", \"decisions\", \"crowds\", \"emotions\"], motion: \"zoompan\", color: \"neutral\" },\n  systems_control: { clips: [\"chess\", \"puppets\", \"class_divide\", \"policies\"], motion: \"slow_pan\", color: \"dark\" },\n  economic_shift: { clips: [\"markets\", \"crashes\", \"opportunities\", \"timing\"], motion: \"dynamic\", color: \"high_contrast\" },\n  compound_growth: { clips: [\"exponential\", \"snowball\", \"time_value\", \"retirement\"], motion: \"accelerating\", color: \"hopeful\" },\n  policy_impact: { clips: [\"federal_reserve\", \"announcements\", \"markets\", \"reactions\"], motion: \"news_style\", color: \"urgent\" },\n  alternative_wealth: { clips: [\"gold\", \"crypto\", \"assets\", \"diversification\"], motion: \"reveal\", color: \"modern\" },\n  education_scam: { clips: [\"universities\", \"debt\", \"graduates\", \"system\"], motion: \"expose\", color: \"harsh\" },\n  elite_psychology: { clips: [\"luxury\", \"mindset\", \"habits\", \"success\"], motion: \"aspirational\", color: \"premium\" }\n};\n\nfunction selectEliteTopic() {\n  const totalWeight = ELITE_TOPIC_POOL.reduce((sum, t) => sum + t.priority, 0);\n  let random = Math.random() * totalWeight;\n  \n  for (const topic of ELITE_TOPIC_POOL) {\n    random -= topic.priority;\n    if (random <= 0) {\n      const dna = VISUAL_DNA_MAP[topic.visual_intent] || {};\n      return {\n        ...topic,\n        visual_dna: dna,\n        dna_id: `dna_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,\n        selected_at: new Date().toISOString(),\n        execution_id: $execution?.id || 'autonomous'\n      };\n    }\n  }\n  return { ...ELITE_TOPIC_POOL[0], visual_dna: VISUAL_DNA_MAP[ELITE_TOPIC_POOL[0].visual_intent] };\n}\n\nreturn [{ json: selectEliteTopic() }];"
+      },
+      "id": "aave-brain",
+      "name": "🧠 AAVE Brain - Elite Topic Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-500, 400]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an elite YouTube Shorts scriptwriter. Your scripts achieve 80%+ retention.\n\n**ELITE FORMULA:**\n\n1. HOOK (0-3s) - Pattern Interrupt:\n   - Start with \"You're being...\" or shocking stat\n   - Create immediate cognitive dissonance\n   - Hook types: threat, victim_awakening, myth_destruction\n\n2. AGITATION (3-15s) - Open the Wound:\n   - Make the problem feel personal\n   - Use \"Every time you...\" or \"While you sleep...\"\n   - Build emotional investment\n\n3. MECHANISM (15-40s) - The Hidden Truth:\n   - Reveal the \"how\" nobody talks about\n   - Use simple metaphors\n   - Each sentence must earn the next\n\n4. PAYOFF (40-55s) - The Revelation:\n   - Deliver the insight they came for\n   - Make them feel smarter\n   - Actionable or paradigm-shifting\n\n5. LOOP (55-60s) - Engagement Hook:\n   - End with open question OR\n   - Tease next video OR\n   - Challenge their beliefs\n\n**VOICE:**\n- Short sentences (5-12 words max)\n- Conversational, not preachy\n- Authority without arrogance\n- Power words: exposed, rigged, weapon, hidden, real\n\n**RULES:**\n- 90-115 words total\n- NO emojis, hashtags, timestamps\n- NO stage directions\n- Pure spoken narration only",
+              "role": "system"
+            },
+            {
+              "content": "Write an elite viral script about: {{ $json.topic }}\n\nHook Type: {{ $json.hook }}\nArchetype: {{ $json.archetype }}\nVisual Intent: {{ $json.visual_intent }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 350,
+          "temperature": 0.75
+        }
+      },
+      "id": "script-generator",
+      "name": "📝 Elite Script Generator",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [-200, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "openAiApi": {
+          "id": "tgF2FazdNfVR1lMh",
+          "name": "OpenAI Anointment"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all()[0]?.json || {};\nconst topicData = $node['🧠 AAVE Brain - Elite Topic Selection'].json || {};\n\nconst rawScript = input.message?.content || input.text || '';\n\nif (!rawScript || rawScript.length < 50) {\n  throw new Error('SCRIPT_GENERATION_FAILED: Script too short or empty');\n}\n\n// Elite TTS optimization\nfunction optimizeForTTS(text) {\n  return text\n    .replace(/\\*\\*/g, '')           // Remove markdown bold\n    .replace(/[#_*]/g, '')           // Remove formatting\n    .replace(/\\n+/g, ' ')            // Single line\n    .replace(/\\s{2,}/g, ' ')         // Normalize spaces\n    .replace(/\\.{3,}/g, '...')       // Normalize ellipsis\n    .replace(/[""]/g, '\"')           // Normalize quotes\n    .replace(/['']/g, \"'\")           // Normalize apostrophes\n    .trim();\n}\n\nconst script = optimizeForTTS(rawScript);\nconst words = script.split(/\\s+/);\nconst wordCount = words.length;\nconst estimatedDuration = Math.ceil(wordCount / 2.4); // ~2.4 words/sec for natural pace\n\n// Quality gate checks\nconst qualityChecks = {\n  length_ok: wordCount >= 80 && wordCount <= 130,\n  no_emojis: !/[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}]/u.test(script),\n  no_hashtags: !script.includes('#'),\n  has_hook: script.toLowerCase().includes(\"you\") || script.includes(\"?\") || script.toLowerCase().includes(\"every\"),\n  proper_ending: /[.?!]$/.test(script.trim())\n};\n\nconst passedChecks = Object.values(qualityChecks).filter(v => v).length;\nconst qualityScore = Math.round((passedChecks / Object.keys(qualityChecks).length) * 100);\n\nreturn [{\n  json: {\n    topic: topicData.topic,\n    archetype: topicData.archetype,\n    visual_intent: topicData.visual_intent,\n    visual_dna: topicData.visual_dna,\n    hook_type: topicData.hook,\n    dna_id: topicData.dna_id,\n    script_raw: rawScript,\n    script: script,\n    word_count: wordCount,\n    estimated_duration: estimatedDuration,\n    quality_score: qualityScore,\n    quality_checks: qualityChecks,\n    content_type: estimatedDuration <= 60 ? 'SHORT' : 'LONGFORM',\n    processed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "script-processor",
+      "name": "⚡ Script Processor & QA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [100, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.script }}\",\n  \"model_id\": \"eleven_multilingual_v2\",\n  \"voice_settings\": {\n    \"stability\": 0.45,\n    \"similarity_boost\": 0.85,\n    \"style\": 0.35,\n    \"use_speaker_boost\": true\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "elevenlabs-tts",
+      "name": "🎙️ ElevenLabs Elite Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pD7r1ApG2XA4ZVxB",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "=elite_{{ $node['⚡ Script Processor & QA'].json.dna_id }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1BGGyx_C-Yv1m_v-fmC2aJj3Yp_c8IJ6Y"
+        },
+        "options": {}
+      },
+      "id": "drive-upload",
+      "name": "☁️ Save to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [700, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "lQp7tCjjzrwFF2uj",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/v1/render",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"timeline\": {\n    \"background\": \"#000000\",\n    \"tracks\": [\n      {\n        \"clips\": [\n          {\n            \"asset\": {\n              \"type\": \"audio\",\n              \"src\": \"{{ $json.webContentLink }}\"\n            },\n            \"start\": 0,\n            \"length\": \"auto\"\n          }\n        ]\n      },\n      {\n        \"clips\": [\n          {\n            \"asset\": {\n              \"type\": \"video\",\n              \"src\": \"https://shotstack-assets.s3.amazonaws.com/footage/abstract-dark-blue.mp4\",\n              \"volume\": 0\n            },\n            \"start\": 0,\n            \"length\": \"auto\",\n            \"fit\": \"cover\",\n            \"scale\": 1.1,\n            \"effect\": \"zoomIn\"\n          }\n        ]\n      },\n      {\n        \"clips\": [\n          {\n            \"asset\": {\n              \"type\": \"title\",\n              \"text\": \"{{ $node['⚡ Script Processor & QA'].json.topic }}\",\n              \"style\": \"future\",\n              \"size\": \"medium\",\n              \"position\": \"bottom\"\n            },\n            \"start\": 0,\n            \"length\": 3,\n            \"transition\": { \"in\": \"fade\", \"out\": \"fade\" }\n          }\n        ]\n      }\n    ]\n  },\n  \"output\": {\n    \"format\": \"mp4\",\n    \"resolution\": \"1080\",\n    \"aspectRatio\": \"9:16\",\n    \"fps\": 30,\n    \"quality\": \"high\"\n  }\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "shotstack-render",
+      "name": "🎬 Shotstack Cloud Render",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-render",
+      "name": "⏳ Wait for Render",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.shotstack.io/v1/render/{{ $node['🎬 Shotstack Cloud Render'].json.response.id }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shotstack-status",
+      "name": "📊 Check Render Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 300],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 15000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "render-done",
+              "leftValue": "={{ $json.response.status }}",
+              "rightValue": "done",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-status",
+      "name": "✅ Render Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const scriptData = $node['⚡ Script Processor & QA'].json;\nconst renderData = $node['📊 Check Render Status'].json.response || {};\n\nconst videoUrl = renderData.url || '';\nconst topic = scriptData.topic || 'Elite Money Short';\n\n// Generate YouTube metadata\nconst title = topic.length > 95 ? topic.substring(0, 92) + '...' : topic;\n\nconst description = `${topic}\n\n🎯 Master your money. Build real wealth.\n\n💰 Follow for daily wealth insights\n📈 No fluff. Just truth.\n\n#Shorts #Money #Wealth #Finance #Investing #PersonalFinance #MoneyTips #FinancialFreedom #WealthBuilding #MoneyMachine`;\n\nconst tags = [\n  'money', 'wealth', 'finance', 'investing', 'personal finance',\n  'money tips', 'financial freedom', 'wealth building', 'shorts',\n  scriptData.archetype?.replace('_', ' ') || 'education'\n].slice(0, 10);\n\nreturn [{\n  json: {\n    video_url: videoUrl,\n    title: title,\n    description: description,\n    tags: tags,\n    category: '22',\n    privacy: 'public',\n    made_for_kids: false,\n    dna_id: scriptData.dna_id,\n    topic: topic,\n    quality_score: scriptData.quality_score,\n    word_count: scriptData.word_count\n  }\n}];"
+      },
+      "id": "metadata-generator",
+      "name": "📋 Generate YouTube Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 200]
+    },
+    {
+      "parameters": {
+        "message": "=🎬 *Elite Video Rendered!*\n\n📌 *Topic:* {{ $json.topic }}\n📊 *Quality Score:* {{ $json.quality_score }}%\n📝 *Words:* {{ $json.word_count }}\n🎯 *DNA ID:* {{ $json.dna_id }}\n\n🔗 Video: {{ $json.video_url }}\n\n_Ready for YouTube upload_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-success",
+      "name": "📱 Success Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2500, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "mode": "list",
+          "value": "appQQycFmxyiQKk44"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Content DNA"
+        },
+        "options": {},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $node['⚡ Script Processor & QA'].json.topic }}",
+            "DNA_ID": "={{ $node['⚡ Script Processor & QA'].json.dna_id }}",
+            "Script": "={{ $node['⚡ Script Processor & QA'].json.script }}",
+            "Quality_Score": "={{ $node['⚡ Script Processor & QA'].json.quality_score }}",
+            "Word_Count": "={{ $node['⚡ Script Processor & QA'].json.word_count }}",
+            "Video_URL": "={{ $json.video_url }}",
+            "Status": "rendered",
+            "Created_At": "={{ new Date().toISOString() }}"
+          }
+        }
+      },
+      "id": "airtable-log",
+      "name": "📊 Log to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [2500, 400],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "airtable-cred",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "message": "=❌ *Render Failed*\n\nTopic: {{ $node['⚡ Script Processor & QA'].json.topic }}\nStatus: {{ $json.response.status }}\nError: {{ $json.response.error || 'Unknown' }}\n\nRetrying in next cycle...",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-error",
+      "name": "⚠️ Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2200, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "mYboMwTFDnzlHNuv",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "⏰ Hourly Production": {
+      "main": [
+        [{ "node": "🧠 AAVE Brain - Elite Topic Selection", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎯 Manual Elite Trigger": {
+      "main": [
+        [{ "node": "🧠 AAVE Brain - Elite Topic Selection", "type": "main", "index": 0 }]
+      ]
+    },
+    "🧠 AAVE Brain - Elite Topic Selection": {
+      "main": [
+        [{ "node": "📝 Elite Script Generator", "type": "main", "index": 0 }]
+      ]
+    },
+    "📝 Elite Script Generator": {
+      "main": [
+        [{ "node": "⚡ Script Processor & QA", "type": "main", "index": 0 }]
+      ]
+    },
+    "⚡ Script Processor & QA": {
+      "main": [
+        [{ "node": "🎙️ ElevenLabs Elite Voice", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎙️ ElevenLabs Elite Voice": {
+      "main": [
+        [{ "node": "☁️ Save to Drive", "type": "main", "index": 0 }]
+      ]
+    },
+    "☁️ Save to Drive": {
+      "main": [
+        [{ "node": "🎬 Shotstack Cloud Render", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎬 Shotstack Cloud Render": {
+      "main": [
+        [{ "node": "⏳ Wait for Render", "type": "main", "index": 0 }]
+      ]
+    },
+    "⏳ Wait for Render": {
+      "main": [
+        [{ "node": "📊 Check Render Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "📊 Check Render Status": {
+      "main": [
+        [{ "node": "✅ Render Complete?", "type": "main", "index": 0 }]
+      ]
+    },
+    "✅ Render Complete?": {
+      "main": [
+        [{ "node": "📋 Generate YouTube Metadata", "type": "main", "index": 0 }],
+        [{ "node": "⚠️ Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "📋 Generate YouTube Metadata": {
+      "main": [
+        [
+          { "node": "📱 Success Alert", "type": "main", "index": 0 },
+          { "node": "📊 Log to Airtable", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "elite" },
+    { "name": "autonomous" },
+    { "name": "money-machine" }
+  ],
+  "triggerCount": 2,
+  "updatedAt": "2025-12-25T00:00:00.000Z",
+  "versionId": "elite-v3"
+}
