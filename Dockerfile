@@ -1,53 +1,37 @@
 # ============================================================
-# MONEY MACHINE - ELITE N8N DOCKERFILE
-# The Autonomous Omni-Channel Revenue Engine
+# ANOINTMENT BACKEND - Production Dockerfile
 # ============================================================
-# This custom n8n image includes:
-# - FFmpeg (video/audio manipulation)
-# - Python 3 (automation scripts, data processing)
-# - yt-dlp (legal content research)
-# - MoviePy (programmatic video editing)
-# - Chromium (for official API OAuth flows)
+# Forces FFmpeg installation for remix engine
 # ============================================================
 
-FROM n8nio/n8n:latest
+FROM python:3.11-slim
 
-USER root
+# Install FFmpeg (REQUIRED for remix engine)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
 
-# ============================================================
-# SYSTEM DEPENDENCIES - "THE MUSCLES"
-# ============================================================
-RUN apk add --no-cache \
-    # Video/Audio Processing
-    ffmpeg \
-    # Python Runtime
-    python3 \
-    py3-pip \
-    # Build tools for Python packages
-    build-base \
-    python3-dev \
-    # Chromium for OAuth flows (official APIs only)
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    # Utilities
-    bash \
-    curl \
-    jq \
-    git
+# Set working directory
+WORKDIR /app
 
-# ============================================================
-# PYTHON PACKAGES - "THE HANDS"
-# ============================================================
-RUN pip3 install --no-cache-dir --break-system-packages \
-    # Video/Content Tools
-    yt-dlp \
-    moviepy \
-    Pillow \
-    # Data Processing
+# Copy requirements first (Docker cache optimization)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Environment
+ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
+EXPOSE 8000
+
+# Start command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     pandas \
     numpy \
     # API Clients
