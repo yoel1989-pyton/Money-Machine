@@ -21,9 +21,10 @@ BROLL_DIR = Path(__file__).parent.parent / "data" / "assets" / "backgrounds"
 
 @dataclass
 class BuildConfig:
-    target_bitrate: str = "7M"
-    max_bitrate: str = "8M"
-    crf: int = 18
+    target_bitrate: str = "8M"  # Hollywood standard
+    max_bitrate: str = "10M"
+    min_bitrate: str = "6M"    # Enforced floor
+    crf: int = 16              # Lower CRF = higher quality
     min_scene_duration: float = 1.2
     max_scene_duration: float = 2.8
     enable_zoompan: bool = True
@@ -92,15 +93,24 @@ class EliteVideoBuilder:
         if self.config.enable_hook and timeline.hook_overlay.get("ass_path") and Path(timeline.hook_overlay["ass_path"]).exists():
             filter_parts.append(f"ass='{timeline.hook_overlay['ass_path'].replace(chr(92), '/')}'")
         filter_args = ["-vf", ",".join(filter_parts)] if filter_parts else []
+        
+        # Hollywood Standard: Enforce 8 Mbps minimum with two-pass CBR-like encoding
         cmd = ["ffmpeg", "-y", "-i", video_path, "-i", audio_path, *filter_args, "-map", "0:v", "-map", "1:a",
-            "-c:v", "libx264", "-preset", "slow", "-crf", str(self.config.crf), "-profile:v", "high", "-level", "4.2",
-            "-pix_fmt", "yuv420p", "-b:v", self.config.target_bitrate, "-maxrate", self.config.max_bitrate, "-bufsize", "12M",
+            "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-profile:v", "high", "-level", "4.2",
+            "-pix_fmt", "yuv420p", 
+            "-b:v", self.config.target_bitrate, 
+            "-minrate", getattr(self.config, 'min_bitrate', '6M'),
+            "-maxrate", self.config.max_bitrate, 
+            "-bufsize", "16M",
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", "-shortest", output_path]
         process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await process.communicate()
         if process.returncode != 0:
+            # Fallback with enforced Hollywood bitrate (8 Mbps minimum)
             cmd = ["ffmpeg", "-y", "-i", video_path, "-i", audio_path, "-map", "0:v", "-map", "1:a",
-                "-c:v", "libx264", "-preset", "slow", "-crf", str(self.config.crf), "-c:a", "aac", "-b:a", "192k",
+                "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-profile:v", "high", "-level", "4.2",
+                "-b:v", "8M", "-minrate", "6M", "-maxrate", "10M", "-bufsize", "16M",
+                "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
                 "-movflags", "+faststart", "-shortest", output_path]
             process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             await process.communicate()

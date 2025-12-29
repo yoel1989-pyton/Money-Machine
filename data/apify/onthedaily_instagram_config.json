@@ -1,0 +1,64 @@
+{
+    "_comment": "ONTHEDAILY PROJECT - Instagram Profile Reels Scraper",
+    "_description": "Curated anthology. Targets specific high-authority profiles. Metrics: consistency and authority.",
+    
+    "actor": "apify/instagram-profile-reels-scraper",
+    
+    "input": {
+        "username": [
+            "garyvee",
+            "gaborbanfalvi",
+            "alexhormozi",
+            "naval",
+            "thejasonproject",
+            "business_wealthy"
+        ],
+        "resultsLimit": 50,
+        "skipPinnedPosts": true,
+        "includeSharesCount": true,
+        "includeTranscript": false,
+        "proxy": {
+            "useApifyProxy": true,
+            "apifyProxyGroups": ["RESIDENTIAL"]
+        }
+    },
+    
+    "schedule": {
+        "frequency": "daily",
+        "cron": "0 6 * * *"
+    },
+    
+    "filters": {
+        "_comment": "Applied in n8n Brain - Viral Coefficient = Shares / Likes",
+        "viral_coefficient_threshold": 0.15,
+        "minimum_views": 50000,
+        "recency_window_days": 14
+    },
+    
+    "creative_os_alignment": {
+        "_comment": "Accounts validated by Creative OS as brand-aligned",
+        "tier_1_authority": ["alexhormozi", "garyvee", "naval"],
+        "tier_2_niche": ["business_wealthy", "thejasonproject"],
+        "tier_3_emerging": ["gaborbanfalvi"]
+    },
+    
+    "output": {
+        "format": "json",
+        "fields": [
+            "id",
+            "shortCode",
+            "url",
+            "videoUrl",
+            "displayUrl",
+            "likesCount",
+            "commentsCount",
+            "sharesCount",
+            "viewsCount",
+            "timestamp",
+            "caption",
+            "hashtags",
+            "ownerUsername",
+            "duration"
+        ]
+    }
+}

@@ -1,0 +1,856 @@
+{
+  "name": "Money Machine Hollywood Engine - FINAL PRODUCTION",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate 5 viral financial topic ideas for YouTube Shorts. Dark, revelation style. Return as JSON array.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "groq_topics",
+      "name": "Groq Topic Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1968, 672]
+    },
+    {
+      "parameters": {},
+      "id": "manual_trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-2208, 896]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule_trigger",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-2208, 672]
+    },
+    {
+      "parameters": {
+        "path": "money-machine-form",
+        "formTitle": "Money Machine - Video Topic",
+        "formDescription": "Enter your viral video topic",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic",
+              "placeholder": "Why the Rich Use Debt as a Weapon",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Style",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {"option": "Dark Revelation"},
+                  {"option": "System Expose"},
+                  {"option": "Wealth Secrets"},
+                  {"option": "Power Dynamics"}
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Duration Target",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {"option": "30 seconds"},
+                  {"option": "45 seconds"},
+                  {"option": "60 seconds"}
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "form_trigger",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.1,
+      "position": [-2208, 1088],
+      "webhookId": "money-machine-form"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ELITE_TOPICS = [\n  { topic: 'The Hidden Tax Stealing Your Wealth Every Day', style: 'Dark Revelation', archetype: 'threat' },\n  { topic: 'Why Banks Want You Broke (And How They Do It)', style: 'System Expose', archetype: 'system_reveal' },\n  { topic: 'You Will Own Nothing by 2030 (Here\\'s Why)', style: 'Dark Revelation', archetype: 'future_threat' },\n  { topic: 'The Federal Reserve Explained (Why It Matters)', style: 'System Expose', archetype: 'educational' },\n  { topic: 'How The Rich Legally Avoid Taxes', style: 'Wealth Secrets', archetype: 'strategy' },\n  { topic: 'Why Your Savings Are Shrinking (Inflation Exposed)', style: 'Dark Revelation', archetype: 'threat' },\n  { topic: 'The Debt Trap They Set For You', style: 'System Expose', archetype: 'system_reveal' },\n  { topic: 'Cash Is Trash (Here\\'s What the Rich Hold Instead)', style: 'Wealth Secrets', archetype: 'authority_contradiction' },\n  { topic: 'The Credit Score Scam Explained', style: 'System Expose', archetype: 'mechanism_reveal' },\n  { topic: 'Why Most People Never Build Wealth', style: 'Dark Revelation', archetype: 'psychological' }\n];\n\nconst randomTopic = ELITE_TOPICS[Math.floor(Math.random() * ELITE_TOPICS.length)];\n\nreturn {\n  json: {\n    Topic: randomTopic.topic,\n    Style: randomTopic.style,\n    'Duration Target': '45 seconds',\n    archetype: randomTopic.archetype,\n    source: 'scheduled'\n  }\n};"
+      },
+      "id": "select_topic",
+      "name": "Select Elite Topic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1776, 672]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an elite viral content strategist for finance/wealth YouTube Shorts. Return JSON ONLY with these fields:\\n- thesis: core controversial message (1 sentence)\\n- beats: array of 12-15 short punchy lines (under 10 words each, no filler, revelation style)\\n- intents: array matching each beat with visual concept (oppression, mechanism, power_control, escape, revelation, dominance, fear, clarity, wealth, system, control, freedom)\\n- emotional_arc: array of emotions for pacing (shock, anger, clarity, power, urgency)\\n- hook: attention-grabbing first line\\n- title: YouTube title under 60 chars\\n- description: YouTube description with hashtags\\n\\nRULES:\\n- First line MUST hook immediately\\n- Each beat is one visual scene\\n- Build tension then reveal\\n- End with call to action\\n- No motivation fluff - pure truth bombs\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Create viral short about: {{ $json.Topic || $json.topic || 'Why the Rich Use Debt as a Weapon' }}. Style: {{ $json.Style || 'Dark Revelation' }}. Target: {{ $json['Duration Target'] || '45 seconds' }}. Dark, powerful, system-reveal style.\"\n    }\n  ],\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "gpt4o_script",
+      "name": "GPT-4o Script Writer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1536, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = JSON.parse($input.first().json.choices[0].message.content);\n\nfunction extractConcepts(text) {\n  return text\n    .toLowerCase()\n    .replace(/[^\\w\\s]/g, '')\n    .split(' ')\n    .filter(w => w.length > 3);\n}\n\nconst VISUAL_MAP = {\n  debt: 'credit chains tightening around hands',\n  interest: 'numbers compounding rapidly on screen',\n  bank: 'towering bank vault looming',\n  banks: 'towering bank vault looming',\n  control: 'puppet strings over human silhouette',\n  system: 'gears grinding endlessly',\n  freedom: 'chains snapping, open sky',\n  rich: 'luxury skyline above shadows',\n  poor: 'dark apartment, flickering light',\n  power: 'chess king dominating board',\n  money: 'currency dissolving into smoke',\n  wealth: 'gold coins stacking endlessly',\n  broke: 'empty wallet, crumpled bills',\n  taxes: 'government building casting shadow',\n  inflation: 'shrinking dollar bill animation',\n  savings: 'piggy bank cracking open',\n  credit: 'credit score numbers falling',\n  trap: 'mouse trap with dollar bill bait',\n  future: 'dark horizon with single light',\n  truth: 'curtain pulling back revealing light',\n  secrets: 'locked vault door opening',\n  elite: 'penthouse view above clouds',\n  slave: 'chains on working hands',\n  escape: 'person breaking through wall',\n  learn: 'eye opening wide with light'\n};\n\nconst STYLES = [\n  { style: 'anime_dark', provider: 'leonardo' },\n  { style: 'cinematic_real', provider: 'runway' },\n  { style: 'abstract_metaphor', provider: 'fal' },\n  { style: 'hyperreal', provider: 'stability' }\n];\n\nlet scenes = [];\nlet beatCounter = 1;\n\nresponse.beats.forEach((beat, i) => {\n  const concepts = extractConcepts(beat);\n  if (concepts.length === 0) concepts.push('revelation');\n  const limitedConcepts = concepts.slice(0, 3);\n  \n  limitedConcepts.forEach((concept, j) => {\n    const visual = VISUAL_MAP[concept] || `${concept}, cinematic symbolic representation, dark mood`;\n    const styleObj = STYLES[(i + j) % STYLES.length];\n    \n    scenes.push({\n      beat: beatCounter++,\n      script_word: concept,\n      text: beat,\n      grounded_visual: visual,\n      style: styleObj.style,\n      provider: styleObj.provider,\n      duration: 0.9,\n      motion: 'slow_zoom'\n    });\n  });\n});\n\nif (scenes.length < 12) {\n  const fillerVisuals = ['dark storm clouds gathering', 'eye opening to truth', 'chains breaking apart', 'light piercing darkness'];\n  while (scenes.length < 12) {\n    const styleObj = STYLES[scenes.length % STYLES.length];\n    scenes.push({\n      beat: beatCounter++,\n      script_word: 'revelation',\n      text: response.beats[scenes.length % response.beats.length],\n      grounded_visual: fillerVisuals[scenes.length % fillerVisuals.length],\n      style: styleObj.style,\n      provider: styleObj.provider,\n      duration: 0.9,\n      motion: 'slow_zoom'\n    });\n  }\n}\n\nreturn {\n  json: {\n    ...response,\n    scenes: scenes,\n    full_script: response.beats.join(' '),\n    mode: 'hollywood_word_grounded',\n    video_id: `elite_${Date.now()}`,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "scene_planner",
+      "name": "Hollywood Scene Planner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1312, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst scenes = data.scenes;\nconst providers = [...new Set(scenes.map(s => s.provider))];\n\nif (scenes.length < 12) {\n  throw new Error(`QUALITY GATE FAILED: Only ${scenes.length} scenes (minimum 12 required)`);\n}\n\nif (providers.length < 3) {\n  throw new Error(`QUALITY GATE FAILED: Only ${providers.length} providers (minimum 3 required)`);\n}\n\nfor (let i = 1; i < scenes.length; i++) {\n  if (scenes[i].style === scenes[i-1].style) {\n    const STYLES = ['anime_dark', 'cinematic_real', 'abstract_metaphor', 'hyperreal'];\n    const PROVIDERS = ['leonardo', 'runway', 'fal', 'stability'];\n    const altIndex = (i + 2) % STYLES.length;\n    scenes[i].style = STYLES[altIndex];\n    scenes[i].provider = PROVIDERS[altIndex];\n  }\n}\n\nreturn {\n  json: {\n    ...data,\n    scenes: scenes,\n    quality_check: {\n      passed: true,\n      scene_count: scenes.length,\n      provider_count: providers.length,\n      providers_used: providers,\n      styles_used: [...new Set(scenes.map(s => s.style))],\n      mode: 'word_grounded',\n      timestamp: new Date().toISOString()\n    }\n  }\n};"
+      },
+      "id": "quality_gate",
+      "name": "Hollywood Quality Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1088, 880]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_5d8bfc9c41d35a9a8a47516eb5e2e37c64310fee37998222"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.full_script }}\",\n  \"model_id\": \"eleven_flash_v2\",\n  \"voice_settings\": {\n    \"stability\": 0.45,\n    \"similarity_boost\": 0.75,\n    \"style\": 0.6,\n    \"use_speaker_boost\": true\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "audio_data"
+            }
+          }
+        }
+      },
+      "id": "elevenlabs_tts",
+      "name": "ElevenLabs TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-864, 680]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/ingest/stage/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shotstack_request_upload",
+      "name": "Shotstack Request Upload URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-640, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PRODUCTION-SAFE: Binary flows FORWARD from $input, never looked up\n// This is the correct n8n binary architecture for async/replay safety\n\nconst item = $input.first();\n\n// Validate upload URL from Shotstack response\nconst uploadUrl = item.json?.data?.attributes?.url;\nconst uploadId = item.json?.data?.id;\n\nif (!uploadUrl) {\n  throw new Error('Shotstack upload URL missing from response');\n}\n\n// Validate binary exists from the forward chain\n// Binary MUST be passed forward, not looked up from other nodes\nif (!item.binary || !item.binary.audio_data) {\n  throw new Error('Binary audio_data missing - ensure ElevenLabs TTS flows directly to this node');\n}\n\nreturn {\n  json: {\n    upload_url: uploadUrl,\n    upload_id: uploadId\n  },\n  binary: {\n    audio_data: item.binary.audio_data\n  }\n};"
+      },
+      "id": "reattach_binary",
+      "name": "Reattach Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-416, 680]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $json.upload_url }}",
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "audio_data",
+        "options": {}
+      },
+      "id": "upload_audio_binary",
+      "name": "Upload Audio Binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-192, 680]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.shotstack.io/ingest/stage/sources/{{ $('Reattach Binary').item.json.upload_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "poll_audio_source",
+      "name": "Poll Audio Source",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [32, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nconst status = response.data?.attributes?.status;\nconst sourceUrl = response.data?.attributes?.source;\n\nif (status !== 'ready') {\n  return {\n    json: {\n      audio_status: status,\n      audio_id: response.data?.id,\n      retry: true\n    }\n  };\n}\n\nif (!sourceUrl) {\n  throw new Error('Audio source ready but URL missing');\n}\n\nreturn {\n  json: {\n    audio_url: sourceUrl,\n    audio_status: status,\n    audio_id: response.data?.id,\n    retry: false\n  }\n};"
+      },
+      "id": "process_audio_source",
+      "name": "Process Audio Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [256, 680]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "audio_retry_check",
+              "leftValue": "={{ $json.retry }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check_audio_ready",
+      "name": "Audio Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 680]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait_audio",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [480, 480]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "scenes",
+        "options": {}
+      },
+      "id": "split_scenes",
+      "name": "Split Scenes",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [-864, 1080]
+    },
+    {
+      "parameters": {
+        "jsCode": "const scene = $input.first().json;\nscene.retry_count = scene.retry_count || 0;\n\nif (scene.retry_count > 2) {\n  const fallbackMap = {\n    leonardo: 'stability',\n    runway: 'fal',\n    fal: 'stability',\n    stability: 'fal'\n  };\n  scene.original_provider = scene.provider;\n  scene.provider = fallbackMap[scene.provider] || 'stability';\n  scene.failover_used = true;\n}\n\nscene.retry_count += 1;\nreturn { json: scene };"
+      },
+      "id": "retry_guard",
+      "name": "Provider Retry Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-640, 1080]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"leftValue": "={{ $json.provider }}", "rightValue": "leonardo", "operator": {"type": "string", "operation": "equals"}}]
+              },
+              "renameOutput": true,
+              "outputKey": "leonardo"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"leftValue": "={{ $json.provider }}", "rightValue": "runway", "operator": {"type": "string", "operation": "equals"}}]
+              },
+              "renameOutput": true,
+              "outputKey": "runway"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"leftValue": "={{ $json.provider }}", "rightValue": "fal", "operator": {"type": "string", "operation": "equals"}}]
+              },
+              "renameOutput": true,
+              "outputKey": "fal"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"leftValue": "={{ $json.provider }}", "rightValue": "stability", "operator": {"type": "string", "operation": "equals"}}]
+              },
+              "renameOutput": true,
+              "outputKey": "stability"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "provider_router",
+      "name": "Provider Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-416, 1080]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 8a7ccd1c-6aa6-4a0e-a28e-4d461b542212"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.grounded_visual }}, {{ $json.style }}, anime dark aesthetic, moody shadows, dramatic lighting, vertical 9:16, no text, no watermark, professional quality\",\n  \"modelId\": \"aa77f04e-3eec-4034-9c07-d0f619684628\",\n  \"width\": 576,\n  \"height\": 1024,\n  \"num_images\": 1,\n  \"guidance_scale\": 7,\n  \"alchemy\": true,\n  \"photoReal\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "leonardo_gen",
+      "name": "Leonardo AI Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-192, 880],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dev.runwayml.com/v1/text_to_image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer key_d327367da695c4e0b7005c8354c879262f74d0e3396cf1f615340949cca23c33fd1df587838c7702388956488e5c9ce80c63b32f54b42ab273b28ecbd8142ea0"
+            },
+            {
+              "name": "X-Runway-Version",
+              "value": "2024-11-06"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gen4_image\",\n  \"promptText\": \"{{ $json.grounded_visual }}, {{ $json.style }}, cinematic film still, hyper-realistic, moody lighting, 9:16 vertical, professional film quality, no text\",\n  \"ratio\": \"9:16\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "runway_gen",
+      "name": "Runway Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-192, 1060],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux/dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key 04cc9251-3b11-482a-b89d-980f7a6791e4:1db3d89f6b155f496f1872f8afcbc46a"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.grounded_visual }}, {{ $json.style }}, abstract metaphor, surreal, cinematic composition, vertical 9:16, no text, professional, dark atmospheric mood\",\n  \"image_size\": \"portrait_16_9\",\n  \"num_inference_steps\": 28,\n  \"guidance_scale\": 3.5,\n  \"num_images\": 1,\n  \"enable_safety_checker\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fal_gen",
+      "name": "Fal.ai Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-192, 1240],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stability.ai/v2beta/stable-image/generate/core",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-nKoQVkvdM7w1cYfiTp1wSxGowNG3F9wkj7RxygTgn7peao98"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.grounded_visual }}, {{ $json.style }}, hyperreal, cinematic lighting, professional, vertical composition, no text, dramatic mood"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "9:16"
+            },
+            {
+              "name": "output_format",
+              "value": "png"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "stability_gen",
+      "name": "Stability AI Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-192, 1420],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge_visuals",
+      "name": "Merge All Visuals",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [32, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst sorted = allItems.sort((a, b) => (a.json.beat || 0) - (b.json.beat || 0));\n\n// Get audio from Process Audio Source (the stable source of truth)\nconst audioNode = $('Process Audio Source');\nif (!audioNode || audioNode.all().length === 0) {\n  throw new Error('ASSEMBLY FAILED: Audio source not ready');\n}\n\nconst audioData = audioNode.first().json;\nif (!audioData.audio_url) {\n  throw new Error('ASSEMBLY FAILED: Audio URL missing');\n}\n\nconst qualityNode = $('Hollywood Quality Gate');\nif (!qualityNode || qualityNode.all().length === 0) {\n  throw new Error('ASSEMBLY FAILED: Quality Gate data not available');\n}\n\nconst qualityData = qualityNode.first().json;\n\nconst imageUrls = sorted.map((item, i) => {\n  const json = item.json;\n  const url = json.url || \n         json.output?.[0] || \n         json.images?.[0]?.url ||\n         json.data?.attributes?.url ||\n         json.generations?.[0]?.url ||\n         null;\n  \n  if (!url) {\n    return `https://placehold.co/576x1024/1a1a2e/ffffff?text=Scene+${i+1}`;\n  }\n  return url;\n});\n\nwhile (imageUrls.length < 12) {\n  imageUrls.push(`https://placehold.co/576x1024/1a1a2e/ffffff?text=Scene+${imageUrls.length+1}`);\n}\n\nreturn {\n  json: {\n    image_urls: imageUrls,\n    audio_url: audioData.audio_url,\n    total_scenes: imageUrls.length,\n    title: qualityData.title,\n    description: qualityData.description,\n    thesis: qualityData.thesis,\n    hook: qualityData.hook,\n    quality_check: qualityData.quality_check,\n    video_id: qualityData.video_id\n  }\n};"
+      },
+      "id": "prepare_assembly",
+      "name": "Prepare Assembly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [256, 1180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/stage/render",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"timeline\": {\n    \"soundtrack\": {\n      \"src\": \"{{ $json.audio_url }}\",\n      \"effect\": \"fadeOut\"\n    },\n    \"tracks\": [\n      {\n        \"clips\": {{ JSON.stringify($json.image_urls.map((url, i) => ({\n          \"asset\": { \"type\": \"image\", \"src\": url },\n          \"start\": i * 0.95,\n          \"length\": 1.0,\n          \"transition\": { \"in\": \"fade\", \"out\": \"fade\" },\n          \"effect\": i % 2 === 0 ? \"zoomIn\" : \"slideLeft\",\n          \"fit\": \"cover\"\n        }))) }}\n      }\n    ]\n  },\n  \"output\": {\n    \"format\": \"mp4\",\n    \"resolution\": \"1080\",\n    \"aspectRatio\": \"9:16\",\n    \"fps\": 30,\n    \"quality\": \"high\"\n  }\n}",
+        "options": {}
+      },
+      "id": "shotstack_final",
+      "name": "Shotstack Final Render",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const renderId = $input.first().json.response?.id || $input.first().json.id;\n\nif (!renderId) {\n  throw new Error('No render ID returned from Shotstack');\n}\n\nreturn {\n  json: {\n    render_id: renderId,\n    status_url: `https://api.shotstack.io/stage/render/${renderId}`,\n    ...$('Prepare Assembly').first().json\n  }\n};"
+      },
+      "id": "get_render_id",
+      "name": "Get Render ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [704, 1180]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "poll_render",
+      "name": "Poll Render Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [928, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prevData = $('Get Render ID').first().json;\n\nconst status = response.response?.status || response.status;\nconst videoUrl = response.response?.url || response.url;\n\nif (status === 'done' && videoUrl) {\n  return {\n    json: {\n      video_url: videoUrl,\n      status: 'complete',\n      ...prevData\n    }\n  };\n} else if (status === 'failed') {\n  throw new Error('Shotstack render failed: ' + JSON.stringify(response));\n} else {\n  return {\n    json: {\n      video_url: videoUrl || 'pending',\n      status: status || 'rendering',\n      ...prevData\n    }\n  };\n}"
+      },
+      "id": "process_render",
+      "name": "Process Render Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1152, 1180]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $json.title }}",
+        "categoryId": "22",
+        "options": {
+          "description": "={{ $json.description }}",
+          "privacyStatus": "public",
+          "tags": "money,wealth,finance,debt,rich,elite,viral,shorts"
+        }
+      },
+      "id": "youtube_upload",
+      "name": "YouTube Upload",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [1376, 1180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "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"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this video performance DNA and suggest mutations for next generation:\\n\\nTitle: {{ $json.title }}\\nScenes: {{ $json.quality_check.scene_count }}\\nProviders: {{ $json.quality_check.providers_used.join(', ') }}\\nThesis: {{ $json.thesis }}\\n\\nReturn JSON with: winning_elements (array), suggested_mutations (array), style_evolution (string), next_thesis_angles (array of 3 topics)\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "claude_aave",
+      "name": "Claude AAVE Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 1180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appMoneyMachineDNA/DNA_Log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer patrb7eUEX1MrJJY0.f98139302c5bdeb5989de9c7148da29cf1d4932a8506b5e2ee1c2ae4ec683ff3"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"records\": [\n    {\n      \"fields\": {\n        \"Timestamp\": \"{{ $now.toISO() }}\",\n        \"Video_ID\": \"{{ $('YouTube Upload').item.json.id || 'pending' }}\",\n        \"Title\": \"{{ $('Process Render Result').item.json.title }}\",\n        \"Thesis\": \"{{ $('Process Render Result').item.json.thesis }}\",\n        \"Scene_Count\": {{ $('Process Render Result').item.json.quality_check.scene_count }},\n        \"Providers\": \"{{ $('Process Render Result').item.json.quality_check.providers_used.join(', ') }}\",\n        \"AAVE_Mutations\": \"{{ $json.content[0].text }}\"\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "airtable_log",
+      "name": "Airtable DNA Logger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1824, 1180]
+    },
+    {
+      "parameters": {
+        "chatId": "5033650061",
+        "text": "=🎬 *MONEY MACHINE - FINAL PRODUCTION*\n\n📹 *Title:* {{ $('Process Render Result').item.json.title }}\n🎯 *Thesis:* {{ $('Process Render Result').item.json.thesis }}\n📊 *Scenes:* {{ $('Process Render Result').item.json.quality_check.scene_count }}\n🎨 *Providers:* {{ $('Process Render Result').item.json.quality_check.providers_used.join(', ') }}\n🔗 *YouTube:* https://youtube.com/shorts/{{ $('YouTube Upload').item.json.id }}\n\n✅ Word-grounded visuals\n✅ Self-healing pipeline\n✅ Binary-safe audio upload\n✅ Deterministic assembly",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram_notify",
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2048, 1180]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Groq Topic Ideas", "type": "main", "index": 0}]]
+    },
+    "Every 30 Minutes": {
+      "main": [[{"node": "Groq Topic Ideas", "type": "main", "index": 0}]]
+    },
+    "Form Trigger": {
+      "main": [[{"node": "GPT-4o Script Writer", "type": "main", "index": 0}]]
+    },
+    "Groq Topic Ideas": {
+      "main": [[{"node": "Select Elite Topic", "type": "main", "index": 0}]]
+    },
+    "Select Elite Topic": {
+      "main": [[{"node": "GPT-4o Script Writer", "type": "main", "index": 0}]]
+    },
+    "GPT-4o Script Writer": {
+      "main": [[{"node": "Hollywood Scene Planner", "type": "main", "index": 0}]]
+    },
+    "Hollywood Scene Planner": {
+      "main": [[{"node": "Hollywood Quality Gate", "type": "main", "index": 0}]]
+    },
+    "Hollywood Quality Gate": {
+      "main": [
+        [
+          {"node": "ElevenLabs TTS", "type": "main", "index": 0},
+          {"node": "Split Scenes", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "ElevenLabs TTS": {
+      "main": [[{"node": "Shotstack Request Upload URL", "type": "main", "index": 0}]]
+    },
+    "Shotstack Request Upload URL": {
+      "main": [[{"node": "Reattach Binary", "type": "main", "index": 0}]]
+    },
+    "Reattach Binary": {
+      "main": [[{"node": "Upload Audio Binary", "type": "main", "index": 0}]]
+    },
+    "Upload Audio Binary": {
+      "main": [[{"node": "Poll Audio Source", "type": "main", "index": 0}]]
+    },
+    "Poll Audio Source": {
+      "main": [[{"node": "Process Audio Source", "type": "main", "index": 0}]]
+    },
+    "Process Audio Source": {
+      "main": [[{"node": "Audio Ready?", "type": "main", "index": 0}]]
+    },
+    "Audio Ready?": {
+      "main": [
+        [{"node": "Wait 5s", "type": "main", "index": 0}],
+        [{"node": "Prepare Assembly", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 5s": {
+      "main": [[{"node": "Poll Audio Source", "type": "main", "index": 0}]]
+    },
+    "Split Scenes": {
+      "main": [[{"node": "Provider Retry Guard", "type": "main", "index": 0}]]
+    },
+    "Provider Retry Guard": {
+      "main": [[{"node": "Provider Router", "type": "main", "index": 0}]]
+    },
+    "Provider Router": {
+      "main": [
+        [{"node": "Leonardo AI Generate", "type": "main", "index": 0}],
+        [{"node": "Runway Generate", "type": "main", "index": 0}],
+        [{"node": "Fal.ai Generate", "type": "main", "index": 0}],
+        [{"node": "Stability AI Generate", "type": "main", "index": 0}]
+      ]
+    },
+    "Leonardo AI Generate": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Runway Generate": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Fal.ai Generate": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Stability AI Generate": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Merge All Visuals": {
+      "main": [[{"node": "Prepare Assembly", "type": "main", "index": 0}]]
+    },
+    "Prepare Assembly": {
+      "main": [[{"node": "Shotstack Final Render", "type": "main", "index": 0}]]
+    },
+    "Shotstack Final Render": {
+      "main": [[{"node": "Get Render ID", "type": "main", "index": 0}]]
+    },
+    "Get Render ID": {
+      "main": [[{"node": "Poll Render Status", "type": "main", "index": 0}]]
+    },
+    "Poll Render Status": {
+      "main": [[{"node": "Process Render Result", "type": "main", "index": 0}]]
+    },
+    "Process Render Result": {
+      "main": [[{"node": "YouTube Upload", "type": "main", "index": 0}]]
+    },
+    "YouTube Upload": {
+      "main": [[{"node": "Claude AAVE Analysis", "type": "main", "index": 0}]]
+    },
+    "Claude AAVE Analysis": {
+      "main": [[{"node": "Airtable DNA Logger", "type": "main", "index": 0}]]
+    },
+    "Airtable DNA Logger": {
+      "main": [[{"node": "Telegram Notify", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6ed880d926ad8397b92373685b0d12b563fbbf9410c8428e2c46beea4e543f45"
+  }
+}

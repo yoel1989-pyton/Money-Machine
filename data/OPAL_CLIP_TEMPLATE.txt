@@ -1,0 +1,15 @@
+Cinematic short video.
+
+Scene:
+{{SCENE_DESCRIPTION}}
+
+Style:
+- Film-grade lighting
+- Smooth camera motion
+- Shallow depth of field
+- High contrast realism
+
+Rules:
+- Complete story within clip
+- No unfinished motion
+- Loop-safe ending

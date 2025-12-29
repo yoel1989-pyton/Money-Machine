@@ -1,0 +1,14 @@
+# ============================================================
+# ANOINTMENT PROTOCOL - Railway Build Configuration
+# ============================================================
+# This enables FFmpeg for video fingerprint obfuscation
+# ============================================================
+
+[phases.setup]
+nixPkgs = ['ffmpeg', 'python3', 'openssl', 'wget']
+
+[phases.install]
+cmds = ['pip install -r requirements.txt']
+
+[start]
+cmd = 'uvicorn main:app --host 0.0.0.0 --port $PORT'

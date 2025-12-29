@@ -1,26 +1,220 @@
-{
-  "Understanding_the_Hidden_Costs": {
-    "video_id": "Understanding_the_Hidden_Costs",
-    "topic": "The hidden cost of free financial advice",
-    "hook_type": "revelation",
-    "emotional_trigger": "revelation",
-    "visual_dna": {
-      "intent": "future_warning",
-      "pacing": "measured",
-      "motion_density": "high",
-      "color_mood": "dark",
-      "scene_duration": 2.0,
-      "cut_frequency": 25.0
-    },
-    "script_hash": "1185224851677568652",
-    "views_1hr": 0,
-    "views_24hr": 0,
-    "retention_rate": 0.0,
-    "avg_view_duration": 0.0,
-    "rpm": 0.0,
-    "is_winner": false,
-    "should_expand": false,
-    "times_mutated": 0,
-    "created_at": "2025-12-23T21:34:10.595539"
+[
+  {
+    "Understanding_the_Hidden_Costs": {
+      "video_id": "Understanding_the_Hidden_Costs",
+      "topic": "The hidden cost of free financial advice",
+      "hook_type": "revelation",
+      "emotional_trigger": "revelation",
+      "visual_dna": {
+        "intent": "future_warning",
+        "pacing": "measured",
+        "motion_density": "high",
+        "color_mood": "dark",
+        "scene_duration": 2.0,
+        "cut_frequency": 25.0
+      },
+      "script_hash": "1185224851677568652",
+      "views_1hr": 0,
+      "views_24hr": 0,
+      "retention_rate": 0.0,
+      "avg_view_duration": 0.0,
+      "rpm": 0.0,
+      "is_winner": false,
+      "should_expand": false,
+      "times_mutated": 0,
+      "created_at": "2025-12-23T21:34:10.595539"
+    }
+  },
+  {
+    "topic": "Why Saving Money Makes You Poorer",
+    "visual_intent": "power_finance",
+    "archetype": "contrarian_fear",
+    "bitrate": 8019670,
+    "duration": 32.8,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_104733_Why Saving Money Makes You Poorer.mp4",
+    "timestamp": "2025-12-25T16:49:21.667361+00:00"
+  },
+  {
+    "topic": "How the Rich Think Differently About Money",
+    "visual_intent": "luxury_wealth",
+    "archetype": "identity_trigger",
+    "bitrate": 8018031,
+    "duration": 29.1,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_105050_How the Rich Think Differently About Money.mp4",
+    "timestamp": "2025-12-25T16:52:19.486059+00:00"
+  },
+  {
+    "topic": "How the Rich Think Differently About Money",
+    "visual_intent": "luxury_wealth",
+    "archetype": "identity_trigger",
+    "bitrate": 7987960,
+    "duration": 33.233333,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_105220_How the Rich Think Differently About Money.mp4",
+    "timestamp": "2025-12-25T16:54:13.201600+00:00"
+  },
+  {
+    "topic": "Why Banks Want You Broke (And How They Do It)",
+    "visual_intent": "power_finance",
+    "archetype": "system_reveal",
+    "bitrate": 8014127,
+    "duration": 29.0,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_105414_Why Banks Want You Broke And How They Do It.mp4",
+    "timestamp": "2025-12-25T16:55:35.486361+00:00"
+  },
+  {
+    "topic": "Why the Middle Class Is Disappearing",
+    "visual_intent": "class_divide",
+    "archetype": "slow_burn_truth",
+    "bitrate": 8005996,
+    "duration": 36.366667,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_105536_Why the Middle Class Is Disappearing.mp4",
+    "timestamp": "2025-12-25T16:57:13.711647+00:00"
+  },
+  {
+    "topic": "Why Saving Money Makes You Poorer",
+    "visual_intent": "power_finance",
+    "archetype": "contrarian_fear",
+    "bitrate": 8234844,
+    "duration": 34.7,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_105714_Why Saving Money Makes You Poorer.mp4",
+    "timestamp": "2025-12-25T17:18:57.627106+00:00"
+  },
+  {
+    "topic": "How the Rich Think Differently About Money",
+    "visual_intent": "luxury_wealth",
+    "archetype": "identity_trigger",
+    "mode": "cinematic",
+    "bitrate": 7997457,
+    "duration": 31.8,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_125023_How the Rich Think Differently About Money.mp4",
+    "timestamp": "2025-12-25T18:52:41.071017+00:00"
+  },
+  {
+    "topic": "The Economy Is Rigged (Here's Proof)",
+    "visual_intent": "class_divide",
+    "archetype": "system_reveal",
+    "mode": "hollywood",
+    "bitrate": 8585363,
+    "duration": 16.433333,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_132556_The Economy Is Rigged Heres Proof.mp4",
+    "timestamp": "2025-12-25T19:30:44.124457+00:00"
+  },
+  {
+    "topic": "The Economy Is Rigged (Here's Proof)",
+    "visual_intent": "class_divide",
+    "archetype": "system_reveal",
+    "mode": "hollywood",
+    "bitrate": 8426739,
+    "duration": 22.433333,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_133131_The Economy Is Rigged Heres Proof.mp4",
+    "timestamp": "2025-12-25T19:36:21.222290+00:00"
+  },
+  {
+    "topic": "Why Saving Money Makes You Poorer",
+    "visual_intent": "power_finance",
+    "archetype": "contrarian_fear",
+    "mode": "hollywood",
+    "bitrate": 8053499,
+    "duration": 31.1,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_134313_Why Saving Money Makes You Poorer.mp4",
+    "timestamp": "2025-12-25T19:52:57.519916+00:00"
+  },
+  {
+    "topic": "The Psychology of Why You Stay Poor",
+    "visual_intent": "psychology",
+    "archetype": "identity_trigger",
+    "mode": "hollywood",
+    "bitrate": 8144461,
+    "duration": 32.766667,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_135415_The Psychology of Why You Stay Poor.mp4",
+    "timestamp": "2025-12-25T20:08:39.299097+00:00"
+  },
+  {
+    "topic": "Cash Is Trash (Here's What the Rich Hold Instead)",
+    "visual_intent": "power_finance",
+    "archetype": "authority_contradiction",
+    "mode": "hollywood",
+    "bitrate": 8616507,
+    "duration": 20.9,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_140947_Cash Is Trash Heres What the Rich Hold Instead.mp4",
+    "timestamp": "2025-12-25T20:14:25.909866+00:00"
+  },
+  {
+    "topic": "Why Saving Money Makes You Poorer",
+    "visual_intent": "power_finance",
+    "archetype": "contrarian_fear",
+    "mode": "hollywood",
+    "bitrate": 8427458,
+    "duration": 24.1,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_175057_Why Saving Money Makes You Poorer.mp4",
+    "timestamp": "2025-12-25T23:53:34.917761+00:00"
+  },
+  {
+    "topic": "Everything You Know About Money Is Wrong",
+    "visual_intent": "system_expose",
+    "archetype": "myth_destruction",
+    "mode": "hollywood",
+    "bitrate": 9388689,
+    "duration": 18.166016,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_175141_Everything You Know About Money Is Wrong.mp4",
+    "timestamp": "2025-12-25T23:56:56.560995+00:00"
+  },
+  {
+    "topic": "How the Rich Think Differently About Money",
+    "visual_intent": "luxury_wealth",
+    "archetype": "identity_trigger",
+    "mode": "hollywood",
+    "bitrate": 9191981,
+    "duration": 19.1,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251225_194755_How the Rich Think Differently About Money.mp4",
+    "timestamp": "2025-12-26T01:49:37.775654+00:00"
+  },
+  {
+    "topic": "The Federal Reserve Explained (Why It Matters)",
+    "visual_intent": "system_expose",
+    "archetype": "educational",
+    "mode": "hollywood",
+    "bitrate": 8255841,
+    "duration": 20.733333,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251226_121506_The Federal Reserve Explained Why It Matters.mp4",
+    "timestamp": "2025-12-26T18:17:26.616666+00:00"
+  },
+  {
+    "topic": "The Hidden Tax Stealing Your Wealth Every Day",
+    "visual_intent": "surveillance",
+    "archetype": "threat",
+    "mode": "hollywood",
+    "bitrate": 8962959,
+    "duration": 28.933333,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251226_121739_The Hidden Tax Stealing Your Wealth Every Day.mp4",
+    "timestamp": "2025-12-26T18:20:29.715495+00:00"
+  },
+  {
+    "topic": "Cash Is Trash (Here's What the Rich Hold Instead)",
+    "visual_intent": "power_finance",
+    "archetype": "authority_contradiction",
+    "mode": "hollywood",
+    "bitrate": 8638552,
+    "duration": 28.4,
+    "youtube_url": null,
+    "local_path": "C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine\\output\\playback\\shorts\\short_20251226_122110_Cash Is Trash Heres What the Rich Hold Instead.mp4",
+    "timestamp": "2025-12-26T18:24:04.767054+00:00"
   }
-}
+]

@@ -1,50 +1,67 @@
 {
-  "name": "💪 LOCAL EXECUTOR - Money Machine Muscle",
+  "name": "Money Machine LOCAL Executor",
   "nodes": [
     {
       "parameters": {
-        "path": "run-job",
         "httpMethod": "POST",
-        "responseMode": "responseNode",
+        "path": "run-job",
         "options": {}
       },
-      "id": "webhook-receive",
-      "name": "🎯 Receive Job",
+      "id": "webhook-receiver",
+      "name": "Webhook Receiver",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-400, 300],
-      "webhookId": "run-job"
+      "position": [260, 300],
+      "webhookId": "mm-local-run-job"
     },
     {
       "parameters": {
-        "jsCode": "// Validate incoming payload\nconst payload = $input.first().json;\n\nconst validModes = ['shorts', 'longform', 'expand'];\nconst mode = payload.mode || 'shorts';\n\nif (!validModes.includes(mode)) {\n  throw new Error(`Invalid mode: ${mode}. Must be one of: ${validModes.join(', ')}`);\n}\n\n// Prepare clean payload\nconst cleanPayload = {\n  job_id: payload.job_id || `job_${Date.now()}`,\n  mode: mode,\n  topic: payload.topic || null,\n  script: payload.script || null,\n  visual_intent: payload.visual_intent || 'power_finance',\n  force_upload: payload.force_upload !== false,\n  elite: payload.elite !== false,\n  source_dna: payload.source_dna || null\n};\n\nreturn [{ json: cleanPayload }];"
+        "command": "={{ 'cd ' + $env.MM_PROJECT_PATH + ' && python workflows/run_job.py --json \\'' + JSON.stringify($json) + '\\'' }}"
       },
-      "id": "validate-payload",
-      "name": "⚡ Validate Payload",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-100, 300]
-    },
-    {
-      "parameters": {
-        "command": "=cd C:\\Users\\mrgnb\\OneDrive\\Documents\\GitHub\\Money-Machine && .\\.venv\\Scripts\\python.exe workflows/run_job.py --json '{{ JSON.stringify($json) }}'"
-      },
-      "id": "execute-job",
-      "name": "🚀 Execute Money Machine",
+      "id": "execute-python",
+      "name": "Execute Money Machine",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [200, 300],
-      "continueOnFail": true
+      "position": [480, 300]
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first();\nconst stdout = input.json.stdout || '';\nconst stderr = input.json.stderr || '';\nconst exitCode = input.json.exitCode;\n\nlet result;\n\ntry {\n  // Parse JSON from stdout\n  const jsonMatch = stdout.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    result = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON in output');\n  }\n} catch (e) {\n  result = {\n    status: 'FAILED',\n    error: `Parse error: ${e.message}`,\n    stdout: stdout.slice(-500),\n    stderr: stderr.slice(-500),\n    exitCode: exitCode\n  };\n}\n\n// Add execution metadata\nresult.executed_at = new Date().toISOString();\nresult.execution_id = $execution?.id || 'local';\n\nreturn [{ json: result }];"
+        "jsCode": "// Parse the Python output\nconst output = $input.first().json.stdout;\n\n// Find the JSON result in output\nconst lines = output.split('\\n');\nlet jsonStart = false;\nlet jsonLines = [];\n\nfor (const line of lines) {\n  if (line.includes('JOB RESULT:')) {\n    jsonStart = true;\n    continue;\n  }\n  if (jsonStart && line.startsWith('{')) {\n    jsonStart = true;\n  }\n  if (jsonStart) {\n    jsonLines.push(line);\n  }\n}\n\nlet result;\ntry {\n  result = JSON.parse(jsonLines.join('\\n'));\n} catch (e) {\n  // Try to find JSON anywhere in output\n  const match = output.match(/\\{[\\s\\S]*\\}/g);\n  if (match) {\n    result = JSON.parse(match[match.length - 1]);\n  } else {\n    result = { status: 'PARSE_ERROR', raw: output };\n  }\n}\n\nreturn [{ json: result }];"
       },
       "id": "parse-result",
-      "name": "📊 Parse Result",
+      "name": "Parse Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 300]
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-status",
+      "name": "Check Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [920, 300]
     },
     {
       "parameters": {
@@ -53,40 +70,150 @@
         "options": {}
       },
       "id": "respond-success",
-      "name": "✅ Respond",
+      "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [800, 300]
+      "typeVersion": 1,
+      "position": [1140, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1140, 400]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "health",
+        "options": {}
+      },
+      "id": "health-webhook",
+      "name": "Health Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 520],
+      "webhookId": "mm-local-health"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'cd ' + $env.MM_PROJECT_PATH + ' && python workflows/run_job.py --mode health' }}"
+      },
+      "id": "health-check",
+      "name": "Run Health Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 520]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'HEALTHY', ffmpeg: true, python: true } }}",
+        "options": {}
+      },
+      "id": "respond-health",
+      "name": "Respond Health",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 520]
     }
   ],
   "connections": {
-    "🎯 Receive Job": {
+    "Webhook Receiver": {
       "main": [
-        [{ "node": "⚡ Validate Payload", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Execute Money Machine",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "⚡ Validate Payload": {
+    "Execute Money Machine": {
       "main": [
-        [{ "node": "🚀 Execute Money Machine", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "🚀 Execute Money Machine": {
+    "Parse Result": {
       "main": [
-        [{ "node": "📊 Parse Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "📊 Parse Result": {
+    "Check Status": {
       "main": [
-        [{ "node": "✅ Respond", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Webhook": {
+      "main": [
+        [
+          {
+            "node": "Run Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Health Check": {
+      "main": [
+        [
+          {
+            "node": "Respond Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
+  "versionId": "mm-local-v1",
+  "meta": {
+    "instanceId": "money-machine-local"
+  },
   "tags": [
-    { "name": "local" },
-    { "name": "executor" }
+    {
+      "name": "money-machine"
+    },
+    {
+      "name": "local"
+    }
   ]
 }

@@ -1,0 +1,206 @@
+{
+  "name": "SOVEREIGN Daily Publisher",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "📅 Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [100, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "execute-sovereign",
+      "name": "🎬 Run SOVEREIGN",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "parameters": {
+        "command": "cd /path/to/Money-Machine && python SOVEREIGN.py --shorts --hollywood --json-out"
+      }
+    },
+    {
+      "id": "parse-output",
+      "name": "📊 Parse JSON Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300],
+      "parameters": {
+        "jsCode": "// Parse SOVEREIGN output\nconst stdout = $input.first().json.stdout || '';\n\n// Find JSON in output (last line or parse whole)\nlet videoData;\ntry {\n  // Try to find JSON object in output\n  const jsonMatch = stdout.match(/\\{[^{}]*\"video_path\"[^{}]*\\}/s);\n  if (jsonMatch) {\n    videoData = JSON.parse(jsonMatch[0]);\n  } else {\n    videoData = JSON.parse(stdout.trim().split('\\n').pop());\n  }\n} catch (e) {\n  throw new Error(`Failed to parse SOVEREIGN output: ${e.message}`);\n}\n\nif (!videoData.video_path || videoData.status !== 'SUCCESS') {\n  throw new Error(`Video generation failed: ${JSON.stringify(videoData)}`);\n}\n\nreturn [{ json: videoData }];"
+      }
+    },
+    {
+      "id": "youtube-upload",
+      "name": "📺 YouTube Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/youtube/v3/videos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet,status"
+            },
+            {
+              "name": "uploadType",
+              "value": "resumable"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"snippet\": {\n    \"title\": \"{{ $json.title }}\",\n    \"description\": \"{{ $json.description }}\",\n    \"tags\": {{ JSON.stringify($json.tags) }},\n    \"categoryId\": \"22\"\n  },\n  \"status\": {\n    \"privacyStatus\": \"public\",\n    \"selfDeclaredMadeForKids\": false\n  }\n}"
+      },
+      "credentials": {
+        "oAuth2Api": {
+          "id": "YOUTUBE_OAUTH_CRED_ID",
+          "name": "YouTube OAuth"
+        }
+      }
+    },
+    {
+      "id": "airtable-log",
+      "name": "📋 Log to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [900, 300],
+      "parameters": {
+        "operation": "append",
+        "base": {
+          "mode": "id",
+          "value": "={{ $env.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "mode": "name",
+          "value": "Content DNA"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        }
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AIRTABLE_CRED_ID",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "id": "telegram-notify",
+      "name": "📱 Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 300],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=✅ **NEW VIDEO PUBLISHED**\n\n📹 {{ $node['📊 Parse JSON Output'].json.title }}\n\n🔗 https://youtube.com/shorts/{{ $node['📺 YouTube Upload'].json.id || 'pending' }}\n\n📊 Topic: {{ $node['📊 Parse JSON Output'].json.topic }}\n\n⏱️ {{ new Date().toISOString() }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CRED_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "id": "error-handler",
+      "name": "🚨 Error Handler",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [500, 500],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=❌ **SOVEREIGN FAILED**\n\nError: {{ $json.error || 'Unknown error' }}\n\n⏱️ {{ new Date().toISOString() }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CRED_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "📅 Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "🎬 Run SOVEREIGN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎬 Run SOVEREIGN": {
+      "main": [
+        [
+          {
+            "node": "📊 Parse JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Parse JSON Output": {
+      "main": [
+        [
+          {
+            "node": "📺 YouTube Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📺 YouTube Upload": {
+      "main": [
+        [
+          {
+            "node": "📋 Log to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Log to Airtable": {
+      "main": [
+        [
+          {
+            "node": "📱 Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "error-handler",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}

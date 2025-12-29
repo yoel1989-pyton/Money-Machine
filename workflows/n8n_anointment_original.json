@@ -1,0 +1,434 @@
+{
+  "name": "ANOINTMENT ORIGINAL - Money Machine / Solidarity / YouTube",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Queue"
+        },
+        "options": {
+          "valueRenderMode": "UNFORMATTED_VALUE"
+        }
+      },
+      "id": "sheets-trigger",
+      "name": "Check Content Queue",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "value2": "pending"
+            }
+          ]
+        }
+      },
+      "id": "filter-pending",
+      "name": "Only Pending",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/anointment~the-perfect-prompt-generator/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"topic\": \"{{ $json.topic }}\",\n  \"brand\": \"{{ $json.brand }}\",\n  \"tone\": \"{{ $json.tone || 'cinematic dark' }}\",\n  \"format\": \"short_video_script\"\n}"
+      },
+      "id": "prompt-generator",
+      "name": "Perfect Prompt Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "notesInFlow": true,
+      "notes": "Your Apify actor: anointment/the-perfect-prompt-generator"
+    },
+    {
+      "parameters": {
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "id": "wait-prompt",
+      "name": "Wait for Actor",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/acts/anointment~the-perfect-prompt-generator/runs/{{ $json.data.id }}/dataset/items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-prompt",
+      "name": "Fetch Elite Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json[0].optimized_prompt }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "id": "openai-script",
+      "name": "Generate Script (Cheap)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "list",
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.SUNO_MUSIC_FOLDER_ID }}"
+        },
+        "options": {
+          "fields": ["id", "name", "webContentLink"]
+        }
+      },
+      "id": "list-music",
+      "name": "List Suno Music Bank",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Random pick from Suno Music Bank\nconst files = $input.all();\nconst randomIndex = Math.floor(Math.random() * files.length);\nconst selected = files[randomIndex];\n\nreturn [{\n  json: {\n    music_id: selected.json.id,\n    music_name: selected.json.name,\n    music_url: selected.json.webContentLink,\n    script: $('Generate Script (Cheap)').item.json.message.content\n  }\n}];"
+      },
+      "id": "pick-music",
+      "name": "Random Music Pick",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.creatomate.com/v1/renders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CREATOMATE_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"template_id\": \"{{ $env.CREATOMATE_TEMPLATE_ID }}\",\n  \"modifications\": {\n    \"Text-1\": \"{{ $json.script.substring(0, 200) }}\",\n    \"Audio-1\": \"{{ $json.music_url }}\"\n  }\n}"
+      },
+      "id": "creatomate",
+      "name": "Render Video (Creatomate)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "wait-render",
+      "name": "Wait for Render",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node['Check Content Queue'].json.brand }}",
+              "operation": "equals",
+              "value2": "money_machine"
+            }
+          ]
+        }
+      },
+      "id": "brand-router",
+      "name": "Route by Brand",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [2200, 0],
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "value": "money_machine",
+              "output": 0
+            },
+            {
+              "value": "solidarity",
+              "output": 1
+            },
+            {
+              "value": "youtube_1",
+              "output": 2
+            },
+            {
+              "value": "youtube_2",
+              "output": 3
+            },
+            {
+              "value": "youtube_3",
+              "output": 4
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.MM_IG_USER_ID }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.MM_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_type\": \"REELS\",\n  \"video_url\": \"{{ $node['Render Video (Creatomate)'].json.url }}\",\n  \"caption\": \"{{ $json.script.substring(0, 150) }} #MoneyMachine #AI\"\n}"
+      },
+      "id": "mm-instagram",
+      "name": "Money Machine → Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, -200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.SOLIDARITY_IG_USER_ID }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SOLIDARITY_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_type\": \"REELS\",\n  \"video_url\": \"{{ $node['Render Video (Creatomate)'].json.url }}\",\n  \"caption\": \"{{ $json.script.substring(0, 150) }} #Solidarity\"\n}"
+      },
+      "id": "solidarity-instagram",
+      "name": "Solidarity → Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, -50]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $json.script.substring(0, 100) }}",
+        "description": "={{ $json.script }}",
+        "categoryId": "22",
+        "options": {
+          "privacyStatus": "public"
+        }
+      },
+      "id": "yt1-upload",
+      "name": "YouTube Channel 1",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [2500, 100],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "youtube_1_creds",
+          "name": "YouTube Channel 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $json.script.substring(0, 100) }}",
+        "description": "={{ $json.script }}",
+        "categoryId": "22",
+        "options": {
+          "privacyStatus": "public"
+        }
+      },
+      "id": "yt2-upload",
+      "name": "YouTube Channel 2",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [2500, 250],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "youtube_2_creds",
+          "name": "YouTube Channel 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $json.script.substring(0, 100) }}",
+        "description": "={{ $json.script }}",
+        "categoryId": "22",
+        "options": {
+          "privacyStatus": "public"
+        }
+      },
+      "id": "yt3-upload",
+      "name": "YouTube Channel 3",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [2500, 400],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "youtube_3_creds",
+          "name": "YouTube Channel 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Queue"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "published",
+            "published_at": "={{ new Date().toISOString() }}"
+          }
+        }
+      },
+      "id": "update-status",
+      "name": "Mark Published",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [2800, 0]
+    }
+  ],
+  "connections": {
+    "Check Content Queue": {
+      "main": [[{"node": "Only Pending", "type": "main", "index": 0}]]
+    },
+    "Only Pending": {
+      "main": [[{"node": "Perfect Prompt Generator", "type": "main", "index": 0}]]
+    },
+    "Perfect Prompt Generator": {
+      "main": [[{"node": "Wait for Actor", "type": "main", "index": 0}]]
+    },
+    "Wait for Actor": {
+      "main": [[{"node": "Fetch Elite Prompt", "type": "main", "index": 0}]]
+    },
+    "Fetch Elite Prompt": {
+      "main": [[{"node": "Generate Script (Cheap)", "type": "main", "index": 0}]]
+    },
+    "Generate Script (Cheap)": {
+      "main": [[{"node": "List Suno Music Bank", "type": "main", "index": 0}]]
+    },
+    "List Suno Music Bank": {
+      "main": [[{"node": "Random Music Pick", "type": "main", "index": 0}]]
+    },
+    "Random Music Pick": {
+      "main": [[{"node": "Render Video (Creatomate)", "type": "main", "index": 0}]]
+    },
+    "Render Video (Creatomate)": {
+      "main": [[{"node": "Wait for Render", "type": "main", "index": 0}]]
+    },
+    "Wait for Render": {
+      "main": [[{"node": "Route by Brand", "type": "main", "index": 0}]]
+    },
+    "Route by Brand": {
+      "main": [
+        [{"node": "Money Machine → Instagram", "type": "main", "index": 0}],
+        [{"node": "Solidarity → Instagram", "type": "main", "index": 0}],
+        [{"node": "YouTube Channel 1", "type": "main", "index": 0}],
+        [{"node": "YouTube Channel 2", "type": "main", "index": 0}],
+        [{"node": "YouTube Channel 3", "type": "main", "index": 0}]
+      ]
+    },
+    "Money Machine → Instagram": {
+      "main": [[{"node": "Mark Published", "type": "main", "index": 0}]]
+    },
+    "Solidarity → Instagram": {
+      "main": [[{"node": "Mark Published", "type": "main", "index": 0}]]
+    },
+    "YouTube Channel 1": {
+      "main": [[{"node": "Mark Published", "type": "main", "index": 0}]]
+    },
+    "YouTube Channel 2": {
+      "main": [[{"node": "Mark Published", "type": "main", "index": 0}]]
+    },
+    "YouTube Channel 3": {
+      "main": [[{"node": "Mark Published", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["original", "anointment"],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-28T00:00:00.000Z",
+  "versionId": "anointment-original-v1"
+}

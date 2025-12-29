@@ -1,0 +1,354 @@
+{
+  "name": "Money Machine CLOUD Master Brain",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-shorts",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-longform",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [260, 520]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-production",
+        "options": {}
+      },
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 740],
+      "webhookId": "mm-cloud-manual"
+    },
+    {
+      "parameters": {
+        "jsCode": "// AAVE-Lite Topic Selection with Gold Standard DNA\n// Based on Graham Stephan, Jake Tran, ColdFusion archetypes\n\nconst ELITE_TOPICS = [\n  // THREAT (Jake Tran style)\n  { topic: \"The Hidden Tax Stealing Your Wealth Every Day\", weight: 1.0, archetype: \"threat\", visual: \"surveillance\" },\n  { topic: \"Why Banks Want You Broke (And How They Do It)\", weight: 0.95, archetype: \"system_reveal\", visual: \"power_finance\" },\n  { topic: \"You Will Own Nothing by 2030 (Here's Why)\", weight: 0.95, archetype: \"future_threat\", visual: \"collapse\" },\n  \n  // SYSTEM REVEAL (Minority Mindset style)\n  { topic: \"Why the Rich Use Debt as a Weapon\", weight: 0.98, archetype: \"system_exploit\", visual: \"luxury_wealth\" },\n  { topic: \"The Economy Is Rigged (Here's Proof)\", weight: 0.92, archetype: \"system_reveal\", visual: \"class_divide\" },\n  { topic: \"Why the Middle Class Is Disappearing\", weight: 0.90, archetype: \"slow_burn_truth\", visual: \"class_divide\" },\n  \n  // AUTHORITY CONTRADICTION (Kiyosaki style)\n  { topic: \"Cash Is Trash (Here's What the Rich Hold Instead)\", weight: 0.88, archetype: \"authority_contradiction\", visual: \"power_finance\" },\n  { topic: \"Everything You Know About Money Is Wrong\", weight: 0.85, archetype: \"myth_destruction\", visual: \"system_expose\" },\n  { topic: \"Why Saving Money Makes You Poorer\", weight: 0.85, archetype: \"contrarian_fear\", visual: \"power_finance\" },\n  \n  // PSYCHOLOGY (Deep patterns)\n  { topic: \"The Psychology of Why You Stay Poor\", weight: 0.87, archetype: \"identity_trigger\", visual: \"psychology\" },\n  { topic: \"How the Rich Think Differently About Money\", weight: 0.86, archetype: \"identity_trigger\", visual: \"luxury_wealth\" },\n  { topic: \"The Wealth Transfer Happening Right Now\", weight: 0.90, archetype: \"urgency\", visual: \"power_finance\" },\n  \n  // MECHANISM (ColdFusion style)\n  { topic: \"How Credit Cards Are Designed to Trap You\", weight: 0.83, archetype: \"mechanism\", visual: \"power_finance\" },\n  { topic: \"The Federal Reserve Explained (Why It Matters)\", weight: 0.80, archetype: \"educational\", visual: \"system_expose\" },\n  { topic: \"How Inflation Secretly Steals Your Wealth\", weight: 0.88, archetype: \"hidden_change\", visual: \"power_finance\" }\n];\n\n// Weighted random selection\nconst totalWeight = ELITE_TOPICS.reduce((sum, t) => sum + t.weight, 0);\nlet random = Math.random() * totalWeight;\nlet selected = ELITE_TOPICS[0];\n\nfor (const topic of ELITE_TOPICS) {\n  random -= topic.weight;\n  if (random <= 0) {\n    selected = topic;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    job_id: 'mm_' + Date.now().toString(36),\n    mode: 'shorts',\n    topic: selected.topic,\n    visual_intent: selected.visual,\n    archetype: selected.archetype,\n    weight: selected.weight,\n    force_upload: true,\n    elite: true,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "aave-brain",
+      "name": "AAVE Brain",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Longform topic selection - ONLY winners\nconst WINNER_TOPICS = [\n  \"Why the Middle Class Is Disappearing\",\n  \"The Economy Is Rigged\",\n  \"Why the Rich Use Debt as a Weapon\",\n  \"The Wealth Transfer Happening Right Now\",\n  \"You Will Own Nothing by 2030\"\n];\n\nconst selected = WINNER_TOPICS[Math.floor(Math.random() * WINNER_TOPICS.length)];\n\nreturn [{\n  json: {\n    job_id: 'lf_' + Date.now().toString(36),\n    mode: 'longform',\n    topic: selected,\n    force_upload: true,\n    elite: true,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "longform-selector",
+      "name": "Longform Selector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse manual trigger input\nconst input = $input.first().json;\n\nreturn [{\n  json: {\n    job_id: input.job_id || 'manual_' + Date.now().toString(36),\n    mode: input.mode || 'shorts',\n    topic: input.topic,\n    visual_intent: input.visual_intent,\n    force_upload: input.force_upload !== false,\n    elite: true,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-manual",
+      "name": "Parse Manual Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 740]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Inject environment variables for use downstream\n// This fixes the 'env var access denied' issue\n\nconst vars = {\n  TELEGRAM_BOT_TOKEN: $vars.TELEGRAM_BOT_TOKEN || '',\n  TELEGRAM_CHAT_ID: $vars.TELEGRAM_CHAT_ID || '',\n  LOCAL_WEBHOOK_URL: $vars.LOCAL_WEBHOOK_URL || 'http://localhost:5000',\n  OPENAI_API_KEY: $vars.OPENAI_API_KEY || '',\n  ELEVENLABS_API_KEY: $vars.ELEVENLABS_API_KEY || ''\n};\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    env: vars\n  }\n}];"
+      },
+      "id": "env-injector",
+      "name": "ENV Injector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ 'Write a 45-second YouTube Short script about: ' + $json.topic + '\\n\\nSTRUCTURE (STRICT):\\n1. HOOK (first 3 seconds): Pattern interrupt. Must create open loop.\\n2. MECHANISM (10 sec): Explain the hidden system\\n3. PROOF (10 sec): Example or data point\\n4. TWIST (10 sec): The thing they don\\'t tell you\\n5. CTA (5 sec): Subscribe hook\\n\\nRULES:\\n- 120 words MAX\\n- Short punchy sentences\\n- No fluff words\\n- Visual intent: ' + $json.visual_intent + '\\n- Target: 80%+ retention\\n\\nWrite ONLY the script, no labels or directions.' }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 300,
+          "temperature": 0.8
+        }
+      },
+      "id": "script-generator",
+      "name": "Generate Script",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [920, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "tgF2FazdNfVR1lMh",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.env.LOCAL_WEBHOOK_URL + '/run-job' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ job_id: $json.job_id, mode: $json.mode, topic: $json.topic, script: $('Generate Script').first().json.message?.content || '', visual_intent: $json.visual_intent, force_upload: $json.force_upload, elite: $json.elite }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "call-local",
+      "name": "Call Local Executor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-result",
+      "name": "Check Result",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1360, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $('ENV Injector').first().json.env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('ENV Injector').first().json.env.TELEGRAM_CHAT_ID, text: '✅ MONEY MACHINE SUCCESS\\n\\nTopic: ' + $json.topic + '\\n\\nYouTube: ' + ($json.youtube_url || 'Local only') + '\\n\\nBitrate: ' + Math.round(($json.bitrate || 0) / 1000000) + ' Mbps\\nDuration: ' + Math.round($json.duration || 0) + 's', parse_mode: 'HTML' }) }}",
+        "options": {}
+      },
+      "id": "telegram-success",
+      "name": "Telegram Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1580, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $('ENV Injector').first().json.env.TELEGRAM_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('ENV Injector').first().json.env.TELEGRAM_CHAT_ID, text: '❌ MONEY MACHINE FAILED\\n\\nError: ' + ($json.error || 'Unknown') + '\\n\\nJob: ' + $json.job_id, parse_mode: 'HTML' }) }}",
+        "options": {}
+      },
+      "id": "telegram-error",
+      "name": "Telegram Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1580, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log DNA to Airtable or local\nconst result = $input.first().json;\n\nreturn [{\n  json: {\n    logged: true,\n    dna: result.dna,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "log-dna",
+      "name": "Log DNA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 300]
+    }
+  ],
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "AAVE Brain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Longform Selector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Manual Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AAVE Brain": {
+      "main": [
+        [
+          {
+            "node": "ENV Injector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Longform Selector": {
+      "main": [
+        [
+          {
+            "node": "ENV Injector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Manual Input": {
+      "main": [
+        [
+          {
+            "node": "ENV Injector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ENV Injector": {
+      "main": [
+        [
+          {
+            "node": "Generate Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Script": {
+      "main": [
+        [
+          {
+            "node": "Call Local Executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Local Executor": {
+      "main": [
+        [
+          {
+            "node": "Check Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Result": {
+      "main": [
+        [
+          {
+            "node": "Telegram Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Success": {
+      "main": [
+        [
+          {
+            "node": "Log DNA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "mm-cloud-v1",
+  "meta": {
+    "instanceId": "money-machine-cloud"
+  },
+  "tags": [
+    {
+      "name": "money-machine"
+    },
+    {
+      "name": "cloud"
+    },
+    {
+      "name": "master"
+    }
+  ]
+}

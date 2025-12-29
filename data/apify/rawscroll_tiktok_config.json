@@ -1,0 +1,59 @@
+{
+    "_comment": "RAWSCROLL PROJECT - TikTok Discovery Engine",
+    "_description": "High-volume, trend-based ingestion. Feeds on the ephemeral 'now'. Metrics: velocity and volume.",
+    
+    "actor": "clockworks/tiktok-scraper",
+    
+    "input": {
+        "searchQueries": [
+            "passive income tips",
+            "AI automation tools",
+            "fintech trends",
+            "wealth building secrets",
+            "money mindset",
+            "financial freedom",
+            "side hustle ideas",
+            "crypto gains",
+            "stock market tips",
+            "entrepreneurship"
+        ],
+        "searchSection": "video",
+        "searchSorting": 1,
+        "resultsPerPage": 30,
+        "proxyCountryCode": "US",
+        "shouldDownloadVideos": false,
+        "shouldDownloadCovers": true,
+        "shouldDownloadSlideshowImages": false,
+        "maxProfilesPerQuery": 0
+    },
+    
+    "schedule": {
+        "frequency": "every_4_hours",
+        "cron": "0 */4 * * *"
+    },
+    
+    "filters": {
+        "_comment": "Applied in n8n Brain, not Apify",
+        "minimum_likes": 10000,
+        "minimum_shares": 500,
+        "viral_coefficient_threshold": 0.15,
+        "max_age_days": 3
+    },
+    
+    "output": {
+        "format": "json",
+        "fields": [
+            "id",
+            "webVideoUrl",
+            "videoMeta",
+            "diggCount",
+            "shareCount",
+            "commentCount",
+            "playCount",
+            "createTimeISO",
+            "hashtags",
+            "text",
+            "authorMeta"
+        ]
+    }
+}

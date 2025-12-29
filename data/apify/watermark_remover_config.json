@@ -1,0 +1,37 @@
+{
+    "_comment": "WATERMARK REMOVAL - TikTok Video Downloader (No Watermarks)",
+    "_description": "Middleware service to remove TikTok watermarks before cross-posting to Instagram.",
+    
+    "actor": "clockworks/tiktok-video-downloader-no-watermarks",
+    
+    "usage": {
+        "trigger": "n8n_brain",
+        "input_source": "webVideoUrl from tiktok-scraper output",
+        "output": "direct download_url to raw .mp4 stream"
+    },
+    
+    "critical_warning": [
+        "Do NOT pass the download URL directly to Instagram.",
+        "These links are temporary and IP-signed.",
+        "The Brain must command the Forge (Railway) to download immediately."
+    ],
+    
+    "integration_flow": {
+        "step_1": "Hunter (TikTok Scraper) provides webVideoUrl",
+        "step_2": "Brain (n8n) passes URL to this Downloader Actor",
+        "step_3": "Downloader returns direct download_url",
+        "step_4": "Forge (Railway) downloads and anoints the file",
+        "step_5": "Anointed file is served from Railway static URL"
+    },
+    
+    "example_input": {
+        "url": "https://www.tiktok.com/@username/video/1234567890"
+    },
+    
+    "example_output": {
+        "download_url": "https://v16-webapp.tiktok.com/video/...",
+        "author": "username",
+        "description": "Video caption...",
+        "music": "Original Sound"
+    }
+}

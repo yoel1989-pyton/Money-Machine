@@ -1,0 +1,292 @@
+{
+  "name": "Money Machine - SOVEREIGN Pipeline",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "⏰ Daily Production Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 400],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "execute-sovereign",
+      "name": "🎬 SOVEREIGN Engine",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [400, 400],
+      "parameters": {
+        "command": "cd {{ $env.SOVEREIGN_PATH || 'C:/Users/mrgnb/OneDrive/Documents/GitHub/Money-Machine' }} && python SOVEREIGN.py --shorts --hollywood --json-out"
+      }
+    },
+    {
+      "id": "parse-output",
+      "name": "📦 Parse SOVEREIGN Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 400],
+      "parameters": {
+        "jsCode": "// Parse SOVEREIGN JSON output\nconst stdout = $input.first().json.stdout || '';\n\n// Find JSON in output (skip any log lines)\nlet jsonStr = stdout;\nconst jsonStart = stdout.indexOf('{');\nconst jsonEnd = stdout.lastIndexOf('}');\n\nif (jsonStart >= 0 && jsonEnd > jsonStart) {\n  jsonStr = stdout.substring(jsonStart, jsonEnd + 1);\n}\n\nlet result;\ntry {\n  result = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error(`Failed to parse SOVEREIGN output: ${e.message}\\nRaw: ${stdout.substring(0, 500)}`);\n}\n\nif (result.status !== 'SUCCESS') {\n  throw new Error(`SOVEREIGN failed: ${result.error || 'Unknown error'}`);\n}\n\n// Quality gate\nif (result.bitrate_mbps && result.bitrate_mbps < 6) {\n  throw new Error(`Quality gate failed: Bitrate ${result.bitrate_mbps} Mbps < 6 Mbps minimum`);\n}\n\nreturn {\n  json: {\n    video_path: result.video_path || result.local_path,\n    title: result.title || result.topic,\n    description: result.description,\n    tags: result.tags || [],\n    topic: result.topic,\n    mode: result.mode,\n    bitrate_mbps: result.bitrate_mbps,\n    duration: result.duration,\n    scene_count: result.scene_count || 0,\n    providers_used: result.providers_used || [],\n    styles_used: result.styles_used || [],\n    trust_score: result.trust_score || 0,\n    viewer_model: result.viewer_model || 'unknown',\n    job_id: result.job_id,\n    timestamp: result.timestamp || new Date().toISOString()\n  }\n};"
+      }
+    },
+    {
+      "id": "human-signal",
+      "name": "🧠 Human Signal Injector",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 400],
+      "parameters": {
+        "jsCode": "// Add organic human signals to prevent content farm detection\nconst data = $input.first().json;\n\n// Randomize upload timing (13-60 min variance)\nconst uploadDelayMinutes = Math.floor(Math.random() * 47) + 13;\n\n// Caption variation seed\nconst captionSeed = Math.random().toString(36).substring(7);\n\n// Title variations (slight rewording)\nconst titleVariants = [\n  data.title,\n  data.title.replace('Why', 'Here\\'s Why'),\n  data.title.replace('How', 'This Is How'),\n  data.title.replace('The', '')\n].filter(t => t.length > 10);\n\nconst selectedTitle = titleVariants[Math.floor(Math.random() * titleVariants.length)];\n\n// Add timestamp variation to description\nconst descWithVariation = data.description + `\\n\\n[${captionSeed}]`;\n\nreturn {\n  json: {\n    ...data,\n    title: selectedTitle,\n    description: descWithVariation,\n    upload_delay_minutes: uploadDelayMinutes,\n    human_signals: {\n      caption_seed: captionSeed,\n      delay_applied: true,\n      title_varied: selectedTitle !== data.title\n    }\n  }\n};"
+      }
+    },
+    {
+      "id": "delay-upload",
+      "name": "⏳ Human Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1000, 400],
+      "parameters": {
+        "amount": "={{ $json.upload_delay_minutes }}",
+        "unit": "minutes"
+      }
+    },
+    {
+      "id": "youtube-upload",
+      "name": "📺 Upload to YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "snippet.title",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "snippet.description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "snippet.tags",
+              "value": "={{ $json.tags.join(',') }}"
+            },
+            {
+              "name": "snippet.categoryId",
+              "value": "22"
+            },
+            {
+              "name": "status.privacyStatus",
+              "value": "public"
+            },
+            {
+              "name": "status.selfDeclaredMadeForKids",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "notes": "Replace with Google API credentials. For file upload, use resumable upload or Google Drive + import."
+    },
+    {
+      "id": "airtable-log",
+      "name": "📊 Log to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [1400, 400],
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.AIRTABLE_BASE_ID }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Production Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISODate() }}",
+            "Title": "={{ $('human-signal').item.json.title }}",
+            "Topic": "={{ $('parse-output').item.json.topic }}",
+            "Mode": "={{ $('parse-output').item.json.mode }}",
+            "Bitrate_Mbps": "={{ $('parse-output').item.json.bitrate_mbps }}",
+            "Duration": "={{ $('parse-output').item.json.duration }}",
+            "Scene_Count": "={{ $('parse-output').item.json.scene_count }}",
+            "Providers": "={{ $('parse-output').item.json.providers_used.join(', ') }}",
+            "Styles": "={{ $('parse-output').item.json.styles_used.join(', ') }}",
+            "Trust_Score": "={{ $('parse-output').item.json.trust_score }}",
+            "Viewer_Model": "={{ $('parse-output').item.json.viewer_model }}",
+            "YouTube_ID": "={{ $json.id || 'pending' }}",
+            "Status": "Published"
+          }
+        }
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AIRTABLE_CRED_ID",
+          "name": "Airtable"
+        }
+      }
+    },
+    {
+      "id": "telegram-notify",
+      "name": "📱 Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1600, 400],
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🎬 MONEY MACHINE PUBLISHED\n\n📌 {{ $('human-signal').item.json.title }}\n\n📊 Stats:\n• Mode: {{ $('parse-output').item.json.mode }}\n• Scenes: {{ $('parse-output').item.json.scene_count }}\n• Bitrate: {{ $('parse-output').item.json.bitrate_mbps }} Mbps\n• Providers: {{ $('parse-output').item.json.providers_used.join(', ') }}\n• Trust Score: {{ $('parse-output').item.json.trust_score }}\n\n✅ Status: Live",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CRED_ID",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "id": "error-handler",
+      "name": "❌ Error Handler",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1000, 600],
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "⚠️ MONEY MACHINE ERROR\n\n{{ $json.error || $json.message || 'Unknown error' }}\n\nTimestamp: {{ $now.toISO() }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CRED_ID",
+          "name": "Telegram"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "execute-sovereign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "execute-sovereign": {
+      "main": [
+        [
+          {
+            "node": "parse-output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-output": {
+      "main": [
+        [
+          {
+            "node": "human-signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "human-signal": {
+      "main": [
+        [
+          {
+            "node": "delay-upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delay-upload": {
+      "main": [
+        [
+          {
+            "node": "youtube-upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "youtube-upload": {
+      "main": [
+        [
+          {
+            "node": "airtable-log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "airtable-log": {
+      "main": [
+        [
+          {
+            "node": "telegram-notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "errorWorkflow": "error-handler"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "money-machine",
+      "createdAt": "2025-12-25T00:00:00.000Z"
+    },
+    {
+      "name": "automation",
+      "createdAt": "2025-12-25T00:00:00.000Z"
+    }
+  ],
+  "notes": "## Money Machine - SOVEREIGN Pipeline\n\nThis workflow automates:\n1. Scheduled video production (every 8 hours)\n2. SOVEREIGN engine execution with Hollywood mode\n3. Quality gate enforcement (6 Mbps minimum)\n4. Human signal injection (timing variance, title variations)\n5. YouTube upload with organic delays\n6. Airtable logging for analytics\n7. Telegram notifications\n\n### Setup Required:\n1. Set SOVEREIGN_PATH environment variable\n2. Configure YouTube OAuth2 credentials\n3. Configure Airtable API token and base ID\n4. Configure Telegram bot credentials\n\n### Quality Gates:\n- Bitrate must be >= 6 Mbps\n- Status must be SUCCESS\n- Trust score tracked for optimization"
+}

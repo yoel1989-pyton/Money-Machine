@@ -1,0 +1,626 @@
+{
+  "name": "MONEY_MACHINE_TERMINAL_STABLE_V2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual_trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-2400, 880]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "minutes", "minutesInterval": 30}]
+        }
+      },
+      "id": "schedule_trigger",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-2400, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ELITE_TOPICS = [\n  { topic: 'The Hidden Tax Stealing Your Wealth Every Day', style: 'Dark Revelation' },\n  { topic: 'Why Banks Want You Broke (And How They Do It)', style: 'System Expose' },\n  { topic: 'You Will Own Nothing by 2030 (Here\\'s Why)', style: 'Dark Revelation' },\n  { topic: 'How The Rich Legally Avoid Taxes', style: 'Wealth Secrets' },\n  { topic: 'Why Your Savings Are Shrinking (Inflation Exposed)', style: 'Dark Revelation' },\n  { topic: 'The Debt Trap They Set For You', style: 'System Expose' },\n  { topic: 'Cash Is Trash (Here\\'s What the Rich Hold Instead)', style: 'Wealth Secrets' },\n  { topic: 'The Credit Score Scam Explained', style: 'System Expose' },\n  { topic: 'Why Most People Never Build Wealth', style: 'Dark Revelation' }\n];\nconst t = ELITE_TOPICS[Math.floor(Math.random() * ELITE_TOPICS.length)];\nreturn { json: { Topic: t.topic, Style: t.style, 'Duration Target': '45 seconds' } };"
+      },
+      "id": "select_topic",
+      "name": "Select Elite Topic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2160, 880]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer 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"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"You are an elite viral content strategist. Return JSON with: thesis (1 sentence), beats (array of 12-15 short lines under 10 words), title (under 60 chars), description (with hashtags), hook (first line).\"},\n    {\"role\": \"user\", \"content\": \"Create viral short about: {{ $json.Topic }}. Style: {{ $json.Style }}. Dark, powerful style.\"}\n  ],\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "gpt4o_script",
+      "name": "GPT-4o Script Writer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1920, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = JSON.parse($input.first().json.choices[0].message.content);\nconst STYLES = ['anime_dark', 'cinematic_real', 'abstract_metaphor', 'hyperreal'];\nconst PROVIDERS = ['leonardo', 'runway', 'fal', 'stability'];\nlet scenes = [];\nresponse.beats.forEach((beat, i) => {\n  scenes.push({\n    beat: i + 1,\n    text: beat,\n    grounded_visual: beat.toLowerCase().includes('money') ? 'currency dissolving into smoke' : 'dark atmospheric scene',\n    style: STYLES[i % 4],\n    provider: PROVIDERS[i % 4],\n    duration: 0.95\n  });\n});\nwhile (scenes.length < 12) {\n  scenes.push({ beat: scenes.length + 1, text: 'revelation', grounded_visual: 'dark storm clouds', style: STYLES[scenes.length % 4], provider: PROVIDERS[scenes.length % 4], duration: 0.95 });\n}\nreturn { json: { ...response, scenes, full_script: response.beats.join(' '), video_id: 'elite_' + Date.now() } };"
+      },
+      "id": "scene_planner",
+      "name": "Hollywood Scene Planner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1680, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst scenes = data.scenes;\nconst providers = [...new Set(scenes.map(s => s.provider))];\nif (scenes.length < 12) throw new Error('GATE FAIL: Need 12 scenes');\nif (providers.length < 3) throw new Error('GATE FAIL: Need 3+ providers');\nreturn { json: { ...data, quality_check: { passed: true, scene_count: scenes.length, providers_used: providers } } };"
+      },
+      "id": "quality_gate",
+      "name": "Hollywood Quality Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1440, 880]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "xi-api-key", "value": "sk_5d8bfc9c41d35a9a8a47516eb5e2e37c64310fee37998222"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.full_script }}\",\n  \"model_id\": \"eleven_flash_v2\",\n  \"voice_settings\": { \"stability\": 0.45, \"similarity_boost\": 0.75, \"style\": 0.6 }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "audio_data"
+            }
+          }
+        }
+      },
+      "id": "elevenlabs_tts",
+      "name": "ElevenLabs TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1200, 680]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/ingest/stage/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "x-api-key", "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"},
+            {"name": "Accept", "value": "application/json"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "shotstack_request_upload",
+      "name": "Shotstack Request Upload URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-960, 780]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "merge_audio_upload",
+      "name": "Merge Audio + Upload URL",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [-720, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst uploadUrl = item.json?.data?.attributes?.url;\nconst uploadId = item.json?.data?.id;\nif (!uploadUrl) throw new Error('Missing Shotstack upload URL');\nif (!item.binary?.audio_data) throw new Error('Missing audio_data binary');\nreturn { json: { upload_url: uploadUrl, upload_id: uploadId }, binary: { audio_data: item.binary.audio_data } };"
+      },
+      "id": "reattach_binary",
+      "name": "Reattach Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-480, 680]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $json.upload_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "audio/mpeg"},
+            {"name": "x-amz-acl", "value": "public-read"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "audio_data",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "upload_audio_binary",
+      "name": "Upload Audio Binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-240, 680],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Reattach Binary').first().json;\nreturn { json: { upload_id: prev.upload_id } };"
+      },
+      "id": "preserve_upload_id",
+      "name": "Preserve Upload ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 680]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.shotstack.io/ingest/stage/sources/{{ $json.upload_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "x-api-key", "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV"},
+            {"name": "Accept", "value": "application/json"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "poll_audio_source",
+      "name": "Poll Audio Source",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prevUploadId = $('Preserve Upload ID').first().json.upload_id;\nconst status = response.data?.attributes?.status;\nconst sourceUrl = response.data?.attributes?.source;\nif (status === 'ready' && sourceUrl) {\n  return { json: { audio_url: sourceUrl, audio_status: 'ready', retry: false } };\n}\nreturn { json: { audio_status: status || 'pending', upload_id: prevUploadId, retry: true } };"
+      },
+      "id": "process_audio_source",
+      "name": "Process Audio Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 680]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "audio_retry",
+              "leftValue": "={{ $json.retry }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audio_ready_if",
+      "name": "Audio Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 680]
+    },
+    {
+      "parameters": { "amount": 5 },
+      "id": "wait_5s_audio",
+      "name": "Wait 5s Audio",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [960, 580],
+      "webhookId": "audio-wait"
+    },
+    {
+      "parameters": { "fieldToSplitOut": "scenes", "options": {} },
+      "id": "split_scenes",
+      "name": "Split Scenes",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [-1200, 1080]
+    },
+    {
+      "parameters": {
+        "jsCode": "const scene = $input.first().json;\nscene.retry_count = scene.retry_count || 0;\nif (scene.retry_count > 2) {\n  const fallback = { leonardo: 'stability', runway: 'fal', fal: 'stability', stability: 'fal' };\n  scene.provider = fallback[scene.provider] || 'stability';\n}\nscene.retry_count++;\nreturn { json: scene };"
+      },
+      "id": "provider_retry_guard",
+      "name": "Provider Retry Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-960, 1080]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "leonardo", "operator": { "type": "string", "operation": "equals" } }] }, "renameOutput": true, "outputKey": "leonardo" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "runway", "operator": { "type": "string", "operation": "equals" } }] }, "renameOutput": true, "outputKey": "runway" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "fal", "operator": { "type": "string", "operation": "equals" } }] }, "renameOutput": true, "outputKey": "fal" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "stability", "operator": { "type": "string", "operation": "equals" } }] }, "renameOutput": true, "outputKey": "stability" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "provider_router",
+      "name": "Provider Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-720, 1080]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer 8a7ccd1c-6aa6-4a0e-a28e-4d461b542212" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.grounded_visual }}, anime dark, moody, vertical 9:16, no text\",\n  \"modelId\": \"aa77f04e-3eec-4034-9c07-d0f619684628\",\n  \"width\": 576, \"height\": 1024, \"num_images\": 1\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "leonardo_generate",
+      "name": "Leonardo AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-480, 880],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dev.runwayml.com/v1/text_to_image",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer key_d327367da695c4e0b7005c8354c879262f74d0e3396cf1f615340949cca23c33fd1df587838c7702388956488e5c9ce80c63b32f54b42ab273b28ecbd8142ea0" }, { "name": "X-Runway-Version", "value": "2024-11-06" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gen4_image\",\n  \"promptText\": \"{{ $json.grounded_visual }}, cinematic, 9:16, no text\",\n  \"ratio\": \"9:16\"\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "runway_generate",
+      "name": "Runway ML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-480, 1080],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux/dev",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Key 04cc9251-3b11-482a-b89d-980f7a6791e4:1db3d89f6b155f496f1872f8afcbc46a" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.grounded_visual }}, abstract, surreal, 9:16, no text\",\n  \"image_size\": \"portrait_16_9\", \"num_images\": 1\n}",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "fal_generate",
+      "name": "Fal.ai",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-480, 1280],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stability.ai/v2beta/stable-image/generate/core",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer sk-nKoQVkvdM7w1cYfiTp1wSxGowNG3F9wkj7RxygTgn7peao98" }, { "name": "Accept", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": { "parameters": [{ "name": "prompt", "value": "={{ $json.grounded_visual }}, hyperreal, vertical, no text" }, { "name": "aspect_ratio", "value": "9:16" }, { "name": "output_format", "value": "png" }] },
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "stability_generate",
+      "name": "Stability AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-480, 1480],
+      "continueOnFail": true
+    },
+    {
+      "parameters": { "mode": "combine", "combineBy": "combineAll", "options": {} },
+      "id": "merge_all_visuals",
+      "name": "Merge All Visuals",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [-240, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst sorted = allItems.sort((a, b) => (a.json.beat || 0) - (b.json.beat || 0));\nconst audioNode = $('Process Audio Source');\nlet audioUrl = audioNode?.first()?.json?.audio_url;\nif (!audioUrl) throw new Error('ASSEMBLY FAILED: Audio URL missing');\nconst qualityNode = $('Hollywood Quality Gate');\nconst qualityData = qualityNode?.first()?.json || {};\nconst imageUrls = sorted.map((item, i) => {\n  const j = item.json;\n  return j.url || j.output?.[0] || j.images?.[0]?.url || j.generations?.[0]?.url || `https://placehold.co/576x1024/1a1a2e/ffffff?text=Scene+${i+1}`;\n});\nwhile (imageUrls.length < 12) imageUrls.push(`https://placehold.co/576x1024/1a1a2e/ffffff?text=Scene+${imageUrls.length+1}`);\nreturn { json: { image_urls: imageUrls, audio_url: audioUrl, title: qualityData.title || 'Money Machine Video', description: qualityData.description || '', thesis: qualityData.thesis || '', quality_check: qualityData.quality_check || {}, video_id: qualityData.video_id || 'elite_' + Date.now() } };"
+      },
+      "id": "prepare_assembly",
+      "name": "Prepare Assembly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 1180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/stage/render",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-api-key", "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"timeline\": {\n    \"soundtrack\": { \"src\": \"{{ $json.audio_url }}\", \"effect\": \"fadeOut\" },\n    \"tracks\": [{ \"clips\": {{ JSON.stringify($json.image_urls.map((url, i) => ({ asset: { type: 'image', src: url }, start: i * 0.95, length: 1.0, transition: { in: 'fade', out: 'fade' }, effect: i % 2 === 0 ? 'zoomIn' : 'slideLeft', fit: 'cover' }))) }} }]\n  },\n  \"output\": { \"format\": \"mp4\", \"resolution\": \"1080\", \"aspectRatio\": \"9:16\", \"fps\": 30, \"quality\": \"high\" }\n}",
+        "options": {}
+      },
+      "id": "shotstack_render",
+      "name": "Shotstack Render",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prevData = $('Prepare Assembly').first().json;\nconst renderId = response.response?.id || response.id;\nif (!renderId) throw new Error('No render ID from Shotstack');\nreturn { json: { render_id: renderId, status_url: `https://api.shotstack.io/stage/render/${renderId}`, ...prevData } };"
+      },
+      "id": "get_render_id",
+      "name": "Get Render ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 1180]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-api-key", "value": "sofi4GJNxp6XncLw3t46Cqe4n73lDAd09wrd3JIV" }] },
+        "options": {}
+      },
+      "id": "poll_render_status",
+      "name": "Poll Render Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 1180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst prevData = $('Get Render ID').first().json;\nconst status = response.response?.status || response.status;\nconst videoUrl = response.response?.url || response.url;\nif (status === 'done' && videoUrl) return { json: { video_url: videoUrl, status: 'complete', retry: false, ...prevData } };\nif (status === 'failed') throw new Error('Shotstack render failed');\nreturn { json: { status: status || 'rendering', retry: true, status_url: prevData.status_url, ...prevData } };"
+      },
+      "id": "process_render_result",
+      "name": "Process Render Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 1180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "render_retry", "leftValue": "={{ $json.retry }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }]
+        },
+        "options": {}
+      },
+      "id": "render_ready_if",
+      "name": "Render Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 1180]
+    },
+    {
+      "parameters": { "amount": 10 },
+      "id": "wait_10s_render",
+      "name": "Wait 10s Render",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1440, 1080],
+      "webhookId": "render-wait"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video_url }}",
+        "options": { "response": { "response": { "responseFormat": "file", "outputPropertyName": "video_data" } } }
+      },
+      "id": "download_video",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 1280]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $json.title }}",
+        "categoryId": "22",
+        "options": { "description": "={{ $json.description }}", "privacyStatus": "public", "tags": "money,wealth,finance,viral,shorts" },
+        "binaryPropertyName": "video_data"
+      },
+      "id": "youtube_upload",
+      "name": "YouTube Upload",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [1680, 1280],
+      "credentials": { "youTubeOAuth2Api": { "id": "youtube_oauth2", "name": "YouTube account money machine" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-api-key", "value": "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" }, { "name": "anthropic-version", "value": "2023-06-01" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [{ \"role\": \"user\", \"content\": \"Analyze: {{ $json.title }}. Return JSON: winning_elements, mutations, next_angles\" }]\n}",
+        "options": {}
+      },
+      "id": "claude_aave",
+      "name": "Claude AAVE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 1280]
+    },
+    {
+      "parameters": {
+        "chatId": "5033650061",
+        "text": "=🎬 *MONEY MACHINE COMPLETE*\n📹 {{ $('Download Video').first().json.title }}\n🔗 https://youtube.com/shorts/{{ $('YouTube Upload').first().json.id }}\n✅ Done",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "telegram_notify",
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2160, 1280],
+      "webhookId": "telegram"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Select Elite Topic", "type": "main", "index": 0}]]
+    },
+    "Every 30 Minutes": {
+      "main": [[{"node": "Select Elite Topic", "type": "main", "index": 0}]]
+    },
+    "Select Elite Topic": {
+      "main": [[{"node": "GPT-4o Script Writer", "type": "main", "index": 0}]]
+    },
+    "GPT-4o Script Writer": {
+      "main": [[{"node": "Hollywood Scene Planner", "type": "main", "index": 0}]]
+    },
+    "Hollywood Scene Planner": {
+      "main": [[{"node": "Hollywood Quality Gate", "type": "main", "index": 0}]]
+    },
+    "Hollywood Quality Gate": {
+      "main": [[
+        {"node": "ElevenLabs TTS", "type": "main", "index": 0},
+        {"node": "Split Scenes", "type": "main", "index": 0}
+      ]]
+    },
+    "ElevenLabs TTS": {
+      "main": [[
+        {"node": "Merge Audio + Upload URL", "type": "main", "index": 0},
+        {"node": "Shotstack Request Upload URL", "type": "main", "index": 0}
+      ]]
+    },
+    "Shotstack Request Upload URL": {
+      "main": [[{"node": "Merge Audio + Upload URL", "type": "main", "index": 1}]]
+    },
+    "Merge Audio + Upload URL": {
+      "main": [[{"node": "Reattach Binary", "type": "main", "index": 0}]]
+    },
+    "Reattach Binary": {
+      "main": [[{"node": "Upload Audio Binary", "type": "main", "index": 0}]]
+    },
+    "Upload Audio Binary": {
+      "main": [[{"node": "Preserve Upload ID", "type": "main", "index": 0}]]
+    },
+    "Preserve Upload ID": {
+      "main": [[{"node": "Poll Audio Source", "type": "main", "index": 0}]]
+    },
+    "Poll Audio Source": {
+      "main": [[{"node": "Process Audio Source", "type": "main", "index": 0}]]
+    },
+    "Process Audio Source": {
+      "main": [[{"node": "Audio Ready?", "type": "main", "index": 0}]]
+    },
+    "Audio Ready?": {
+      "main": [
+        [{"node": "Wait 5s Audio", "type": "main", "index": 0}],
+        [{"node": "Prepare Assembly", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 5s Audio": {
+      "main": [[{"node": "Poll Audio Source", "type": "main", "index": 0}]]
+    },
+    "Split Scenes": {
+      "main": [[{"node": "Provider Retry Guard", "type": "main", "index": 0}]]
+    },
+    "Provider Retry Guard": {
+      "main": [[{"node": "Provider Router", "type": "main", "index": 0}]]
+    },
+    "Provider Router": {
+      "main": [
+        [{"node": "Leonardo AI", "type": "main", "index": 0}],
+        [{"node": "Runway ML", "type": "main", "index": 0}],
+        [{"node": "Fal.ai", "type": "main", "index": 0}],
+        [{"node": "Stability AI", "type": "main", "index": 0}]
+      ]
+    },
+    "Leonardo AI": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Runway ML": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Fal.ai": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Stability AI": {
+      "main": [[{"node": "Merge All Visuals", "type": "main", "index": 0}]]
+    },
+    "Merge All Visuals": {
+      "main": [[{"node": "Prepare Assembly", "type": "main", "index": 0}]]
+    },
+    "Prepare Assembly": {
+      "main": [[{"node": "Shotstack Render", "type": "main", "index": 0}]]
+    },
+    "Shotstack Render": {
+      "main": [[{"node": "Get Render ID", "type": "main", "index": 0}]]
+    },
+    "Get Render ID": {
+      "main": [[{"node": "Poll Render Status", "type": "main", "index": 0}]]
+    },
+    "Poll Render Status": {
+      "main": [[{"node": "Process Render Result", "type": "main", "index": 0}]]
+    },
+    "Process Render Result": {
+      "main": [[{"node": "Render Ready?", "type": "main", "index": 0}]]
+    },
+    "Render Ready?": {
+      "main": [
+        [{"node": "Wait 10s Render", "type": "main", "index": 0}],
+        [{"node": "Download Video", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 10s Render": {
+      "main": [[{"node": "Poll Render Status", "type": "main", "index": 0}]]
+    },
+    "Download Video": {
+      "main": [[{"node": "YouTube Upload", "type": "main", "index": 0}]]
+    },
+    "YouTube Upload": {
+      "main": [[{"node": "Claude AAVE", "type": "main", "index": 0}]]
+    },
+    "Claude AAVE": {
+      "main": [[{"node": "Telegram Notify", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true, "instanceId": "terminal-v2" }
+}

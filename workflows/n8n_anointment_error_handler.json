@@ -1,0 +1,187 @@
+{
+  "name": "ANOINTMENT ERROR HANDLER - Auto-Healer Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $execution.error }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "error-trigger",
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract error details for Auto-Healer\nconst execution = $execution;\nconst error = execution.error || {};\n\nreturn [{\n  json: {\n    workflow_name: execution.workflow?.name || 'Unknown',\n    workflow_id: execution.workflow?.id || 'Unknown',\n    error_message: error.message || 'No message',\n    error_node: error.node?.name || 'Unknown node',\n    error_type: error.name || 'UnknownError',\n    timestamp: new Date().toISOString(),\n    execution_id: execution.id\n  }\n}];"
+      },
+      "id": "extract-error",
+      "name": "Extract Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/anointment~the-ai-workflow-auto-healer/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"workflow_name\": \"{{ $json.workflow_name }}\",\n  \"error_message\": \"{{ $json.error_message }}\",\n  \"error_node\": \"{{ $json.error_node }}\",\n  \"error_type\": \"{{ $json.error_type }}\",\n  \"execution_id\": \"{{ $json.execution_id }}\"\n}"
+      },
+      "id": "auto-healer",
+      "name": "AI Workflow Auto-Healer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "notesInFlow": true,
+      "notes": "Your Apify actor: anointment/the-ai-workflow-auto-healer\nDiagnoses the error and tells you EXACTLY what to fix"
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-healer",
+      "name": "Wait for Diagnosis",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/acts/anointment~the-ai-workflow-auto-healer/runs/{{ $json.data.id }}/dataset/items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-diagnosis",
+      "name": "Fetch Diagnosis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=🚨 ANOINTMENT ERROR DETECTED\n\n📋 Workflow: {{ $node['Extract Error Details'].json.workflow_name }}\n❌ Error: {{ $node['Extract Error Details'].json.error_message }}\n🔧 Node: {{ $node['Extract Error Details'].json.error_node }}\n\n🧠 AUTO-HEALER DIAGNOSIS:\n{{ $json[0].diagnosis }}\n\n✅ FIX:\n{{ $json[0].fix_instructions }}\n\n⏱️ {{ $node['Extract Error Details'].json.timestamp }}"
+      },
+      "id": "telegram-alert",
+      "name": "Alert via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, -100],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "anointment@system.local",
+        "toEmail": "={{ $env.ADMIN_EMAIL }}",
+        "subject": "=🚨 Anointment Error: {{ $node['Extract Error Details'].json.workflow_name }}",
+        "text": "=ERROR DETAILS:\n\nWorkflow: {{ $node['Extract Error Details'].json.workflow_name }}\nNode: {{ $node['Extract Error Details'].json.error_node }}\nError: {{ $node['Extract Error Details'].json.error_message }}\nType: {{ $node['Extract Error Details'].json.error_type }}\n\nAUTO-HEALER DIAGNOSIS:\n{{ $json[0].diagnosis }}\n\nFIX INSTRUCTIONS:\n{{ $json[0].fix_instructions }}\n\nExecution ID: {{ $node['Extract Error Details'].json.execution_id }}\nTime: {{ $node['Extract Error Details'].json.timestamp }}"
+      },
+      "id": "email-alert",
+      "name": "Alert via Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Error_Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $node['Extract Error Details'].json.timestamp }}",
+            "workflow": "={{ $node['Extract Error Details'].json.workflow_name }}",
+            "node": "={{ $node['Extract Error Details'].json.error_node }}",
+            "error": "={{ $node['Extract Error Details'].json.error_message }}",
+            "diagnosis": "={{ $json[0].diagnosis }}",
+            "fix": "={{ $json[0].fix_instructions }}",
+            "status": "pending_fix"
+          }
+        }
+      },
+      "id": "log-error",
+      "name": "Log to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [1320, 0]
+    }
+  ],
+  "connections": {
+    "On Error": {
+      "main": [[{"node": "Extract Error Details", "type": "main", "index": 0}]]
+    },
+    "Extract Error Details": {
+      "main": [[{"node": "AI Workflow Auto-Healer", "type": "main", "index": 0}]]
+    },
+    "AI Workflow Auto-Healer": {
+      "main": [[{"node": "Wait for Diagnosis", "type": "main", "index": 0}]]
+    },
+    "Wait for Diagnosis": {
+      "main": [[{"node": "Fetch Diagnosis", "type": "main", "index": 0}]]
+    },
+    "Fetch Diagnosis": {
+      "main": [
+        [
+          {"node": "Alert via Telegram", "type": "main", "index": 0},
+          {"node": "Alert via Email", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Alert via Telegram": {
+      "main": [[{"node": "Log to Sheet", "type": "main", "index": 0}]]
+    },
+    "Alert via Email": {
+      "main": [[{"node": "Log to Sheet", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["error-handler", "auto-healer", "anointment"],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-28T00:00:00.000Z",
+  "versionId": "anointment-error-handler-v1"
+}

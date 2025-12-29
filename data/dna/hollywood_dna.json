@@ -1,0 +1,606 @@
+[
+  {
+    "job_id": "short_20251225_131321",
+    "type": "hollywood",
+    "scene_count": 11,
+    "provider_count": 6,
+    "style_count": 7,
+    "providers_used": [
+      "stability",
+      "shotstack",
+      "kie",
+      "runway",
+      "replicate",
+      "leonardo"
+    ],
+    "styles": [
+      "documentary",
+      "hyperreal",
+      "anime_clean",
+      "documentary",
+      "hyperreal",
+      "cinematic_real",
+      "anime_dark",
+      "motion_cinematic",
+      "glitch_data",
+      "hyperreal",
+      "motion_cinematic"
+    ],
+    "intents": [
+      "clarity",
+      "clarity",
+      "invisible_walls",
+      "system",
+      "clarity",
+      "clarity",
+      "revelation",
+      "cage",
+      "system",
+      "clarity",
+      "revelation"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T19:14:18.606717+00:00"
+  },
+  {
+    "job_id": "short_20251225_131729",
+    "type": "hollywood",
+    "scene_count": 11,
+    "provider_count": 6,
+    "style_count": 7,
+    "providers_used": [
+      "stability",
+      "replicate",
+      "fal",
+      "kie",
+      "leonardo",
+      "shotstack"
+    ],
+    "styles": [
+      "anime_dark",
+      "documentary",
+      "glitch_data",
+      "glitch_data",
+      "hyperreal",
+      "documentary",
+      "glitch_data",
+      "abstract_metaphor",
+      "documentary",
+      "anime_clean",
+      "motion_cinematic"
+    ],
+    "intents": [
+      "opulence",
+      "revelation",
+      "system",
+      "revelation",
+      "power",
+      "clarity",
+      "power",
+      "clarity",
+      "revelation",
+      "clarity",
+      "opulence"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T19:22:01.635384+00:00"
+  },
+  {
+    "job_id": "short_20251225_132556",
+    "type": "hollywood",
+    "scene_count": 10,
+    "provider_count": 5,
+    "style_count": 6,
+    "providers_used": [
+      "shotstack",
+      "stability",
+      "kie",
+      "fal",
+      "leonardo"
+    ],
+    "styles": [
+      "abstract_metaphor",
+      "anime_clean",
+      "motion_cinematic",
+      "anime_dark",
+      "anime_clean",
+      "motion_cinematic",
+      "documentary",
+      "abstract_metaphor",
+      "hyperreal",
+      "motion_cinematic"
+    ],
+    "intents": [
+      "clarity",
+      "revelation",
+      "opulence",
+      "revelation",
+      "clarity",
+      "throne",
+      "oppression",
+      "power",
+      "power",
+      "crown"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "anger"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T19:30:43.829128+00:00"
+  },
+  {
+    "job_id": "short_20251225_133131",
+    "type": "hollywood",
+    "scene_count": 12,
+    "provider_count": 7,
+    "style_count": 8,
+    "providers_used": [
+      "runway",
+      "leonardo",
+      "kie",
+      "fal",
+      "shotstack",
+      "replicate",
+      "stability"
+    ],
+    "styles": [
+      "anime_dark",
+      "cinematic_real",
+      "glitch_data",
+      "abstract_metaphor",
+      "documentary",
+      "glitch_data",
+      "abstract_metaphor",
+      "hyperreal",
+      "anime_clean",
+      "motion_cinematic",
+      "documentary",
+      "anime_clean"
+    ],
+    "intents": [
+      "power",
+      "clarity",
+      "gears",
+      "strings",
+      "opulence",
+      "gold",
+      "power",
+      "clarity",
+      "system",
+      "clarity",
+      "revelation",
+      "revelation"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T19:36:20.950455+00:00"
+  },
+  {
+    "job_id": "short_20251225_140947",
+    "type": "hollywood",
+    "scene_count": 11,
+    "provider_count": 6,
+    "style_count": 7,
+    "providers_used": [
+      "shotstack",
+      "runway",
+      "replicate",
+      "stability",
+      "leonardo",
+      "fal"
+    ],
+    "styles": [
+      "anime_clean",
+      "anime_dark",
+      "glitch_data",
+      "documentary",
+      "glitch_data",
+      "cinematic_real",
+      "hyperreal",
+      "abstract_metaphor",
+      "anime_clean",
+      "anime_dark",
+      "abstract_metaphor"
+    ],
+    "intents": [
+      "clarity",
+      "power",
+      "revelation",
+      "revelation",
+      "revelation",
+      "throne",
+      "clarity",
+      "system",
+      "throne",
+      "revelation",
+      "gold"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T20:14:25.706889+00:00"
+  },
+  {
+    "job_id": "short_20251225_171443",
+    "type": "hollywood",
+    "scene_count": 11,
+    "provider_count": 5,
+    "style_count": 6,
+    "providers_used": [
+      "leonardo",
+      "kie",
+      "stability",
+      "runway",
+      "replicate"
+    ],
+    "styles": [
+      "abstract",
+      "abstract",
+      "abstract",
+      "documentary",
+      "anime",
+      "cinematic",
+      "cinematic",
+      "documentary",
+      "abstract",
+      "glitch",
+      "documentary"
+    ],
+    "intents": [
+      "power",
+      "system",
+      "revelation",
+      "system",
+      "clarity",
+      "opulence",
+      "system",
+      "darkness",
+      "system",
+      "clarity",
+      "opulence"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T23:20:34.095921+00:00"
+  },
+  {
+    "job_id": "short_20251225_175057",
+    "type": "hollywood",
+    "scene_count": 13,
+    "provider_count": 7,
+    "style_count": 8,
+    "providers_used": [
+      "shotstack",
+      "fal",
+      "replicate",
+      "kie",
+      "stability",
+      "runway",
+      "leonardo"
+    ],
+    "styles": [
+      "hyperreal",
+      "anime_clean",
+      "hyperreal",
+      "motion_cinematic",
+      "anime_clean",
+      "anime_dark",
+      "documentary",
+      "glitch_data",
+      "motion_cinematic",
+      "motion_cinematic",
+      "cinematic_real",
+      "abstract_metaphor",
+      "motion_cinematic"
+    ],
+    "intents": [
+      "system",
+      "clarity",
+      "revelation",
+      "power",
+      "gold",
+      "clarity",
+      "power",
+      "mechanism",
+      "revelation",
+      "power",
+      "throne",
+      "clarity",
+      "system"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T23:53:33.485501+00:00"
+  },
+  {
+    "job_id": "short_20251225_175141",
+    "type": "hollywood",
+    "scene_count": 10,
+    "provider_count": 4,
+    "style_count": 6,
+    "providers_used": [
+      "leonardo",
+      "runway",
+      "kie",
+      "replicate"
+    ],
+    "styles": [
+      "documentary",
+      "motion",
+      "motion",
+      "motion",
+      "glitch",
+      "glitch",
+      "motion",
+      "documentary",
+      "abstract",
+      "documentary"
+    ],
+    "intents": [
+      "clarity",
+      "puppet",
+      "throne",
+      "opulence",
+      "clarity",
+      "luxury",
+      "clarity",
+      "revelation",
+      "clarity",
+      "throne"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "anger"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-25T23:56:55.323233+00:00"
+  },
+  {
+    "job_id": "short_20251225_194755",
+    "type": "hollywood",
+    "scene_count": 10,
+    "provider_count": 6,
+    "style_count": 7,
+    "providers_used": [
+      "stability",
+      "fal",
+      "shotstack",
+      "replicate",
+      "leonardo",
+      "kie"
+    ],
+    "styles": [
+      "anime_dark",
+      "abstract_metaphor",
+      "glitch_data",
+      "motion_cinematic",
+      "hyperreal",
+      "motion_cinematic",
+      "documentary",
+      "anime_dark",
+      "anime_clean",
+      "documentary"
+    ],
+    "intents": [
+      "revelation",
+      "power",
+      "gold",
+      "clarity",
+      "power",
+      "system",
+      "system",
+      "clarity",
+      "revelation",
+      "luxury"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "anger"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-26T01:49:36.589043+00:00"
+  },
+  {
+    "job_id": "short_20251226_121506",
+    "type": "hollywood",
+    "scene_count": 11,
+    "provider_count": 6,
+    "style_count": 7,
+    "providers_used": [
+      "runway",
+      "fal",
+      "shotstack",
+      "leonardo",
+      "kie",
+      "stability"
+    ],
+    "styles": [
+      "documentary",
+      "cinematic_real",
+      "anime_dark",
+      "abstract_metaphor",
+      "anime_clean",
+      "hyperreal",
+      "documentary",
+      "anime_clean",
+      "motion_cinematic",
+      "anime_dark",
+      "cinematic_real"
+    ],
+    "intents": [
+      "puppet",
+      "revelation",
+      "power",
+      "strings",
+      "gears",
+      "revelation",
+      "crown",
+      "mechanism",
+      "revelation",
+      "clarity",
+      "system"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-26T18:17:26.385337+00:00"
+  },
+  {
+    "job_id": "short_20251226_121739",
+    "type": "hollywood",
+    "scene_count": 16,
+    "provider_count": 7,
+    "style_count": 8,
+    "providers_used": [
+      "fal",
+      "leonardo",
+      "shotstack",
+      "stability",
+      "runway",
+      "replicate",
+      "kie"
+    ],
+    "styles": [
+      "hyperreal",
+      "anime_clean",
+      "cinematic_real",
+      "abstract_metaphor",
+      "cinematic_real",
+      "anime_clean",
+      "hyperreal",
+      "anime_dark",
+      "motion_cinematic",
+      "glitch_data",
+      "anime_dark",
+      "documentary",
+      "glitch_data",
+      "cinematic_real",
+      "motion_cinematic",
+      "abstract_metaphor"
+    ],
+    "intents": [
+      "opulence",
+      "power",
+      "crown",
+      "power",
+      "power",
+      "system",
+      "gold",
+      "power",
+      "power",
+      "system",
+      "luxury",
+      "revelation",
+      "power",
+      "revelation",
+      "revelation",
+      "clarity"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-26T18:20:29.451916+00:00"
+  },
+  {
+    "job_id": "short_20251226_122110",
+    "type": "hollywood",
+    "scene_count": 14,
+    "provider_count": 7,
+    "style_count": 8,
+    "providers_used": [
+      "shotstack",
+      "kie",
+      "replicate",
+      "stability",
+      "runway",
+      "fal",
+      "leonardo"
+    ],
+    "styles": [
+      "documentary",
+      "motion_cinematic",
+      "anime_dark",
+      "cinematic_real",
+      "hyperreal",
+      "abstract_metaphor",
+      "documentary",
+      "glitch_data",
+      "abstract_metaphor",
+      "anime_dark",
+      "motion_cinematic",
+      "anime_clean",
+      "cinematic_real",
+      "hyperreal"
+    ],
+    "intents": [
+      "power",
+      "revelation",
+      "power",
+      "power",
+      "clarity",
+      "system",
+      "power",
+      "oppression",
+      "system",
+      "throne",
+      "revelation",
+      "system",
+      "gold",
+      "matrix"
+    ],
+    "emotional_arc": [
+      "shock",
+      "shock",
+      "shock",
+      "shock"
+    ],
+    "quality_passed": true,
+    "timestamp": "2025-12-26T18:24:04.493087+00:00"
+  }
+]

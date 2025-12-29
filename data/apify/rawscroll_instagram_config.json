@@ -1,0 +1,61 @@
+{
+    "_comment": "RAWSCROLL PROJECT - Instagram Hashtag Discovery",
+    "_description": "Volume-based discovery via trending hashtags. Catches waves before they crest.",
+    
+    "actor": "apify/instagram-scraper",
+    
+    "input": {
+        "search": "luxury_lifestyle",
+        "searchType": "hashtag",
+        "resultsType": "posts",
+        "resultsLimit": 100,
+        "onlyPostsNewerThan": "3 days",
+        "proxy": {
+            "useApifyProxy": true,
+            "apifyProxyGroups": ["RESIDENTIAL"]
+        }
+    },
+    
+    "hashtag_pool": [
+        "luxury_lifestyle",
+        "wealth_mindset",
+        "millionaire_motivation",
+        "financial_freedom",
+        "passive_income",
+        "entrepreneur_life",
+        "money_moves",
+        "success_mindset",
+        "rich_lifestyle",
+        "investment_tips"
+    ],
+    
+    "schedule": {
+        "frequency": "every_4_hours",
+        "cron": "0 */4 * * *"
+    },
+    
+    "filters": {
+        "_comment": "Applied in n8n Brain",
+        "minimum_likes": 5000,
+        "minimum_comments": 100,
+        "engagement_rate_threshold": 0.03,
+        "max_age_days": 3
+    },
+    
+    "output": {
+        "format": "json",
+        "fields": [
+            "id",
+            "shortCode",
+            "url",
+            "videoUrl",
+            "likesCount",
+            "commentsCount",
+            "sharesCount",
+            "timestamp",
+            "caption",
+            "hashtags",
+            "ownerUsername"
+        ]
+    }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "job_id": "short_20251225_124544",
+    "type": "cinematic",
+    "scene_count": 13,
+    "unique_visuals": 9,
+    "providers_used": [
+      "stability",
+      "local"
+    ],
+    "archetype": "identity_trigger",
+    "intents": [
+      "poverty",
+      "psychology",
+      "system_control",
+      "power_finance",
+      "psychology",
+      "psychology",
+      "power_finance",
+      "wealth_display",
+      "power_finance",
+      "psychology",
+      "freedom",
+      "power_finance",
+      "power_finance"
+    ],
+    "styles": [
+      "class_divide",
+      "psychology",
+      "system_expose",
+      "power_finance",
+      "psychology",
+      "psychology",
+      "power_finance",
+      "luxury_wealth",
+      "power_finance",
+      "psychology",
+      "cinematic",
+      "power_finance",
+      "power_finance"
+    ],
+    "timestamp": "2025-12-25T18:48:19.866396+00:00"
+  }
+]

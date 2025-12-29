@@ -1,0 +1,611 @@
+{
+  "name": "Money Machine Hollywood Engine - COMPLETE",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=financial_markets&apikey=D7ROA2BMZLBC6R0O",
+        "options": {}
+      },
+      "id": "alphavantage_news",
+      "name": "Alpha Vantage News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://finnhub.io/api/v1/news?category=general&token=d4d6c2pr01qovljoaa9gd4d6c2pr01qovljoaaa0",
+        "options": {}
+      },
+      "id": "finnhub_news",
+      "name": "Finnhub Market News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 150]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.coingecko.com/api/v3/search/trending",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-cg-demo-api-key",
+              "value": "CG-Vp2cR8n1YhkfW7yFKiYzqFA5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "coingecko_trending",
+      "name": "CoinGecko Trending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey=a620f170508c403d8cc8c09650f712bf",
+        "options": {}
+      },
+      "id": "newsapi",
+      "name": "NewsAPI Headlines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 450]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.marketaux.com/v1/news/all?filter_entities=true&language=en&api_token=ANTWoBHTX6JNeZEN7iMAS8gE5y1qLXWmCGm3Ix72",
+        "options": {}
+      },
+      "id": "marketaux",
+      "name": "MarketAux News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 600]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge_intel",
+      "name": "Merge Intelligence",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an elite viral content strategist for finance/wealth YouTube Shorts. Return JSON ONLY with these fields:\\n- thesis: core controversial message (1 sentence)\\n- beats: array of 12-15 short punchy lines (under 10 words each, no filler, revelation style)\\n- intents: array matching each beat with visual concept (oppression, mechanism, power_control, escape, revelation, dominance, fear, clarity, wealth, system, control, freedom)\\n- emotional_arc: array of emotions for pacing\\n- hook: attention-grabbing first line\\n- title: YouTube title under 60 chars\\n- description: YouTube description with hashtags\\n\\nEnsure visual intents vary scene-to-scene. Never repeat adjacent intents.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Create viral short about: Why the Rich Use Debt as a Weapon. Dark, powerful, system-reveal style. No motivation fluff. Pure truth bombs.\"\n    }\n  ],\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "intelligence",
+      "name": "Intelligence Layer (GPT-4o)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = JSON.parse($input.first().json.choices[0].message.content);\n\nconst STYLES = [\n  { style: 'anime_dark', provider: 'leonardo' },\n  { style: 'cinematic_real', provider: 'runway' },\n  { style: 'abstract_metaphor', provider: 'fal' },\n  { style: 'glitch_data', provider: 'replicate' },\n  { style: 'motion_cinematic', provider: 'kie' },\n  { style: 'hyperreal', provider: 'stability' }\n];\n\nconst MOTIONS = ['parallax_zoom', 'pan_left', 'pan_right', 'dolly_in', 'dolly_out', 'slow_zoom'];\n\nconst scenes = response.beats.map((text, i) => {\n  const styleObj = STYLES[i % STYLES.length];\n  return {\n    beat: i + 1,\n    text: text,\n    visual_intent: response.intents[i] || response.intents[i % response.intents.length],\n    style: styleObj.style,\n    provider: styleObj.provider,\n    motion: MOTIONS[Math.floor(Math.random() * MOTIONS.length)],\n    duration: 1.3 + Math.random() * 0.9,\n    file_index: String(i + 1).padStart(2, '0')\n  };\n});\n\nreturn {\n  json: {\n    ...response,\n    scenes: scenes,\n    full_script: response.beats.join(' '),\n    mode: 'shorts'\n  }\n};"
+      },
+      "id": "scene_planner",
+      "name": "Scene Planner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst scenes = data.scenes;\nconst providers = [...new Set(scenes.map(s => s.provider))];\n\nif (scenes.length < 10) {\n  throw new Error(`QUALITY GATE FAILED: Only ${scenes.length} scenes (minimum 10 required)`);\n}\n\nif (providers.length < 3) {\n  throw new Error(`QUALITY GATE FAILED: Only ${providers.length} providers (minimum 3 required)`);\n}\n\n// Enforce no consecutive duplicate styles\nfor (let i = 1; i < scenes.length; i++) {\n  if (scenes[i].style === scenes[i-1].style) {\n    const altIndex = (i + 2) % scenes.length;\n    scenes[i].style = scenes[altIndex].style;\n    scenes[i].provider = scenes[altIndex].provider;\n  }\n}\n\nreturn {\n  json: {\n    ...data,\n    scenes: scenes,\n    quality_check: {\n      passed: true,\n      scene_count: scenes.length,\n      provider_count: providers.length,\n      providers_used: providers,\n      timestamp: new Date().toISOString()\n    }\n  }\n};"
+      },
+      "id": "quality_gate",
+      "name": "Hollywood Quality Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "{{ $env.ELEVENLABS_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.full_script }}\",\n  \"model_id\": \"eleven_monolingual_v1\",\n  \"voice_settings\": {\n    \"stability\": 0.5,\n    \"similarity_boost\": 0.8,\n    \"style\": 0.5,\n    \"use_speaker_boost\": true\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "audio_data"
+            }
+          }
+        }
+      },
+      "id": "tts",
+      "name": "ElevenLabs TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/audio/voice_{{ $now.toMillis() }}.mp3",
+        "dataPropertyName": "audio_data"
+      },
+      "id": "save_audio",
+      "name": "Save Audio",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "scenes",
+        "options": {}
+      },
+      "id": "split_scenes",
+      "name": "Split Scenes",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1760, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "leonardo", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "leonardo"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "runway", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "runway"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "fal", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "fal"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "replicate", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "replicate"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "kie", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "kie"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.provider }}", "rightValue": "stability", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "stability"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "provider_router",
+      "name": "Provider Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1980, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.LEONARDO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.visual_intent }}, {{ $json.style }}, anime style, dark mood, cinematic lighting, dramatic shadows, professional, no text, 9:16 vertical, motion depth, highly detailed\",\n  \"negative_prompt\": \"text, words, letters, watermark, logo, blurry, low quality, deformed\",\n  \"modelId\": \"6bef9f1b-29cb-40c7-b9df-32b51c1f67d3\",\n  \"width\": 576,\n  \"height\": 1024,\n  \"num_images\": 1,\n  \"guidance_scale\": 7,\n  \"photoReal\": true,\n  \"alchemy\": true\n}",
+        "options": {}
+      },
+      "id": "leonardo_gen",
+      "name": "Leonardo Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.runwayml.com/v1/image_to_video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.RUNWAYML_API_KEY }}"
+            },
+            {
+              "name": "X-Runway-Version",
+              "value": "2024-11-06"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"promptText\": \"{{ $json.visual_intent }}, {{ $json.style }}, cinematic, hyper-realistic, moody lighting, {{ $json.motion }} camera movement, 9:16 vertical, professional film quality\",\n  \"model\": \"gen3a_turbo\",\n  \"duration\": 5,\n  \"ratio\": \"9:16\",\n  \"watermark\": false\n}",
+        "options": {}
+      },
+      "id": "runway_gen",
+      "name": "Runway Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux/dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key {{ $env.FAL_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.visual_intent }}, {{ $json.style }}, abstract metaphor, surreal, cinematic composition, vertical 9:16, no text, professional, dark atmospheric mood\",\n  \"image_size\": \"portrait_16_9\",\n  \"num_inference_steps\": 28,\n  \"guidance_scale\": 3.5,\n  \"num_images\": 1,\n  \"enable_safety_checker\": false\n}",
+        "options": {}
+      },
+      "id": "fal_gen",
+      "name": "Fal.ai Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.replicate.com/v1/predictions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.REPLICATE_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"version\": \"39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b\",\n  \"input\": {\n    \"prompt\": \"{{ $json.visual_intent }}, {{ $json.style }}, glitch art, data visualization, cyberpunk aesthetic, vertical composition, no text, professional quality\",\n    \"negative_prompt\": \"text, words, watermark, blurry\",\n    \"width\": 576,\n    \"height\": 1024,\n    \"num_outputs\": 1,\n    \"guidance_scale\": 7.5\n  }\n}",
+        "options": {}
+      },
+      "id": "replicate_gen",
+      "name": "Replicate Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stability.ai/v2beta/stable-image/generate/core",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.STABILITY_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.visual_intent }}, {{ $json.style }}, hyperreal, cinematic lighting, professional, vertical composition, no text"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "9:16"
+            },
+            {
+              "name": "output_format",
+              "value": "png"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "stability_gen",
+      "name": "Stability AI Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 600]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge_visuals",
+      "name": "Merge All Visuals",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [2420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst sorted = allItems.sort((a, b) => (a.json.beat || 0) - (b.json.beat || 0));\n\nconst clipPaths = sorted.map((item, i) => `/data/scenes/scene_${String(i + 1).padStart(2, '0')}.mp4`);\n\nreturn {\n  json: {\n    clip_paths: clipPaths,\n    total_scenes: clipPaths.length,\n    scenes_data: sorted.map(s => s.json),\n    audio_path: '/data/audio/voice.mp3',\n    output_path: `/data/output/elite_${Date.now()}.mp4`\n  }\n};"
+      },
+      "id": "prepare_assembly",
+      "name": "Prepare Assembly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 300]
+    },
+    {
+      "parameters": {
+        "command": "=ffmpeg -y -f concat -safe 0 -i /data/concat.txt -i {{ $json.audio_path }} -map 0:v:0 -map 1:a:0 -c:v libx264 -profile:v high -level 4.2 -b:v 8M -minrate 6M -maxrate 10M -bufsize 16M -g 60 -sc_threshold 0 -pix_fmt yuv420p -r 30 -c:a aac -b:a 192k -movflags +faststart -shortest {{ $json.output_path }}"
+      },
+      "id": "ffmpeg_assembly",
+      "name": "FFmpeg Hollywood Assembly",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2860, 300]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "title": "={{ $('scene_planner').item.json.title }}",
+        "categoryId": "22",
+        "options": {
+          "description": "={{ $('scene_planner').item.json.description }}",
+          "privacyStatus": "public",
+          "tags": "money,wealth,finance,debt,rich,elite,viral,shorts"
+        }
+      },
+      "id": "youtube_upload",
+      "name": "YouTube Upload",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [3080, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "{{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this video performance DNA and suggest mutations for next generation:\\n\\nScenes: {{ $('quality_gate').item.json.quality_check.scene_count }}\\nProviders: {{ $('quality_gate').item.json.quality_check.providers_used.join(', ') }}\\nThesis: {{ $('scene_planner').item.json.thesis }}\\nEmotional Arc: {{ $('scene_planner').item.json.emotional_arc.join(' → ') }}\\n\\nReturn JSON with: winning_elements, suggested_mutations, style_evolution, next_thesis_angles\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "claude_aave",
+      "name": "Claude AAVE Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/{{ $env.AIRTABLE_BASE_ID }}/DNA_Log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.AIRTABLE_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"records\": [\n    {\n      \"fields\": {\n        \"Timestamp\": \"{{ $now.toISO() }}\",\n        \"Video_ID\": \"{{ $('youtube_upload').item.json.id }}\",\n        \"Title\": \"{{ $('scene_planner').item.json.title }}\",\n        \"Thesis\": \"{{ $('scene_planner').item.json.thesis }}\",\n        \"Scene_Count\": {{ $('quality_gate').item.json.quality_check.scene_count }},\n        \"Providers\": \"{{ $('quality_gate').item.json.quality_check.providers_used.join(', ') }}\",\n        \"Emotional_Arc\": \"{{ $('scene_planner').item.json.emotional_arc.join(' → ') }}\"\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "airtable_dna",
+      "name": "Airtable DNA Logger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3520, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=🎬 *MONEY MACHINE - Video Published*\n\n📹 *Title:* {{ $('scene_planner').item.json.title }}\n🎯 *Thesis:* {{ $('scene_planner').item.json.thesis }}\n📊 *Scenes:* {{ $('quality_gate').item.json.quality_check.scene_count }}\n🎨 *Providers:* {{ $('quality_gate').item.json.quality_check.providers_used.join(', ') }}\n💫 *Arc:* {{ $('scene_planner').item.json.emotional_arc.join(' → ') }}\n\n✅ Hollywood quality enforced\n✅ Multi-provider visuals\n✅ Scene-based cinema\n✅ AAVE evolution logged",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram",
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3740, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Alpha Vantage News", "type": "main", "index": 0 },
+          { "node": "Finnhub Market News", "type": "main", "index": 0 },
+          { "node": "CoinGecko Trending", "type": "main", "index": 0 },
+          { "node": "NewsAPI Headlines", "type": "main", "index": 0 },
+          { "node": "MarketAux News", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Alpha Vantage News": { "main": [[{ "node": "Merge Intelligence", "type": "main", "index": 0 }]] },
+    "Finnhub Market News": { "main": [[{ "node": "Merge Intelligence", "type": "main", "index": 0 }]] },
+    "CoinGecko Trending": { "main": [[{ "node": "Merge Intelligence", "type": "main", "index": 0 }]] },
+    "NewsAPI Headlines": { "main": [[{ "node": "Merge Intelligence", "type": "main", "index": 0 }]] },
+    "MarketAux News": { "main": [[{ "node": "Merge Intelligence", "type": "main", "index": 0 }]] },
+    "Merge Intelligence": { "main": [[{ "node": "Intelligence Layer (GPT-4o)", "type": "main", "index": 0 }]] },
+    "Intelligence Layer (GPT-4o)": { "main": [[{ "node": "Scene Planner", "type": "main", "index": 0 }]] },
+    "Scene Planner": { "main": [[{ "node": "Hollywood Quality Gate", "type": "main", "index": 0 }, { "node": "ElevenLabs TTS", "type": "main", "index": 0 }]] },
+    "Hollywood Quality Gate": { "main": [[{ "node": "Split Scenes", "type": "main", "index": 0 }]] },
+    "ElevenLabs TTS": { "main": [[{ "node": "Save Audio", "type": "main", "index": 0 }]] },
+    "Split Scenes": { "main": [[{ "node": "Provider Router", "type": "main", "index": 0 }]] },
+    "Provider Router": {
+      "main": [
+        [{ "node": "Leonardo Generate", "type": "main", "index": 0 }],
+        [{ "node": "Runway Generate", "type": "main", "index": 0 }],
+        [{ "node": "Fal.ai Generate", "type": "main", "index": 0 }],
+        [{ "node": "Replicate Generate", "type": "main", "index": 0 }],
+        [{ "node": "Stability AI Generate", "type": "main", "index": 0 }],
+        [{ "node": "Stability AI Generate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Leonardo Generate": { "main": [[{ "node": "Merge All Visuals", "type": "main", "index": 0 }]] },
+    "Runway Generate": { "main": [[{ "node": "Merge All Visuals", "type": "main", "index": 0 }]] },
+    "Fal.ai Generate": { "main": [[{ "node": "Merge All Visuals", "type": "main", "index": 0 }]] },
+    "Replicate Generate": { "main": [[{ "node": "Merge All Visuals", "type": "main", "index": 0 }]] },
+    "Stability AI Generate": { "main": [[{ "node": "Merge All Visuals", "type": "main", "index": 0 }]] },
+    "Merge All Visuals": { "main": [[{ "node": "Prepare Assembly", "type": "main", "index": 0 }]] },
+    "Save Audio": { "main": [[{ "node": "Prepare Assembly", "type": "main", "index": 0 }]] },
+    "Prepare Assembly": { "main": [[{ "node": "FFmpeg Hollywood Assembly", "type": "main", "index": 0 }]] },
+    "FFmpeg Hollywood Assembly": { "main": [[{ "node": "YouTube Upload", "type": "main", "index": 0 }]] },
+    "YouTube Upload": { "main": [[{ "node": "Claude AAVE Analysis", "type": "main", "index": 0 }]] },
+    "Claude AAVE Analysis": { "main": [[{ "node": "Airtable DNA Logger", "type": "main", "index": 0 }]] },
+    "Airtable DNA Logger": { "main": [[{ "node": "Telegram Notify", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    { "name": "money-machine" },
+    { "name": "automation" },
+    { "name": "hollywood-engine" }
+  ]
+}

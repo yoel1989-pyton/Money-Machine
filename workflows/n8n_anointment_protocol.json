@@ -1,0 +1,417 @@
+{
+  "name": "Anointment Protocol - Hunter → Brain → Forge",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 4 Hours (Rawscroll)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clockworks~tiktok-scraper/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ searchQueries: ['passive income tips', 'wealth building', 'financial freedom'], searchSection: 'video', searchSorting: 1, resultsPerPage: 30, proxyCountryCode: 'US', shouldDownloadVideos: false }) }}"
+      },
+      "id": "apify-tiktok",
+      "name": "Hunter: TikTok Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-apify",
+      "name": "Wait for Apify",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/acts/clockworks~tiktok-scraper/runs/{{ $json.data.id }}/dataset/items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-results",
+      "name": "Fetch Scraped Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.diggCount }}",
+              "operation": "largerEqual",
+              "value2": 10000
+            },
+            {
+              "value1": "={{ $json.shareCount / $json.diggCount }}",
+              "operation": "largerEqual",
+              "value2": 0.15
+            }
+          ]
+        }
+      },
+      "id": "viral-filter",
+      "name": "Viral Filter (Shares/Likes > 0.15)",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clockworks~tiktok-video-downloader-no-watermarks/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.webVideoUrl }) }}"
+      },
+      "id": "watermark-remove",
+      "name": "Remove TikTok Watermark",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "wait-download",
+      "name": "Wait for Download",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RAILWAY_BACKEND_URL }}/anoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_url\": \"{{ $json.download_url }}\",\n  \"tags\": {{ JSON.stringify($json.hashtags) }},\n  \"caption\": \"{{ $json.text }}\"\n}"
+      },
+      "id": "forge-anoint",
+      "name": "Forge: Anoint Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 0],
+      "notesInFlow": true,
+      "notes": "CRITICAL: No double serialization!\ntags: {{ $json.hashtags }} (array)\nnot: {{ JSON.stringify($json.hashtags) }} (string)"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "=Rewrite this TikTok caption for Instagram Reels. Keep it engaging and add relevant hashtags for the finance/wealth niche. Remove all original @mentions. Keep under 200 characters.\n\nOriginal: {{ $node['Viral Filter (Shares/Likes > 0.15)'].json.text }}"
+            }
+          ]
+        }
+      },
+      "id": "caption-rewrite",
+      "name": "Creative OS: Rewrite Caption",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.IG_USER_ID }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.META_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_type\": \"REELS\",\n  \"video_url\": \"{{ $node['Forge: Anoint Video'].json.anointed_url }}\",\n  \"caption\": \"{{ $json.message.content }}\"\n}"
+      },
+      "id": "ig-container",
+      "name": "Instagram: Create Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.FB_PAGE_ID }}/videos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.META_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"file_url\": \"{{ $node['Forge: Anoint Video'].json.anointed_url }}\",\n  \"description\": \"{{ $json.message.content }}\\n\\n🔗 Link in bio for more!\",\n  \"title\": \"Money Tips\"\n}"
+      },
+      "id": "fb-upload",
+      "name": "Facebook: Upload Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 100]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-ig-process",
+      "name": "Wait for IG Processing",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2200, -100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v22.0/{{ $node['Instagram: Create Container'].json.id }}?fields=status_code",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.META_ACCESS_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "id": "ig-status",
+      "name": "Check IG Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status_code }}",
+              "value2": "FINISHED"
+            }
+          ]
+        }
+      },
+      "id": "ig-ready-check",
+      "name": "IG Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2640, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.IG_USER_ID }}/media_publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.META_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"creation_id\": \"{{ $node['Instagram: Create Container'].json.id }}\"\n}"
+      },
+      "id": "ig-publish",
+      "name": "Instagram: Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, -200]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "ig-retry-wait",
+      "name": "Wait & Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2860, 0]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait-for-comment",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3080, -200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $node['Instagram: Publish'].json.id }}/comments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.META_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"🔥 Link in bio for the full breakdown! 👆\"\n}"
+      },
+      "id": "ig-first-comment",
+      "name": "Money Machine: First Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, -200]
+    },
+    {
+      "parameters": {
+        "channel": "#anointment-logs",
+        "text": "=✅ Anointed & Published!\n\n🎬 Original: {{ $node['Viral Filter (Shares/Likes > 0.15)'].json.webVideoUrl }}\n📱 Instagram: https://instagram.com/p/{{ $node['Instagram: Publish'].json.id }}\n📊 Viral Score: {{ ($node['Viral Filter (Shares/Likes > 0.15)'].json.shareCount / $node['Viral Filter (Shares/Likes > 0.15)'].json.diggCount * 100).toFixed(1) }}%"
+      },
+      "id": "slack-notify",
+      "name": "Notify: Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [3520, -200]
+    }
+  ],
+  "connections": {
+    "Every 4 Hours (Rawscroll)": {
+      "main": [[{"node": "Hunter: TikTok Scraper", "type": "main", "index": 0}]]
+    },
+    "Hunter: TikTok Scraper": {
+      "main": [[{"node": "Wait for Apify", "type": "main", "index": 0}]]
+    },
+    "Wait for Apify": {
+      "main": [[{"node": "Fetch Scraped Videos", "type": "main", "index": 0}]]
+    },
+    "Fetch Scraped Videos": {
+      "main": [[{"node": "Viral Filter (Shares/Likes > 0.15)", "type": "main", "index": 0}]]
+    },
+    "Viral Filter (Shares/Likes > 0.15)": {
+      "main": [[{"node": "Remove TikTok Watermark", "type": "main", "index": 0}]]
+    },
+    "Remove TikTok Watermark": {
+      "main": [[{"node": "Wait for Download", "type": "main", "index": 0}]]
+    },
+    "Wait for Download": {
+      "main": [[{"node": "Forge: Anoint Video", "type": "main", "index": 0}]]
+    },
+    "Forge: Anoint Video": {
+      "main": [[{"node": "Creative OS: Rewrite Caption", "type": "main", "index": 0}]]
+    },
+    "Creative OS: Rewrite Caption": {
+      "main": [
+        [
+          {"node": "Instagram: Create Container", "type": "main", "index": 0},
+          {"node": "Facebook: Upload Video", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Instagram: Create Container": {
+      "main": [[{"node": "Wait for IG Processing", "type": "main", "index": 0}]]
+    },
+    "Wait for IG Processing": {
+      "main": [[{"node": "Check IG Status", "type": "main", "index": 0}]]
+    },
+    "Check IG Status": {
+      "main": [[{"node": "IG Ready?", "type": "main", "index": 0}]]
+    },
+    "IG Ready?": {
+      "main": [
+        [{"node": "Instagram: Publish", "type": "main", "index": 0}],
+        [{"node": "Wait & Retry", "type": "main", "index": 0}]
+      ]
+    },
+    "Instagram: Publish": {
+      "main": [[{"node": "Wait 5s", "type": "main", "index": 0}]]
+    },
+    "Wait & Retry": {
+      "main": [[{"node": "Check IG Status", "type": "main", "index": 0}]]
+    },
+    "Wait 5s": {
+      "main": [[{"node": "Money Machine: First Comment", "type": "main", "index": 0}]]
+    },
+    "Money Machine: First Comment": {
+      "main": [[{"node": "Notify: Success", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-28T00:00:00.000Z",
+  "versionId": "anointment-protocol-v1"
+}

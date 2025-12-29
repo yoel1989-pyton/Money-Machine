@@ -1,790 +1,702 @@
 #!/usr/bin/env python3
 """
-════════════════════════════════════════════════════════════════════════════════
-💎 MONEY MACHINE AI — UNIFIED JOB RUNNER
-════════════════════════════════════════════════════════════════════════════════
-THE SINGLE ENTRYPOINT FOR ALL PRODUCTION
+============================================================
+MONEY MACHINE AI - UNIVERSAL JOB ENTRYPOINT
+============================================================
+THE SPINE OF THE DISTRIBUTED SYSTEM
 
-This is the spine of the distributed system:
-- n8n Cloud DECIDES what to make
-- This script EXECUTES with Hollywood quality
-- Returns structured JSON for logging/evolution
+This is THE ONLY entrypoint for all orchestration.
+n8n (cloud or local), webhooks, CLI — all go through here.
 
 Usage:
-    python workflows/run_job.py --json '{"mode": "shorts", "topic": "..."}'
-    python workflows/run_job.py --file payload.json
-    echo '{"mode": "shorts"}' | python workflows/run_job.py --stdin
+    python workflows/run_job.py --json '{"mode":"shorts","topic":"..."}'
+    python workflows/run_job.py --mode shorts --topic "Why the Rich Use Debt"
+    echo '{"mode":"shorts"}' | python workflows/run_job.py --stdin
 
 Modes:
-    shorts    - 60-second elite Shorts (default)
-    longform  - 10-15 minute documentary
-    expand    - Expand winning Short to documentary
+    - shorts: Elite YouTube Short (30 min cycle)
+    - longform: 4K Documentary (6 hour cycle)  
+    - replicate: Clone winner DNA to new niche
+    - analytics: Scan winners/losers
+    - health: System status check
 
-════════════════════════════════════════════════════════════════════════════════
+Returns JSON:
+{
+    "status": "SUCCESS|FAILED",
+    "video_path": "...",
+    "youtube_url": "...",
+    "bitrate": 8200000,
+    "duration": 42.1,
+    "dna": {...}
+}
+============================================================
 """
 
 import os
 import sys
 import json
-import uuid
 import asyncio
 import argparse
+import uuid
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(PROJECT_ROOT / ".env", override=True)
 
-# ════════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION — HOLLYWOOD STANDARDS (NON-NEGOTIABLE)
-# ════════════════════════════════════════════════════════════════════════════════
+# Import engines
+from engines.aave_engine import AAVEEngine, VisualDNA, TopicPool
+from engines.elite_builder import EliteVideoBuilder, BuildConfig
+from engines.video_builder import build_video, validate_visual_entropy
+from engines.uploaders import YouTubeUploader
+from engines.quality_gates import QualityGate
 
-DATA_DIR = Path(__file__).parent.parent / "data"
-TEMP_DIR = DATA_DIR / "temp"
-OUTPUT_DIR = DATA_DIR / "output"
-LOGS_DIR = DATA_DIR / "logs"
-DNA_DIR = DATA_DIR / "dna"
+# Import longform if available
+try:
+    from engines.longform_builder import LongformDocumentaryBuilder
+    HAS_LONGFORM = True
+except ImportError:
+    HAS_LONGFORM = False
 
-for d in [TEMP_DIR, OUTPUT_DIR, LOGS_DIR, DNA_DIR]:
+# Directories
+OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
+AUDIO_DIR = PROJECT_ROOT / "data" / "audio"
+SCRIPTS_DIR = PROJECT_ROOT / "data" / "scripts"
+DNA_DIR = PROJECT_ROOT / "data" / "dna"
+LOGS_DIR = PROJECT_ROOT / "data" / "logs"
+
+for d in [OUTPUT_DIR, AUDIO_DIR, SCRIPTS_DIR, DNA_DIR, LOGS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-# Quality gates — if any fail, NO UPLOAD
-QUALITY_STANDARDS = {
-    "shorts": {
-        "resolution": (1080, 1920),
-        "min_bitrate": 1_500_000,  # 1.5 Mbps floor (realistic for source material)
-        "target_bitrate": 4_000_000,  # 4 Mbps target
-        "max_bitrate": 10_000_000,  # 10 Mbps ceiling
-        "fps": 30,
-        "audio_bitrate": 192_000,
-        "min_duration": 15,
-        "max_duration": 65,  # Allow slight overage
-        "scene_duration": (1.2, 2.8),  # Cut every 1.2-2.8 seconds
-    },
-    "longform": {
-        "resolution": (3840, 2160),  # 4K
-        "min_bitrate": 8_000_000,
-        "target_bitrate": 18_000_000,
-        "max_bitrate": 25_000_000,
-        "fps": 30,
-        "audio_bitrate": 320_000,
-        "min_duration": 300,  # 5 minutes minimum
-        "max_duration": 1800,  # 30 minutes max
-    }
-}
 
+# ============================================================
+# CORE JOB EXECUTOR
+# ============================================================
 
-# ════════════════════════════════════════════════════════════════════════════════
-# JOB RUNNER — THE EXECUTION ENGINE
-# ════════════════════════════════════════════════════════════════════════════════
-
-class JobRunner:
+class JobExecutor:
     """
-    Unified job execution engine.
-    
-    Receives job from n8n Cloud webhook.
-    Executes with full quality enforcement.
-    Returns structured result for evolution.
+    Universal job executor for all Money Machine operations.
+    This is what n8n webhooks call.
     """
     
     def __init__(self):
+        self.aave = AAVEEngine()
+        self.quality_gate = QualityGate()
+        self.youtube = YouTubeUploader()
         self.job_id = None
-        self.start_time = None
-        self.dna = {}
-        self._load_engines()
-    
-    def _load_engines(self):
-        """Lazy load all engines."""
-        try:
-            from engines.aave_engine import AAVEEngine
-            self.aave = AAVEEngine()
-        except ImportError:
-            self.aave = None
         
-        try:
-            from engines.elite_builder import EliteVideoBuilder
-            self.elite_builder = EliteVideoBuilder()
-        except ImportError:
-            self.elite_builder = None
-        
-        try:
-            from engines.longform_builder import LongformBuilder
-            self.longform_builder = LongformBuilder()
-        except ImportError:
-            self.longform_builder = None
-        
-        try:
-            from engines.uploaders import YouTubeUploader
-            self.uploader = YouTubeUploader()
-        except ImportError:
-            self.uploader = None
-        
-        try:
-            from engines.quality_gates import QualityGate, VideoValidator
-            self.quality_gate = QualityGate()
-            self.video_validator = VideoValidator
-        except ImportError:
-            self.quality_gate = None
-            self.video_validator = None
-    
-    async def run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Execute job and return structured result.
+        Execute a job from payload.
         
-        This is the ONLY function n8n calls.
-        """
-        self.job_id = payload.get("job_id", str(uuid.uuid4())[:8])
-        self.start_time = datetime.now(timezone.utc)
-        
-        result = {
-            "job_id": self.job_id,
-            "status": "PENDING",
-            "started_at": self.start_time.isoformat(),
-            "completed_at": None,
-            "video_path": None,
-            "youtube_url": None,
-            "bitrate": None,
-            "duration": None,
-            "dna": {},
-            "error": None
+        Expected payload:
+        {
+            "job_id": "uuid",
+            "mode": "shorts|longform|replicate|analytics|health",
+            "topic": "optional topic override",
+            "script": "optional pre-generated script",
+            "visual_intent": "power_finance|tech_disrupt|etc",
+            "force_upload": true,
+            "elite": true
         }
+        """
+        self.job_id = payload.get("job_id", uuid.uuid4().hex[:12])
+        mode = payload.get("mode", "shorts")
+        
+        self._log(f"[JOB:{self.job_id}] Starting mode={mode}")
         
         try:
-            mode = payload.get("mode", "shorts")
-            
             if mode == "shorts":
-                result = await self._run_shorts(payload, result)
+                return await self._execute_shorts(payload)
             elif mode == "longform":
-                result = await self._run_longform(payload, result)
-            elif mode == "expand":
-                result = await self._run_expand(payload, result)
+                return await self._execute_longform(payload)
+            elif mode == "replicate":
+                return await self._execute_replicate(payload)
+            elif mode == "analytics":
+                return await self._execute_analytics(payload)
+            elif mode == "health":
+                return self._execute_health(payload)
             else:
-                raise ValueError(f"Unknown mode: {mode}")
-            
-            result["status"] = "SUCCESS"
-            
+                return {"status": "FAILED", "error": f"Unknown mode: {mode}"}
         except Exception as e:
-            result["status"] = "FAILED"
-            result["error"] = str(e)
-            self._log_error(e, payload)
-        
-        result["completed_at"] = datetime.now(timezone.utc).isoformat()
-        self._log_result(result)
-        
-        return result
+            self._log(f"[JOB:{self.job_id}] FAILED: {e}")
+            return {"status": "FAILED", "error": str(e), "job_id": self.job_id}
     
-    async def _run_shorts(self, payload: Dict, result: Dict) -> Dict:
-        """Execute Shorts production pipeline."""
+    # ========================================================
+    # SHORTS MODE (PRIMARY - Every 30 min)
+    # ========================================================
+    
+    async def _execute_shorts(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Build and upload an elite YouTube Short."""
         
-        # ═══════════════════════════════════════════════════════════
-        # STEP 1: TOPIC SELECTION (AAVE Intelligence)
-        # ═══════════════════════════════════════════════════════════
-        
+        # 1. Select topic (AAVE weighted selection)
         topic = payload.get("topic")
-        visual_intent = payload.get("visual_intent", "power_finance")
+        if not topic:
+            topic, weight = self.aave.select_topic()
+            self._log(f"[AAVE] Selected topic: {topic} (weight: {weight})")
         
-        if not topic and self.aave:
-            topic_data, dna = self.aave.select_elite_topic()
-            topic = topic_data["topic"]
-            visual_intent = topic_data.get("visual_intent", "power_finance")
-            self.dna = {
-                "id": dna.get_id() if hasattr(dna, "get_id") else str(uuid.uuid4())[:8],
-                "topic": topic,
-                "visual_intent": visual_intent,
-                "hook_type": topic_data.get("hook", {}).value if hasattr(topic_data.get("hook", {}), "value") else "system_reveal",
-                "archetype": topic_data.get("archetype", "wealth_psychology")
-            }
-        else:
-            self.dna = {
-                "id": str(uuid.uuid4())[:8],
-                "topic": topic or "Why the Rich Use Debt as a Weapon",
-                "visual_intent": visual_intent,
-                "hook_type": "system_reveal",
-                "archetype": "wealth_psychology"
-            }
-            topic = self.dna["topic"]
+        visual_intent = payload.get("visual_intent", self._infer_visual_intent(topic))
         
-        print(f"[JOB:{self.job_id}] 🎯 Topic: {topic}")
-        print(f"[JOB:{self.job_id}] 🧬 DNA: {self.dna['id']}")
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 2: SCRIPT GENERATION
-        # ═══════════════════════════════════════════════════════════
-        
+        # 2. Generate script (or use provided)
         script = payload.get("script")
-        
         if not script:
-            script = await self._generate_script(topic, self.dna)
+            script = await self._generate_script(topic, visual_intent)
         
-        print(f"[JOB:{self.job_id}] 📝 Script: {len(script.split())} words")
+        # Save script
+        script_path = SCRIPTS_DIR / f"job_{self.job_id}.txt"
+        script_path.write_text(script)
         
-        # ═══════════════════════════════════════════════════════════
-        # STEP 3: VOICE SYNTHESIS
-        # ═══════════════════════════════════════════════════════════
+        # 3. Generate audio
+        audio_path = await self._generate_audio(script)
+        if not audio_path:
+            return {"status": "FAILED", "error": "Audio generation failed"}
         
-        audio_path = await self._generate_voice(script)
-        print(f"[JOB:{self.job_id}] 🎙️ Audio: {Path(audio_path).name}")
+        # 4. Build video (Elite FFmpeg pipeline)
+        video_path = await self._build_elite_video(audio_path, script, topic, visual_intent)
+        if not video_path:
+            return {"status": "FAILED", "error": "Video build failed"}
         
-        # ═══════════════════════════════════════════════════════════
-        # STEP 4: VIDEO ASSEMBLY (HOLLYWOOD QUALITY)
-        # ═══════════════════════════════════════════════════════════
+        # 5. Quality gate check
+        passed, report = self._quality_check(video_path)
+        if not passed and not payload.get("force_upload"):
+            return {
+                "status": "FAILED", 
+                "error": "Quality gate failed",
+                "report": report,
+                "video_path": video_path
+            }
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = str(OUTPUT_DIR / f"elite_{timestamp}_{self.job_id}.mp4")
+        # 6. Upload to YouTube
+        youtube_url = None
+        if payload.get("force_upload", True) and self.youtube.is_configured():
+            upload_result = await self._upload_youtube(video_path, topic, script)
+            youtube_url = upload_result.get("url")
         
-        video_path = await self._build_video(audio_path, script, topic, output_path)
-        print(f"[JOB:{self.job_id}] 🎬 Video: {Path(video_path).name}")
+        # 7. Extract & log DNA
+        dna = self._extract_dna(topic, visual_intent, script, report)
+        self._log_dna(dna)
         
-        # ═══════════════════════════════════════════════════════════
-        # STEP 5: QUALITY GATE (MANDATORY)
-        # ═══════════════════════════════════════════════════════════
-        
-        validation = await self._validate_video(video_path, "shorts")
-        result["bitrate"] = validation.get("bitrate")
-        result["duration"] = validation.get("duration")
-        
-        if not validation["passed"]:
-            raise ValueError(f"Quality gate FAILED: {validation['reason']}")
-        
-        print(f"[JOB:{self.job_id}] ✅ Quality: {validation['bitrate'] / 1_000_000:.1f} Mbps")
-        
-        result["video_path"] = video_path
-        result["dna"] = self.dna
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 6: UPLOAD (IF ENABLED)
-        # ═══════════════════════════════════════════════════════════
-        
-        if payload.get("force_upload", True):
-            youtube_url = await self._upload_video(video_path, topic)
-            result["youtube_url"] = youtube_url
-            print(f"[JOB:{self.job_id}] 📤 Uploaded: {youtube_url}")
-        
-        return result
+        # 8. Return result
+        return {
+            "status": "SUCCESS",
+            "job_id": self.job_id,
+            "mode": "shorts",
+            "video_path": str(video_path),
+            "youtube_url": youtube_url,
+            "bitrate": report.get("bitrate", 0),
+            "duration": report.get("duration", 0),
+            "topic": topic,
+            "visual_intent": visual_intent,
+            "dna": dna,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
     
-    async def _run_longform(self, payload: Dict, result: Dict) -> Dict:
-        """Execute Longform documentary pipeline."""
+    # ========================================================
+    # LONGFORM MODE (Every 6 hours - Winners only)
+    # ========================================================
+    
+    async def _execute_longform(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Build 4K documentary from winner DNA."""
         
+        if not HAS_LONGFORM:
+            return {"status": "FAILED", "error": "Longform builder not available"}
+        
+        # Get winner topic or specified topic
         topic = payload.get("topic")
         if not topic:
-            raise ValueError("Longform mode requires a topic")
+            winners = self.aave.get_winners()
+            if not winners:
+                return {"status": "SKIPPED", "reason": "No winners to expand"}
+            topic = winners[0].get("topic")
         
-        print(f"[JOB:{self.job_id}] 🎬 Longform: {topic}")
+        self._log(f"[LONGFORM] Building documentary: {topic}")
         
-        if self.longform_builder:
-            # Use existing longform builder
-            video_path = await self.longform_builder.build(
-                topic=topic,
-                style="documentary"
-            )
-        else:
-            # Fallback to manual assembly
-            script = await self._generate_longform_script(topic)
-            audio_path = await self._generate_voice(script)
-            video_path = await self._build_longform_video(audio_path, script, topic)
-        
-        validation = await self._validate_video(video_path, "longform")
-        result["bitrate"] = validation.get("bitrate")
-        result["duration"] = validation.get("duration")
-        result["video_path"] = video_path
-        
-        if payload.get("force_upload", False):
-            youtube_url = await self._upload_video(video_path, topic, is_longform=True)
-            result["youtube_url"] = youtube_url
-        
-        return result
+        try:
+            builder = LongformDocumentaryBuilder()
+            result = await builder.build(topic=topic)
+            
+            if result.get("success"):
+                # Upload if configured
+                youtube_url = None
+                if self.youtube.is_configured():
+                    upload_result = await self.youtube.upload_short(
+                        video_path=result["video_path"],
+                        title=result.get("title", topic)[:100],
+                        description=f"Documentary: {topic}\n\n#wealth #finance #money",
+                        privacy="public"
+                    )
+                    youtube_url = upload_result.get("url")
+                
+                return {
+                    "status": "SUCCESS",
+                    "mode": "longform",
+                    "video_path": result["video_path"],
+                    "youtube_url": youtube_url,
+                    "duration": result.get("duration"),
+                    "topic": topic
+                }
+            else:
+                return {"status": "FAILED", "error": result.get("error", "Build failed")}
+                
+        except Exception as e:
+            return {"status": "FAILED", "error": str(e)}
     
-    async def _run_expand(self, payload: Dict, result: Dict) -> Dict:
-        """Expand a winning Short into a documentary."""
+    # ========================================================
+    # REPLICATE MODE (Clone winners to new niches)
+    # ========================================================
+    
+    async def _execute_replicate(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Clone winner DNA into new niche."""
         
-        source_dna = payload.get("source_dna", {})
-        topic = source_dna.get("topic", payload.get("topic"))
+        source_topic = payload.get("source_topic")
+        target_niche = payload.get("target_niche", "tech")
         
-        if not topic:
-            raise ValueError("Expand mode requires source topic/DNA")
+        if not source_topic:
+            winners = self.aave.get_winners()
+            if not winners:
+                return {"status": "SKIPPED", "reason": "No winners to replicate"}
+            source_topic = winners[0].get("topic")
         
-        print(f"[JOB:{self.job_id}] 📈 Expanding: {topic}")
-        
-        # Generate expanded documentary script
-        script = await self._generate_longform_script(topic, is_expansion=True)
-        audio_path = await self._generate_voice(script)
-        video_path = await self._build_longform_video(audio_path, script, topic)
-        
-        result["video_path"] = video_path
-        result["dna"] = {
-            "source": source_dna.get("id", "unknown"),
-            "expanded_topic": topic,
-            "type": "expansion"
+        # Mutate topic for new niche
+        niche_mutations = {
+            "tech": "technology and AI disruption",
+            "careers": "career and job market",
+            "economy": "economic systems",
+            "crypto": "cryptocurrency and blockchain"
         }
         
-        return result
+        mutated_topic = f"{source_topic} ({niche_mutations.get(target_niche, target_niche)})"
+        
+        # Build with mutated topic
+        payload["topic"] = mutated_topic
+        payload["mode"] = "shorts"
+        
+        return await self._execute_shorts(payload)
     
-    # ════════════════════════════════════════════════════════════════
-    # INTERNAL METHODS
-    # ════════════════════════════════════════════════════════════════
+    # ========================================================
+    # ANALYTICS MODE (Scan YouTube for winners/losers)
+    # ========================================================
     
-    async def _generate_script(self, topic: str, dna: Dict) -> str:
-        """Generate elite script using GPT-4o."""
-        import openai
+    async def _execute_analytics(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Scan analytics and evolve topic weights."""
         
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # This would integrate with YouTube Analytics API
+        # For now, return current AAVE state
         
-        hook_type = dna.get("hook_type", "system_reveal")
-        archetype = dna.get("archetype", "wealth_psychology")
-        
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """You are an elite YouTube Shorts scriptwriter. Your scripts achieve 80%+ retention.
-
-**GOLD STANDARD DNA (Graham Stephan, Jake Tran, ColdFusion):**
-
-1. HOOK (0-3s) - Pattern Interrupt:
-   - "You're being lied to about..."
-   - Shocking stat or counterintuitive claim
-   - Create cognitive dissonance
-
-2. AGITATION (3-15s) - Open the Wound:
-   - "Every time you..." / "While you sleep..."
-   - Make the problem feel personal
-   - Build emotional investment
-
-3. MECHANISM (15-40s) - The Hidden Truth:
-   - Reveal the "how" nobody talks about
-   - Simple metaphors
-   - Each sentence earns the next
-
-4. PAYOFF (40-55s) - The Revelation:
-   - Deliver the insight they came for
-   - Make them feel smarter
-   - Paradigm shift
-
-5. LOOP (55-60s) - Engagement:
-   - Open question OR
-   - Tease next video OR
-   - Challenge beliefs
-
-**VOICE:**
-- Short sentences (5-12 words)
-- Conversational, not preachy
-- Power words: exposed, rigged, weapon, hidden
-- NO emojis, hashtags, timestamps
-- 90-115 words total"""
-                },
-                {
-                    "role": "user",
-                    "content": f"Write an elite viral script about: {topic}\nHook Type: {hook_type}\nArchetype: {archetype}"
-                }
-            ],
-            temperature=0.75,
-            max_tokens=350
-        )
-        
-        script = response.choices[0].message.content.strip()
-        
-        # Sanitize for TTS
-        script = (script
-            .replace("**", "")
-            .replace("#", "")
-            .replace("_", "")
-            .replace("\n\n", " ")
-            .replace("\n", " ")
-            .strip())
-        
-        return script
+        return {
+            "status": "SUCCESS",
+            "mode": "analytics",
+            "winners": self.aave.get_winners()[:5],
+            "losers": self.aave.get_losers()[:5],
+            "topic_weights": self.aave.get_topic_weights()
+        }
     
-    async def _generate_longform_script(self, topic: str, is_expansion: bool = False) -> str:
-        """Generate documentary-style script."""
-        import openai
-        
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
-        prompt = f"""Write a 10-15 minute documentary script about: {topic}
-
-Structure (5-Act):
-1. COLD OPEN (30s) - Shocking hook
-2. SETUP (2-3min) - Context and stakes
-3. CONFLICT (4-5min) - The problem revealed
-4. RESOLUTION (3-4min) - The hidden truth
-5. CALL TO ACTION (1min) - What to do now
-
-Style: ColdFusion / Jake Tran cinematic narration
-Word count: 1500-2000 words
-NO timestamps, stage directions, or labels."""
-
-        if is_expansion:
-            prompt += "\n\nThis is an EXPANSION of a successful Short. Go deeper."
-        
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a documentary scriptwriter."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=3000
-        )
-        
-        return response.choices[0].message.content.strip()
+    # ========================================================
+    # HEALTH MODE (System status)
+    # ========================================================
     
-    async def _generate_voice(self, script: str) -> str:
-        """Generate voice with ElevenLabs or Edge-TTS fallback."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        audio_path = str(TEMP_DIR / f"voice_{self.job_id}_{timestamp}.mp3")
+    def _execute_health(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Check system health."""
+        
+        checks = {
+            "youtube_configured": self.youtube.is_configured(),
+            "ffmpeg_available": self._check_ffmpeg(),
+            "output_dir_writable": OUTPUT_DIR.exists() and os.access(OUTPUT_DIR, os.W_OK),
+            "broll_available": self._count_broll() > 0,
+            "aave_active": True
+        }
+        
+        all_healthy = all(checks.values())
+        
+        return {
+            "status": "HEALTHY" if all_healthy else "DEGRADED",
+            "mode": "health",
+            "checks": checks,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    
+    # ========================================================
+    # HELPER METHODS
+    # ========================================================
+    
+    async def _generate_script(self, topic: str, visual_intent: str) -> str:
+        """Generate elite script using OpenAI."""
+        
+        try:
+            import httpx
+            
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                return self._fallback_script(topic)
+            
+            prompt = f"""Write a 45-second YouTube Short script about: {topic}
+
+STRUCTURE (STRICT):
+1. HOOK (first 3 seconds): Pattern interrupt. Must create open loop.
+2. MECHANISM (10 sec): Explain the hidden system
+3. PROOF (10 sec): Example or data point  
+4. TWIST (10 sec): The thing they don't tell you
+5. CTA (5 sec): Subscribe hook
+
+RULES:
+- 120 words MAX
+- Short punchy sentences
+- No fluff words
+- Visual intent: {visual_intent}
+- Target: 80%+ retention
+
+Write ONLY the script, no labels or directions."""
+
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 300,
+                        "temperature": 0.8
+                    }
+                )
+                
+                if response.status_code == 200:
+                    return response.json()["choices"][0]["message"]["content"].strip()
+                    
+        except Exception as e:
+            self._log(f"[SCRIPT] OpenAI failed: {e}")
+        
+        return self._fallback_script(topic)
+    
+    def _fallback_script(self, topic: str) -> str:
+        """Fallback script if OpenAI fails."""
+        return f"""Here's what they don't want you to know about {topic}.
+
+The system is designed this way for a reason.
+And once you see it, you can't unsee it.
+
+Most people will ignore this.
+But if you're watching this, you're not most people.
+
+The wealthy understand this.
+The poor never learn it.
+
+Which side will you be on?
+
+Follow for more truths they hide from you."""
+    
+    async def _generate_audio(self, script: str) -> Optional[str]:
+        """Generate audio using ElevenLabs or edge-tts."""
+        
+        audio_path = AUDIO_DIR / f"job_{self.job_id}.mp3"
         
         # Try ElevenLabs first
         elevenlabs_key = os.getenv("ELEVENLABS_API_KEY")
         if elevenlabs_key:
             try:
                 import httpx
-                async with httpx.AsyncClient(timeout=120) as client:
+                
+                async with httpx.AsyncClient(timeout=60) as client:
                     response = await client.post(
                         "https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB",
-                        headers={"xi-api-key": elevenlabs_key},
+                        headers={
+                            "xi-api-key": elevenlabs_key,
+                            "Content-Type": "application/json"
+                        },
                         json={
                             "text": script,
-                            "model_id": "eleven_multilingual_v2",
-                            "voice_settings": {
-                                "stability": 0.45,
-                                "similarity_boost": 0.85,
-                                "style": 0.35
-                            }
+                            "model_id": "eleven_monolingual_v1",
+                            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
                         }
                     )
+                    
                     if response.status_code == 200:
-                        Path(audio_path).write_bytes(response.content)
-                        return audio_path
+                        audio_path.write_bytes(response.content)
+                        self._log(f"[AUDIO] ElevenLabs success: {audio_path}")
+                        return str(audio_path)
+                        
             except Exception as e:
-                print(f"[JOB:{self.job_id}] ⚠️ ElevenLabs failed: {e}")
+                self._log(f"[AUDIO] ElevenLabs failed: {e}")
         
-        # Fallback to Edge-TTS
-        import edge_tts
-        communicate = edge_tts.Communicate(script, "en-US-AndrewNeural")
-        await communicate.save(audio_path)
-        
-        return audio_path
-    
-    async def _build_video(self, audio_path: str, script: str, topic: str, output_path: str) -> str:
-        """Build Hollywood-quality video."""
-        
-        if self.elite_builder:
-            try:
-                return await self.elite_builder.build(
-                    audio_path=audio_path,
-                    script=script,
-                    topic=topic,
-                    output_path=output_path
-                )
-            except Exception as e:
-                print(f"[JOB:{self.job_id}] ⚠️ Elite builder failed: {e}")
-        
-        # Fallback to direct FFmpeg
-        return await self._ffmpeg_build(audio_path, topic, output_path)
-    
-    async def _ffmpeg_build(self, audio_path: str, topic: str, output_path: str) -> str:
-        """Direct FFmpeg build with Hollywood settings."""
-        
-        # Find best B-roll (prefer higher quality sources)
-        broll_dir = DATA_DIR / "assets" / "backgrounds"
-        broll_files = list(broll_dir.rglob("*.mp4"))
-        
-        if not broll_files:
-            raise RuntimeError("No B-roll available")
-        
-        # Prefer clips from non-deprecated folders with higher quality
-        preferred_folders = ["money", "city", "tech", "people", "lifestyle"]
-        
-        preferred = [f for f in broll_files if any(p in str(f.parent) for p in preferred_folders)]
-        
-        import random
-        broll = random.choice(preferred) if preferred else random.choice(broll_files)
-        
-        # Get audio duration
-        duration = await self._get_audio_duration(audio_path)
-        
-        # Hollywood FFmpeg command - CRF-based quality (more reliable)
-        # Using CRF 18 for high quality, let bitrate be natural
-        cmd = [
-            "ffmpeg", "-y",
-            "-stream_loop", "-1",
-            "-i", str(broll),
-            "-i", audio_path,
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            "-t", str(duration + 0.5),
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=contrast=1.08:saturation=1.12:brightness=0.02",
-            "-c:v", "libx264",
-            "-preset", "slow",
-            "-crf", "18",
-            "-profile:v", "high",
-            "-level", "4.2",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "192k",
-            "-ar", "48000",
-            "-movflags", "+faststart",
-            output_path
-        ]
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        _, stderr = await process.communicate()
-        
-        if not Path(output_path).exists():
-            raise RuntimeError(f"FFmpeg failed: {stderr.decode()[-500:]}")
-        
-        return output_path
-    
-    async def _build_longform_video(self, audio_path: str, script: str, topic: str) -> str:
-        """Build 4K documentary video."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = str(OUTPUT_DIR / "longform" / f"doc_{timestamp}_{self.job_id}.mp4")
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        
-        # Similar to shorts but with 4K settings
-        broll_dir = DATA_DIR / "assets" / "backgrounds"
-        broll_files = list(broll_dir.rglob("*.mp4"))
-        
-        if not broll_files:
-            raise RuntimeError("No B-roll for longform")
-        
-        import random
-        broll = random.choice(broll_files)
-        duration = await self._get_audio_duration(audio_path)
-        
-        cmd = [
-            "ffmpeg", "-y",
-            "-stream_loop", "-1",
-            "-i", str(broll),
-            "-i", audio_path,
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            "-t", str(duration + 1),
-            "-vf", "scale=3840:2160:force_original_aspect_ratio=increase,crop=3840:2160",
-            "-c:v", "libx264",
-            "-preset", "slow",
-            "-crf", "18",
-            "-b:v", "18M",
-            "-c:a", "aac",
-            "-b:a", "320k",
-            "-movflags", "+faststart",
-            output_path
-        ]
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        await process.communicate()
-        
-        return output_path
-    
-    async def _get_audio_duration(self, audio_path: str) -> float:
-        """Get audio duration using ffprobe."""
-        cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            audio_path
-        ]
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        stdout, _ = await process.communicate()
-        return float(stdout.decode().strip())
-    
-    async def _validate_video(self, video_path: str, mode: str) -> Dict:
-        """Validate video against Hollywood standards."""
-        
-        standards = QUALITY_STANDARDS.get(mode, QUALITY_STANDARDS["shorts"])
-        
-        # Get video info
-        cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration,bit_rate",
-            "-show_entries", "stream=width,height",
-            "-of", "json",
-            video_path
-        ]
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        stdout, _ = await process.communicate()
-        info = json.loads(stdout.decode())
-        
-        format_info = info.get("format", {})
-        stream_info = info.get("streams", [{}])[0]
-        
-        bitrate = int(format_info.get("bit_rate", 0))
-        duration = float(format_info.get("duration", 0))
-        width = stream_info.get("width", 0)
-        height = stream_info.get("height", 0)
-        
-        result = {
-            "passed": True,
-            "bitrate": bitrate,
-            "duration": duration,
-            "resolution": (width, height),
-            "reason": None
-        }
-        
-        # Check bitrate
-        if bitrate < standards["min_bitrate"]:
-            result["passed"] = False
-            result["reason"] = f"Bitrate {bitrate/1_000_000:.1f}Mbps below minimum {standards['min_bitrate']/1_000_000}Mbps"
-        
-        # Check duration
-        if duration < standards.get("min_duration", 0):
-            result["passed"] = False
-            result["reason"] = f"Duration {duration:.1f}s below minimum"
-        
-        return result
-    
-    async def _upload_video(self, video_path: str, topic: str, is_longform: bool = False) -> Optional[str]:
-        """Upload to YouTube."""
-        
-        if not self.uploader or not self.uploader.is_configured():
-            print(f"[JOB:{self.job_id}] 📁 LOCAL MODE: Saved to {video_path}")
-            return None
-        
-        title = topic[:95] + "..." if len(topic) > 95 else topic
-        
-        if is_longform:
-            description = f"""{topic}
-
-🎬 Full documentary on wealth, power, and financial systems.
-
-💰 Subscribe for more deep dives
-📈 Turn on notifications
-
-#Finance #Wealth #Documentary #Money"""
-        else:
-            description = f"""{topic}
-
-🎯 Master your money. Build real wealth.
-
-💰 Follow for daily wealth insights
-📈 No fluff. Just truth.
-
-#Shorts #Money #Wealth #Finance"""
-        
-        tags = ["money", "wealth", "finance", "investing", "shorts"]
-        
+        # Fallback to edge-tts
         try:
-            result = await self.uploader.upload_short(
-                video_path=video_path,
-                title=title,
-                description=description,
-                tags=tags
+            cmd = f'edge-tts --voice en-US-AndrewNeural --text "{script[:4000]}" --write-media "{audio_path}"'
+            process = await asyncio.create_subprocess_shell(
+                cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
+            await process.communicate()
             
-            # Handle both dict and string return types
-            if isinstance(result, dict):
-                video_id = result.get("video_id")
-            else:
-                video_id = result
-            
-            if video_id:
-                return f"https://youtube.com/shorts/{video_id}"
+            if audio_path.exists():
+                self._log(f"[AUDIO] Edge-TTS success: {audio_path}")
+                return str(audio_path)
+                
         except Exception as e:
-            print(f"[JOB:{self.job_id}] ❌ Upload failed: {e}")
+            self._log(f"[AUDIO] Edge-TTS failed: {e}")
         
         return None
     
-    def _log_result(self, result: Dict):
-        """Log job result for analytics."""
-        log_file = LOGS_DIR / f"job_{self.job_id}.json"
-        log_file.write_text(json.dumps(result, indent=2))
+    async def _build_elite_video(
+        self, 
+        audio_path: str, 
+        script: str, 
+        topic: str,
+        visual_intent: str
+    ) -> Optional[str]:
+        """Build elite video using scene-based cutting."""
         
-        # Also log DNA for evolution
-        if result.get("dna"):
-            dna_file = DNA_DIR / f"dna_{self.dna.get('id', 'unknown')}.json"
-            dna_data = {
-                **self.dna,
-                "job_id": self.job_id,
-                "status": result["status"],
-                "youtube_url": result.get("youtube_url"),
-                "bitrate": result.get("bitrate"),
-                "created_at": result.get("started_at")
-            }
-            dna_file.write_text(json.dumps(dna_data, indent=2))
+        output_path = OUTPUT_DIR / f"elite_{self.job_id}.mp4"
+        
+        try:
+            # Use elite builder with AAVE DNA
+            config = BuildConfig(
+                target_bitrate="8M",
+                max_bitrate="10M",
+                crf=18,
+                min_scene_duration=1.2,
+                max_scene_duration=2.8,
+                enable_zoompan=True,
+                enable_color_grade=True,
+                contrast=1.08,
+                saturation=1.12
+            )
+            
+            builder = EliteVideoBuilder(config)
+            result = await builder.build(
+                audio_path=audio_path,
+                script=script,
+                topic=topic,
+                output_path=str(output_path)
+            )
+            
+            if Path(result).exists():
+                self._log(f"[VIDEO] Elite build success: {result}")
+                return result
+                
+        except Exception as e:
+            self._log(f"[VIDEO] Elite builder failed: {e}, trying fallback")
+        
+        # Fallback to simple video builder
+        try:
+            result = await build_video(audio_path, str(OUTPUT_DIR))
+            self._log(f"[VIDEO] Fallback build success: {result}")
+            return result
+        except Exception as e:
+            self._log(f"[VIDEO] All builds failed: {e}")
+            return None
     
-    def _log_error(self, error: Exception, payload: Dict):
-        """Log error for debugging."""
-        error_file = LOGS_DIR / f"error_{self.job_id}.json"
-        error_file.write_text(json.dumps({
-            "job_id": self.job_id,
-            "error": str(error),
-            "payload": payload,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }, indent=2))
+    def _quality_check(self, video_path: str) -> tuple:
+        """Run quality gate checks."""
+        
+        passed, report = validate_visual_entropy(video_path, min_bitrate=6_000_000)
+        
+        # Additional checks
+        try:
+            cmd = f'ffprobe -v error -show_entries format=duration,bit_rate -of json "{video_path}"'
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            data = json.loads(result.stdout)
+            fmt = data.get("format", {})
+            
+            report["duration"] = float(fmt.get("duration", 0))
+            report["bitrate"] = int(fmt.get("bit_rate", 0))
+            
+            # Check Hollywood standards
+            if report["bitrate"] < 6_000_000:
+                passed = False
+                report["fail_reason"] = "Bitrate below 6 Mbps"
+            elif report["duration"] < 15:
+                passed = False
+                report["fail_reason"] = "Duration under 15 seconds"
+            elif report["duration"] > 60:
+                passed = False
+                report["fail_reason"] = "Duration over 60 seconds for Short"
+                
+        except Exception as e:
+            report["quality_check_error"] = str(e)
+        
+        return passed, report
+    
+    async def _upload_youtube(
+        self, 
+        video_path: str, 
+        topic: str, 
+        script: str
+    ) -> Dict[str, Any]:
+        """Upload to YouTube."""
+        
+        title = topic[:100]
+        description = f"""{script[:500]}
+
+🔔 Subscribe for daily wealth insights
+📈 Follow the Money Machine
+
+#shorts #money #wealth #finance #investing"""
+        
+        tags = ["shorts", "money", "wealth", "finance", "investing", "rich", "success"]
+        
+        result = await self.youtube.upload_short(
+            video_path=video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy="public"
+        )
+        
+        if result.get("success"):
+            video_id = result.get("video_id")
+            return {"url": f"https://youtube.com/shorts/{video_id}", "video_id": video_id}
+        
+        return {"error": result.get("error", "Upload failed")}
+    
+    def _infer_visual_intent(self, topic: str) -> str:
+        """Infer visual intent from topic."""
+        
+        topic_lower = topic.lower()
+        
+        if any(w in topic_lower for w in ["rich", "wealth", "millionaire", "billionaire"]):
+            return "luxury_wealth"
+        elif any(w in topic_lower for w in ["debt", "credit", "loan", "bank"]):
+            return "power_finance"
+        elif any(w in topic_lower for w in ["system", "rigged", "control", "hidden"]):
+            return "system_expose"
+        elif any(w in topic_lower for w in ["poor", "broke", "struggle", "class"]):
+            return "class_divide"
+        elif any(w in topic_lower for w in ["future", "collapse", "warning", "2025"]):
+            return "future_threat"
+        else:
+            return "power_finance"
+    
+    def _extract_dna(
+        self, 
+        topic: str, 
+        visual_intent: str, 
+        script: str,
+        report: Dict
+    ) -> Dict[str, Any]:
+        """Extract DNA from video for AAVE evolution."""
+        
+        return {
+            "topic": topic,
+            "visual_intent": visual_intent,
+            "word_count": len(script.split()),
+            "bitrate": report.get("bitrate", 0),
+            "duration": report.get("duration", 0),
+            "hook_type": self._detect_hook_type(script),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "job_id": self.job_id
+        }
+    
+    def _detect_hook_type(self, script: str) -> str:
+        """Detect hook archetype from script."""
+        
+        first_sentence = script.split('.')[0].lower() if script else ""
+        
+        if "don't" in first_sentence or "never" in first_sentence:
+            return "contrarian_fear"
+        elif "secret" in first_sentence or "hidden" in first_sentence:
+            return "system_reveal"
+        elif "truth" in first_sentence or "lie" in first_sentence:
+            return "myth_destruction"
+        elif "?" in first_sentence:
+            return "curiosity_gap"
+        else:
+            return "threat"
+    
+    def _log_dna(self, dna: Dict[str, Any]):
+        """Log DNA to file for AAVE."""
+        
+        dna_file = DNA_DIR / "pool.json"
+        
+        try:
+            pool = json.loads(dna_file.read_text()) if dna_file.exists() else []
+        except:
+            pool = []
+        
+        pool.append(dna)
+        
+        # Keep last 1000 entries
+        pool = pool[-1000:]
+        
+        dna_file.write_text(json.dumps(pool, indent=2))
+    
+    def _log(self, message: str):
+        """Log message to file and stdout."""
+        
+        log_file = LOGS_DIR / f"jobs_{datetime.now().strftime('%Y%m%d')}.log"
+        timestamp = datetime.now().isoformat()
+        
+        line = f"[{timestamp}] {message}"
+        print(line)
+        
+        with open(log_file, "a") as f:
+            f.write(line + "\n")
+    
+    def _check_ffmpeg(self) -> bool:
+        """Check if FFmpeg is available."""
+        try:
+            result = subprocess.run(["ffmpeg", "-version"], capture_output=True)
+            return result.returncode == 0
+        except:
+            return False
+    
+    def _count_broll(self) -> int:
+        """Count available B-roll files."""
+        broll_dir = PROJECT_ROOT / "data" / "assets" / "backgrounds"
+        if not broll_dir.exists():
+            return 0
+        
+        count = 0
+        for ext in ['*.mp4', '*.mov', '*.webm']:
+            count += len(list(broll_dir.rglob(ext)))
+        return count
 
 
-# ════════════════════════════════════════════════════════════════════════════════
+# ============================================================
 # CLI INTERFACE
-# ════════════════════════════════════════════════════════════════════════════════
+# ============================================================
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Money Machine Job Executor")
+    parser.add_argument("--json", type=str, help="JSON payload")
+    parser.add_argument("--stdin", action="store_true", help="Read JSON from stdin")
+    parser.add_argument("--mode", type=str, default="shorts", 
+                       choices=["shorts", "longform", "replicate", "analytics", "health"])
+    parser.add_argument("--topic", type=str, help="Override topic")
+    parser.add_argument("--force-upload", action="store_true", help="Upload even if quality gate fails")
+    parser.add_argument("--no-upload", action="store_true", help="Don't upload, save locally only")
+    return parser.parse_args()
+
 
 async def main():
-    parser = argparse.ArgumentParser(description="Money Machine Job Runner")
-    parser.add_argument("--json", type=str, help="JSON payload string")
-    parser.add_argument("--file", type=str, help="JSON payload file")
-    parser.add_argument("--stdin", action="store_true", help="Read JSON from stdin")
-    parser.add_argument("--mode", type=str, default="shorts", help="Production mode")
-    parser.add_argument("--topic", type=str, help="Topic override")
-    parser.add_argument("--no-upload", action="store_true", help="Skip upload")
-    args = parser.parse_args()
+    args = parse_args()
     
-    # Parse payload
+    # Build payload
     if args.json:
         payload = json.loads(args.json)
-    elif args.file:
-        payload = json.loads(Path(args.file).read_text())
     elif args.stdin:
         payload = json.loads(sys.stdin.read())
     else:
-        payload = {}
+        payload = {
+            "mode": args.mode,
+            "topic": args.topic,
+            "force_upload": args.force_upload and not args.no_upload
+        }
     
-    # Apply CLI overrides
-    if args.mode:
-        payload["mode"] = args.mode
-    if args.topic:
-        payload["topic"] = args.topic
-    if args.no_upload:
-        payload["force_upload"] = False
+    # Execute job
+    executor = JobExecutor()
+    result = await executor.execute(payload)
     
-    # Default to shorts with upload
-    payload.setdefault("mode", "shorts")
-    payload.setdefault("force_upload", True)
-    
-    # Run job
-    runner = JobRunner()
-    result = await runner.run(payload)
-    
-    # Output JSON result (for n8n to consume)
+    # Output JSON result
+    print("\n" + "="*60)
+    print("JOB RESULT:")
+    print("="*60)
     print(json.dumps(result, indent=2))
     
-    # Exit with appropriate code
-    sys.exit(0 if result["status"] == "SUCCESS" else 1)
+    return result
 
 
 if __name__ == "__main__":

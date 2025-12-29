@@ -1,0 +1,355 @@
+{
+  "name": "ANOINTMENT FLOOD - RAWSCROLL & OnTheDaily Repurposing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-flood",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/anointment~viral-scraper/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sources\": [\"tiktok\", \"instagram\", \"facebook\"],\n  \"minViews\": 500000,\n  \"maxAgeDays\": 3,\n  \"limit\": 20\n}"
+      },
+      "id": "scrape-viral",
+      "name": "Scrape Viral Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "wait-scrape",
+      "name": "Wait for Scrape",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/acts/anointment~viral-scraper/runs/{{ $json.data.id }}/dataset/items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-viral",
+      "name": "Fetch Viral Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.views }}",
+              "operation": "largerEqual",
+              "value2": 500000
+            }
+          ]
+        }
+      },
+      "id": "filter-500k",
+      "name": "Filter 500k+ Views",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clockworks~tiktok-video-downloader-no-watermarks/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.video_url }}\"\n}"
+      },
+      "id": "download-clean",
+      "name": "Download Clean MP4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-download",
+      "name": "Wait Download",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RAILWAY_BACKEND_URL }}/remix",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_url\": \"{{ $json.download_url }}\",\n  \"remix_options\": {\n    \"speed\": 1.05,\n    \"mirror\": true,\n    \"crop_percent\": 5,\n    \"add_header\": true,\n    \"header_text\": \"{{ $node['Fetch Viral Videos'].json.caption.substring(0, 50) }}\",\n    \"music_volume\": 0.20\n  }\n}"
+      },
+      "id": "remix-video",
+      "name": "Remix Video (Anointment)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 0],
+      "notesInFlow": true,
+      "notes": "1.05x speed + mirror + crop + header = unique fingerprint"
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "wait-remix",
+      "name": "Wait Remix",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "list",
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.SUNO_MUSIC_FOLDER_ID }}"
+        }
+      },
+      "id": "list-suno",
+      "name": "List Suno Bank",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Add random Suno track at 20% volume\nconst files = $input.all();\nconst randomTrack = files[Math.floor(Math.random() * files.length)];\n\nreturn [{\n  json: {\n    remixed_url: $('Remix Video (Anointment)').item.json.remixed_url,\n    suno_track: randomTrack.json.webContentLink,\n    original_caption: $('Fetch Viral Videos').item.json.caption,\n    original_source: $('Fetch Viral Videos').item.json.source\n  }\n}];"
+      },
+      "id": "add-suno",
+      "name": "Add Suno Background",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.RAWSCROLL_IG_USER_ID }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.RAWSCROLL_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_type\": \"REELS\",\n  \"video_url\": \"{{ $json.remixed_url }}\",\n  \"caption\": \"🔥 #viral #trending #fyp\"\n}"
+      },
+      "id": "rawscroll-ig",
+      "name": "RAWSCROLL → Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, -150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.RAWSCROLL_FB_PAGE_ID }}/videos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.RAWSCROLL_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"file_url\": \"{{ $json.remixed_url }}\",\n  \"description\": \"🔥 Trending now!\"\n}"
+      },
+      "id": "rawscroll-fb",
+      "name": "RAWSCROLL → Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.ONTHEDAILY_IG_USER_ID }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.ONTHEDAILY_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_type\": \"REELS\",\n  \"video_url\": \"{{ $json.remixed_url }}\",\n  \"caption\": \"Daily dose 💫 #onthedaily #motivation\"\n}"
+      },
+      "id": "onthedaily-ig",
+      "name": "OnTheDaily → Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $env.ONTHEDAILY_FB_PAGE_ID }}/videos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.ONTHEDAILY_META_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"file_url\": \"{{ $json.remixed_url }}\",\n  \"description\": \"Daily inspiration 💫\"\n}"
+      },
+      "id": "onthedaily-fb",
+      "name": "OnTheDaily → Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#anointment-flood",
+        "text": "=🌊 FLOOD POST COMPLETE\n\n📱 Platforms: IG + FB (RAWSCROLL & OnTheDaily)\n🎬 Source: {{ $json.original_source }}\n💰 Cost: ~$0.05\n⏱️ Time: {{ new Date().toISOString() }}"
+      },
+      "id": "notify-flood",
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2800, 75]
+    }
+  ],
+  "connections": {
+    "Every 4 Hours": {
+      "main": [[{"node": "Scrape Viral Content", "type": "main", "index": 0}]]
+    },
+    "Scrape Viral Content": {
+      "main": [[{"node": "Wait for Scrape", "type": "main", "index": 0}]]
+    },
+    "Wait for Scrape": {
+      "main": [[{"node": "Fetch Viral Videos", "type": "main", "index": 0}]]
+    },
+    "Fetch Viral Videos": {
+      "main": [[{"node": "Filter 500k+ Views", "type": "main", "index": 0}]]
+    },
+    "Filter 500k+ Views": {
+      "main": [[{"node": "Download Clean MP4", "type": "main", "index": 0}]]
+    },
+    "Download Clean MP4": {
+      "main": [[{"node": "Wait Download", "type": "main", "index": 0}]]
+    },
+    "Wait Download": {
+      "main": [[{"node": "Remix Video (Anointment)", "type": "main", "index": 0}]]
+    },
+    "Remix Video (Anointment)": {
+      "main": [[{"node": "Wait Remix", "type": "main", "index": 0}]]
+    },
+    "Wait Remix": {
+      "main": [[{"node": "List Suno Bank", "type": "main", "index": 0}]]
+    },
+    "List Suno Bank": {
+      "main": [[{"node": "Add Suno Background", "type": "main", "index": 0}]]
+    },
+    "Add Suno Background": {
+      "main": [
+        [
+          {"node": "RAWSCROLL → Instagram", "type": "main", "index": 0},
+          {"node": "RAWSCROLL → Facebook", "type": "main", "index": 0},
+          {"node": "OnTheDaily → Instagram", "type": "main", "index": 0},
+          {"node": "OnTheDaily → Facebook", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "RAWSCROLL → Instagram": {
+      "main": [[{"node": "Notify Success", "type": "main", "index": 0}]]
+    },
+    "RAWSCROLL → Facebook": {
+      "main": [[{"node": "Notify Success", "type": "main", "index": 0}]]
+    },
+    "OnTheDaily → Instagram": {
+      "main": [[{"node": "Notify Success", "type": "main", "index": 0}]]
+    },
+    "OnTheDaily → Facebook": {
+      "main": [[{"node": "Notify Success", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["flood", "repurpose", "anointment"],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-28T00:00:00.000Z",
+  "versionId": "anointment-flood-v1"
+}
